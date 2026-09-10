@@ -1,0 +1,140 @@
+<script lang="ts">
+  import Tesseract from 'tesseract.js';
+  import { Icon } from '$lib/components/ui';
+  import { i18n } from '$lib/i18n.svelte';
+  import { notifStore } from '$lib/notifications/store.svelte';
+
+  let isScanning = $state(false);
+  let progress = $state(0);
+  let scanResultText = $state('');
+  let detectedAmount = $state<number | null>(null);
+
+  let {
+    onScanComplete,
+  }: {
+    onScanComplete?: (data: { text: string; amount: number | null }) => void;
+  } = $props();
+
+  async function handleFileSelect(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (!target.files || target.files.length === 0) return;
+    const file = target.files[0];
+    await scanReceipt(file);
+  }
+
+  async function scanReceipt(file: File) {
+    isScanning = true;
+    progress = 0;
+    scanResultText = '';
+    detectedAmount = null;
+
+    try {
+      const worker = await Tesseract.createWorker('eng', 1, {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            progress = Math.round(m.progress * 100);
+          }
+        },
+      });
+
+      const ret = await worker.recognize(file);
+      await worker.terminate();
+
+      scanResultText = ret.data.text;
+
+      const lines = scanResultText.split('\n');
+      let maxAmount = 0;
+
+      for (const line of lines) {
+        const matches = line.match(/\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\b/g);
+        if (matches) {
+          for (const match of matches) {
+            const cleanStr = match.replace(/[^\d]/g, '');
+            const val = parseInt(cleanStr, 10);
+            if (!isNaN(val) && val > maxAmount && val < 1000000000) {
+              maxAmount = val;
+            }
+          }
+        }
+      }
+
+      if (maxAmount > 0) {
+        detectedAmount = maxAmount;
+      }
+
+      onScanComplete?.({
+        text: scanResultText,
+        amount: detectedAmount,
+      });
+    } catch {
+      notifStore.addNotification({
+        type: 'LEDGER_INTEGRITY',
+        priority: 'high',
+        title: i18n.t.receiptScannerTitle,
+        message: i18n.t.receiptOcrFailed,
+      });
+    } finally {
+      isScanning = false;
+    }
+  }
+</script>
+
+<div
+  class="border-line bg-bg-app hover:border-teal/50 hover:bg-teal/5 relative flex flex-col items-center justify-center border-2 border-dashed p-6 text-center transition-colors"
+>
+  <input
+    type="file"
+    accept="image/*"
+    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+    onchange={handleFileSelect}
+    disabled={isScanning}
+  />
+
+  {#if isScanning}
+    <div class="flex flex-col items-center gap-3">
+      <div class="text-teal animate-spin">
+        <Icon name="refresh" size={24} />
+      </div>
+      <span class="font-proto text-teal text-[10px] font-bold tracking-widest uppercase">
+        {i18n.t.receiptScanning.replace('{percent}', String(progress))}
+      </span>
+      <div class="bg-bg-card border-line h-1 w-48 border">
+        <div class="bg-teal h-full transition-all" style="width: {progress}%"></div>
+      </div>
+    </div>
+  {:else}
+    <div class="text-text-muted mb-2"><Icon name="chart" size={24} /></div>
+    <h3 class="font-proto text-text-strong mb-1 text-xs font-bold tracking-widest uppercase">
+      {i18n.t.receiptScannerTitle}
+    </h3>
+    <p class="font-proto text-text-dim max-w-xs text-[10px]">
+      {i18n.t.receiptScannerDesc}
+    </p>
+  {/if}
+</div>
+
+{#if scanResultText && !isScanning}
+  <div class="border-line bg-bg-card mt-4 border p-3">
+    <div class="mb-2 flex items-center justify-between">
+      <span class="font-proto text-text-muted text-[9px] tracking-widest uppercase"
+        >{i18n.t.receiptExtractedData}</span
+      >
+      {#if detectedAmount}
+        <span
+          class="font-proto text-teal bg-teal/10 border-teal/20 border px-2 py-0.5 text-[11px] font-bold tabular-nums"
+        >
+          {i18n.t.receiptTotalDetected.replace(
+            '{amount}',
+            detectedAmount.toLocaleString(i18n.locale === 'id' ? 'id-ID' : 'en-US')
+          )}
+        </span>
+      {/if}
+    </div>
+
+    <div
+      class="text-text-dim bg-bg-app border-line max-h-32 overflow-y-auto border p-2 font-mono text-[9px] whitespace-pre-wrap"
+    >
+      {scanResultText}
+    </div>
+  </div>
+{/if}

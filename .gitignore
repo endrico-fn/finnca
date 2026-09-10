@@ -1,0 +1,29 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build outputs
+.svelte-kit/
+build/
+dist/
+
+# tauri / rust
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# logs / os
+*.log
+.DS_Store
+Thumbs.db
+
+.env
+.env.*
+!.env.example
+*.local
+*.tsbuildinfo
+
+# finnca vault secrets — never commit
+*.age
+*.key
+.finnca-test
+finnca-*-backup/
