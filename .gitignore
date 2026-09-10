@@ -27,3 +27,9 @@ Thumbs.db
 *.key
 .finnca-test
 finnca-*-backup/
+
+# scratch / one-off scripts — never commit
+extract-calendar.cjs
+split_finance.cjs
+test-pdfmake.mjs
+lint_output.txt
