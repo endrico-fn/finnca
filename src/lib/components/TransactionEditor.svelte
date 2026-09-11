@@ -11,7 +11,7 @@
   } from '$lib/accounting/finance';
   import { i18n } from '$lib/i18n.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-  import { Icon, Button, CloseButton } from '$lib/components/ui';
+  import { Icon, Button, CloseButton, SelectDropdown } from '$lib/components/ui';
   import ReceiptScanner from '$lib/components/ui/ReceiptScanner.svelte';
 
   let {
@@ -320,33 +320,13 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   tabindex="-1"
   role="region"
   aria-label="Transaction Editor"
   onkeydown={handleKeydown}
-  class="border-line bg-bg-card border p-4 font-mono outline-none"
+  class="outline-none"
 >
-  <div class="flex h-8 shrink-0 items-center justify-between pb-2.5">
-    <div class="flex items-center gap-2.5">
-      <span class="bg-income size-2 shrink-0"></span>
-      <h2 class="label-title text-[13px] leading-none">
-        {tx ? i18n.t.editTransactionTitle : i18n.t.newTransactionTitle}
-      </h2>
-    </div>
-    <div class="flex shrink-0 items-center gap-2">
-      <span
-        class="font-proto px-2.5 py-0.5 text-[10px] leading-none tracking-wide {headerBalanced
-          ? 'badge-ok'
-          : 'badge-warn'}"
-      >
-        {headerImbalanceText}
-      </span>
-      <CloseButton onclick={onCancel} title={`${i18n.t.closeBtn} (Esc)`} />
-    </div>
-  </div>
-
   {#if error}
     <div class="badge-err mt-2 px-3 py-2 text-[11px]">{error}</div>
   {/if}
@@ -473,24 +453,33 @@
       <div class="grid gap-2 md:grid-cols-[1fr_1fr_160px]">
         <div>
           <span class="label-xs">{i18n.t.sourceAccount}</span>
-          <select
+          <SelectDropdown
             bind:value={standardFrom}
-            class="sharp-input mt-1 w-full px-2.5 py-1.5 text-[11px]"
-          >
-            <option value="">— {i18n.t.txSelectAccount} —</option>
-            {#each leafAccounts as acc (acc.id)}
-              <option value={acc.id}>{acc.code} — {acc.name} [{acc.type}]</option>
-            {/each}
-          </select>
+            searchable
+            placeholder={i18n.t.txSelectAccount}
+            options={leafAccounts.map((a) => ({
+              value: a.id,
+              label: `${a.code} — ${a.name}`,
+              sublabel: `[${a.type}]`,
+            }))}
+            class="w-full"
+            menuClass="w-full"
+          />
         </div>
         <div>
           <span class="label-xs">{i18n.t.targetAccount}</span>
-          <select bind:value={standardTo} class="sharp-input mt-1 w-full px-2.5 py-1.5 text-[11px]">
-            <option value="">— {i18n.t.txSelectAccount} —</option>
-            {#each leafAccounts as acc (acc.id)}
-              <option value={acc.id}>{acc.code} — {acc.name} [{acc.type}]</option>
-            {/each}
-          </select>
+          <SelectDropdown
+            bind:value={standardTo}
+            searchable
+            placeholder={i18n.t.txSelectAccount}
+            options={leafAccounts.map((a) => ({
+              value: a.id,
+              label: `${a.code} — ${a.name}`,
+              sublabel: `[${a.type}]`,
+            }))}
+            class="w-full"
+            menuClass="w-full"
+          />
         </div>
         <div>
           <span class="label-xs">{i18n.t.amount} ({draft.currency})</span>
@@ -583,12 +572,18 @@
             {#each draft.splits as sp (sp.id)}
               <tr class="hover:bg-bg-row-active/30">
                 <td class="px-2 py-1.5">
-                  <select bind:value={sp.accountId} class="sharp-input w-full min-w-45 px-2 py-1.5">
-                    <option value="">— {i18n.t.txSelectAccount} —</option>
-                    {#each leafAccounts as a (a.id)}
-                      <option value={a.id}>{a.code} — {a.name} ({a.type})</option>
-                    {/each}
-                  </select>
+                  <SelectDropdown
+                    bind:value={sp.accountId}
+                    searchable
+                    placeholder={i18n.t.txSelectAccount}
+                    options={leafAccounts.map((a) => ({
+                      value: a.id,
+                      label: `${a.code} — ${a.name}`,
+                      sublabel: `[${a.type}]`,
+                    }))}
+                    class="w-full"
+                    menuClass="w-max"
+                  />
                 </td>
                 <td class="px-2 py-1.5">
                   <input
