@@ -7,7 +7,7 @@
     currentPage = $bindable(),
     totalPages,
     totalItems = undefined,
-    itemLabel = 'items',
+    itemLabel = '',
     class: extraClass = '',
     layout = 'grouped',
   } = $props<{
@@ -19,6 +19,8 @@
     layout?: 'grouped' | 'spread';
   }>();
 
+  const resolvedItemLabel = $derived(itemLabel || i18n.t.paginationDefaultUnit);
+
   function prev() {
     currentPage = Math.max(1, currentPage - 1);
   }
@@ -28,21 +30,21 @@
   }
 </script>
 
-<div class={layout === 'spread' ? `flex w-full items-center justify-between ${extraClass}` : `flex items-center gap-2 ${extraClass}`}>
-  <Button
-    variant="pager"
-    onclick={prev}
-    disabled={currentPage <= 1}
-    ariaLabel={i18n.t.prev}
-  >
+<div
+  class={layout === 'spread'
+    ? `flex w-full items-center justify-between ${extraClass}`
+    : `flex items-center gap-2 ${extraClass}`}
+>
+  <Button variant="pager" onclick={prev} disabled={currentPage <= 1} ariaLabel={i18n.t.prev}>
     <Icon name="chev-left" size={14} />
     {i18n.t.prev}
   </Button>
-  
-  <span class="font-proto text-text-dim px-1 text-[10px] tabular-nums">
-    {currentPage} / {totalPages}{#if totalItems !== undefined} &bull; {totalItems} {itemLabel}{/if}
+
+  <span class="font-proto text-text-dim text-smaller px-1 tabular-nums">
+    {currentPage} / {totalPages}{#if totalItems !== undefined}
+      &bull; {totalItems} {resolvedItemLabel}{/if}
   </span>
-  
+
   <Button
     variant="pager"
     onclick={next}

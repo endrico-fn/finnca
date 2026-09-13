@@ -9,17 +9,23 @@
     Splash,
     ErrorState,
     PageLayout,
+    Card,
     Button,
     Icon,
-    SelectDropdown,
     SearchBar,
     Pagination,
+    FilterMenu,
+    FilterSection,
+    FilterOption,
+    DateRangeDropdown,
+    ModalShell,
   } from '$lib/components/ui';
 
   let q = $state('');
   let from = $state('');
   let to = $state('');
   let accFilter = $state('');
+  let accFilterOpen = $state(false);
   let editing = $state<Transaction | null>(null);
   let showNew = $state(false);
   let expandedId = $state<string | null>(null);
@@ -55,6 +61,44 @@
   const totalTxPages = $derived(Math.max(1, Math.ceil(filtered.length / TX_PAGE_SIZE)));
   const pagedTxs = $derived(filtered.slice((txPage - 1) * TX_PAGE_SIZE, txPage * TX_PAGE_SIZE));
 
+  const baseTxs = $derived(
+    ledger.transactions.filter((t) => {
+      if (
+        q &&
+        !`${t.description} ${t.num ?? ''} ${t.notes ?? ''}`.toLowerCase().includes(q.toLowerCase())
+      )
+        return false;
+      if (from && t.date < from) return false;
+      if (to && t.date > to) return false;
+      return true;
+    })
+  );
+
+  const accTxCounts = $derived.by(() => {
+    const counts: Record<string, number> = {};
+    for (const t of baseTxs) {
+      const seen: Record<string, true> = {};
+      for (const s of t.splits) {
+        if (seen[s.accountId]) continue;
+        seen[s.accountId] = true;
+        counts[s.accountId] = (counts[s.accountId] ?? 0) + 1;
+      }
+    }
+    return counts;
+  });
+
+  const leafAccounts = $derived(
+    ledger.accounts
+      .filter((a) => !a.placeholder)
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
+  );
+
+  const selectedAcc = $derived(accFilter ? ledger.accountsById.get(accFilter) : undefined);
+
+  const accFilterLabel = $derived(
+    selectedAcc ? `${selectedAcc.code} ${selectedAcc.name}` : i18n.t.filterBtn
+  );
+
   const idrDebit = $derived(
     filtered
       .filter((t) => t.currency === 'IDR')
@@ -89,13 +133,13 @@
   function handleKeydown(e: KeyboardEvent) {
     // Don't trigger if user is typing in an input/textarea
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    
+
     // Command Palette CMD+K is handled globally, but we can do j/k here
     if (e.key === 'j') {
       e.preventDefault();
       if (selectedRowIndex === null) selectedRowIndex = 0;
       else selectedRowIndex = Math.min(pagedTxs.length - 1, selectedRowIndex + 1);
-      
+
       const tx = pagedTxs[selectedRowIndex];
       if (tx) {
         // scroll into view
@@ -105,7 +149,7 @@
       e.preventDefault();
       if (selectedRowIndex === null) selectedRowIndex = pagedTxs.length - 1;
       else selectedRowIndex = Math.max(0, selectedRowIndex - 1);
-      
+
       const tx = pagedTxs[selectedRowIndex];
       if (tx) {
         document.getElementById(`tx-row-${tx.id}`)?.scrollIntoView({ block: 'nearest' });
@@ -173,9 +217,9 @@
   {:else if ledger.error}
     <ErrorState message={ledger.error} onRetry={() => ledger.load()} />
   {:else}
-    <div class="sharp-card flex flex-1 flex-col overflow-hidden p-3">
+    <Card padding={false} class="min-h-0 flex-1">
       <!-- Filter toolbar -->
-      <div class="border-line flex shrink-0 items-center gap-2 border-b pb-2.5">
+      <div class="border-line flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2.5">
         <SearchBar
           bind:value={q}
           oninput={resetTxPage}
@@ -183,28 +227,49 @@
           placeholder={i18n.t.searchPlaceholder}
           class="max-w-none min-w-36 flex-1"
         />
-        <SelectDropdown
-          bind:value={accFilter}
-          onSelect={resetTxPage}
-          size="sm"
-          class="min-w-44"
-          options={[
-            { value: '', label: `${i18n.t.allTxs} — ${i18n.t.allAccountsFilter}` },
-            ...ledger.accounts
-              .filter((a) => !a.placeholder)
-              .map((acc) => ({
-                value: acc.id,
-                label: `${acc.code} ${acc.name}`,
-              })),
-          ]}
-        />
-        <div class="flex shrink-0 items-center gap-1">
-          <input type="date" bind:value={from} onchange={resetTxPage} class="sharp-input h-7 px-1.5 py-0.5 text-[10px]" />
-          <span class="text-text-dim px-0.5">-</span>
-          <input type="date" bind:value={to} onchange={resetTxPage} class="sharp-input h-7 px-1.5 py-0.5 text-[10px]" />
-        </div>
-        <span class="text-text-dim font-proto shrink-0 px-1 text-[10px]">
-          {filtered.length}/{ledger.transactions.length} TX
+        <FilterMenu
+          bind:open={accFilterOpen}
+          label={accFilterLabel}
+          active={accFilter !== ''}
+          count={accFilter !== '' ? 1 : 0}
+          onReset={() => {
+            accFilter = '';
+            resetTxPage();
+          }}
+          resetLabel={i18n.t.reset}
+          resetDisabled={accFilter === ''}
+          panelClass="w-72"
+        >
+          <FilterSection title={i18n.t.filterAccountTitle} layout="list">
+            <FilterOption
+              label={`${i18n.t.allTxs} — ${i18n.t.allAccountsFilter}`}
+              count={baseTxs.length}
+              selected={accFilter === ''}
+              check={false}
+              onclick={() => {
+                accFilter = '';
+                resetTxPage();
+                accFilterOpen = false;
+              }}
+            />
+            {#each leafAccounts as acc (acc.id)}
+              <FilterOption
+                label={`${acc.code} ${acc.name}`}
+                count={accTxCounts[acc.id] ?? 0}
+                selected={accFilter === acc.id}
+                onclick={() => {
+                  accFilter = acc.id;
+                  resetTxPage();
+                  accFilterOpen = false;
+                }}
+              />
+            {/each}
+          </FilterSection>
+        </FilterMenu>
+        <DateRangeDropdown bind:from bind:to onChange={resetTxPage} size="md" />
+        <span class="text-text-dim font-proto text-smaller shrink-0 px-1">
+          {filtered.length}/{ledger.transactions.length}
+          {i18n.t.txUnit}
         </span>
         {#if q || from || to || accFilter}
           <Button
@@ -223,22 +288,22 @@
         {/if}
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto py-2">
+      <div class="min-h-0 flex-1 overflow-y-auto px-3 py-2">
         {#if filtered.length === 0}
           <div class="flex h-full items-center justify-center p-8">
-            <p class="text-text-muted text-[12px]">
+            <p class="text-text-muted text-small">
               {ledger.transactions.length === 0 ? i18n.t.noTxRecorded : i18n.t.noTxMatchFilter}
             </p>
           </div>
         {:else}
-          <table class="w-full border-collapse text-[12px]">
+          <table class="text-small w-full border-collapse">
             <thead class="bg-bg-card sticky top-0 z-10">
               <tr class="border-line text-text-base border-b">
-                <th class="label-xs w-27.5 py-2 pl-2 text-left font-normal">{i18n.t.date}</th>
+                <th class="label-xs w-28 py-2 pl-2 text-left font-normal">{i18n.t.date}</th>
                 <th class="label-xs px-3 py-2 text-left font-normal">{i18n.t.description}</th>
-                <th class="label-xs w-35 px-3 py-2 text-right font-normal">{i18n.t.amount}</th>
+                <th class="label-xs w-36 px-3 py-2 text-right font-normal">{i18n.t.amount}</th>
                 <th class="label-xs w-20 px-3 py-2 text-center font-normal">{i18n.t.status}</th>
-                <th class="w-15 py-2 pr-2"></th>
+                <th class="w-16 py-2 pr-2"></th>
               </tr>
             </thead>
             <tbody class="divide-line/40 divide-y">
@@ -253,9 +318,9 @@
 
                 <tr
                   id="tx-row-{tx.id}"
-                  class="cursor-pointer transition-colors {isSelected ? 'ring-teal ring-inset ring-1 bg-teal/5' : ''} {isEditing
-                    ? 'bg-bg-row-active'
-                    : 'hover:bg-bg-row-active/40'}"
+                  class="cursor-pointer transition-colors {isSelected
+                    ? 'bg-bg-row-active outline-teal outline outline-1 -outline-offset-1'
+                    : ''} {isEditing ? 'bg-bg-row-active' : 'hover:bg-bg-row-active'}"
                   onclick={() => {
                     expandedId = expanded ? null : tx.id;
                     selectedRowIndex = index;
@@ -267,14 +332,14 @@
                       <span class="truncate">{tx.description}</span>
                       {#if tx.num}
                         <span
-                          class="bg-bg-app border-line text-text-muted font-proto border px-1 text-[10px]"
+                          class="bg-bg-app border-line text-text-muted font-proto text-smaller border px-1"
                         >
                           {tx.num}
                         </span>
                       {/if}
                     </div>
                     {#if tx.notes}
-                      <p class="text-text-muted mt-0.5 text-[10px]">
+                      <p class="text-text-muted text-smaller mt-0.5">
                         {tx.notes}
                       </p>
                     {/if}
@@ -284,9 +349,9 @@
                   </td>
                   <td class="px-3 py-2 text-center">
                     {#if imb !== 0}
-                      <span class="badge-err px-1.5 py-0.5 text-[10px]">{i18n.t.badgeImbal}</span>
+                      <span class="badge-err text-smaller px-1.5 py-0.5">{i18n.t.badgeImbal}</span>
                     {:else}
-                      <span class="badge-ok px-1.5 py-0.5 text-[10px]">{i18n.t.badgeOk}</span>
+                      <span class="badge-ok text-smaller px-1.5 py-0.5">{i18n.t.badgeOk}</span>
                     {/if}
                   </td>
                   <td class="py-2 pr-2 text-right">
@@ -382,7 +447,7 @@
       </div>
 
       <div
-        class="border-line text-text-muted font-proto mt-1 flex shrink-0 items-center justify-between border-t pt-2 text-[11px]"
+        class="border-line/40 flex shrink-0 items-center justify-between gap-2 border-t px-3 pt-1.5"
       >
         <div class="flex items-center gap-4">
           <span>
@@ -400,16 +465,22 @@
           </span>
         </div>
 
-        <Pagination bind:currentPage={txPage} totalPages={totalTxPages} totalItems={filtered.length} itemLabel="TX" />
+        <Pagination
+          bind:currentPage={txPage}
+          totalPages={totalTxPages}
+          totalItems={filtered.length}
+          itemLabel={i18n.t.txUnit}
+        />
       </div>
-    </div>
+    </Card>
   {/if}
 
-  {#if showNew}
-    <div class="bg-overlay/60 fixed inset-0 z-50 flex items-center justify-center p-4 font-mono">
-      <div class="anim-modal max-h-[90vh] w-full max-w-4xl overflow-y-auto">
-        <TransactionEditor tx={null} onSave={handleSave} onCancel={() => (showNew = false)} />
-      </div>
-    </div>
-  {/if}
+  <ModalShell
+    bind:open={showNew}
+    title={i18n.t.newTransactionTitle}
+    maxWidth="max-w-5xl"
+    onClose={() => (showNew = false)}
+  >
+    <TransactionEditor tx={null} onSave={handleSave} onCancel={() => (showNew = false)} />
+  </ModalShell>
 </PageLayout>

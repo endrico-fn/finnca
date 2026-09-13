@@ -1,10 +1,15 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
-  import { ACCOUNT_TYPE_LABEL, ACCOUNT_TYPE_COLOR, type Account } from '$lib/accounting/types';
+  import {
+    ACCOUNT_TYPES,
+    accountTypeLabel,
+    ACCOUNT_TYPE_COLOR,
+    type Account,
+  } from '$lib/accounting/types';
   import { getAccountPath } from '$lib/accounting/finance';
   import { todayString } from '$lib/accounting/finance';
   import { i18n } from '$lib/i18n.svelte';
-  import { Tabs } from '$lib/components/ui';
+  import { Tabs, SelectDropdown, Button } from '$lib/components/ui';
 
   let {
     form = $bindable<Partial<Account>>({}),
@@ -34,19 +39,45 @@
   );
 
   const colorOptions = Object.values(ACCOUNT_TYPE_COLOR);
-  const presetColors = [...colorOptions, '#ffffff', '#000000', ''];
+  const ACCOUNT_LIGHT_SWATCH = 'var(--color-text-white)';
+  const ACCOUNT_DARK_SWATCH = 'var(--color-bg-app)';
+  const presetColors = [...colorOptions, ACCOUNT_LIGHT_SWATCH, ACCOUNT_DARK_SWATCH, ''];
+  const DEFAULT_SWATCH_HEX = '#4ea398'; // native color input rejects var(); mirrors --palette-teal
 
   function setColor(c: string) {
     form.color = c || undefined;
   }
 
+  function normalizeSwatch(c: string): string {
+    const n = c.trim().toLowerCase();
+    if (n === '#ffffff' || n === '#fff') return ACCOUNT_LIGHT_SWATCH.toLowerCase();
+    if (n === '#000000' || n === '#000') return ACCOUNT_DARK_SWATCH.toLowerCase();
+    return n;
+  }
+
+  function isActiveSwatch(c: string): boolean {
+    return normalizeSwatch(form.color ?? '') === normalizeSwatch(c);
+  }
+
+  function isLightSwatch(c: string): boolean {
+    const n = normalizeSwatch(c);
+    if (n === ACCOUNT_LIGHT_SWATCH.toLowerCase()) return true;
+    if (n === ACCOUNT_DARK_SWATCH.toLowerCase()) return false;
+    const hex = n.match(/^#([0-9a-f]{6})$/);
+    if (!hex) return false;
+    const v = parseInt(hex[1], 16);
+    const luminance =
+      (0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255)) / 255;
+    return luminance > 0.6;
+  }
+
   const smallestFractionText = $derived(
-    form.currency === 'USD' ? '1/100 (USD cents)' : '1 (IDR rupiah)'
+    form.currency === 'USD' ? i18n.t.smallestFractionUsd : i18n.t.smallestFractionIdr
   );
 </script>
 
 {#if error}
-  <div class="badge-err px-2.5 py-1.5 text-[11px]">{error}</div>
+  <div class="badge-err text-small px-2.5 py-1.5">{error}</div>
 {/if}
 
 <!-- Tabs — sticky agar tidak ikut scroll -->
@@ -76,7 +107,11 @@
       </div>
       <div class="grid grid-cols-[110px_1fr] items-center gap-2">
         <span class="label-xs">{i18n.t.code} *</span>
-        <input bind:value={form.code} placeholder={i18n.t.accountCodePlaceholder} class="sharp-input w-full px-2.5 py-1.5" />
+        <input
+          bind:value={form.code}
+          placeholder={i18n.t.accountCodePlaceholder}
+          class="sharp-input w-full px-2.5 py-1.5"
+        />
       </div>
       <div class="grid grid-cols-[110px_1fr] items-center gap-2">
         <span class="label-xs">{i18n.t.descriptionField}</span>
@@ -88,27 +123,38 @@
       </div>
       <div class="grid grid-cols-[110px_1fr] items-center gap-2">
         <span class="label-xs">{i18n.t.parent}</span>
-        <select bind:value={form.parentId} class="sharp-input w-full px-2.5 py-1.5">
-          <option value={null}>— ROOT (PRIMARY) —</option>
-          {#each parentOptions as opt (opt.id)}
-            <option value={opt.id}>{opt.label}</option>
-          {/each}
-        </select>
+        <SelectDropdown
+          value={form.parentId ?? ''}
+          onSelect={(v) => (form.parentId = v || null)}
+          placeholder={i18n.t.accountRootOpt}
+          options={parentOptions.map((opt) => ({ value: opt.id, label: opt.label }))}
+          class="w-full"
+        />
       </div>
       <div class="grid grid-cols-[110px_1fr] items-center gap-2">
         <span class="label-xs">{i18n.t.type} *</span>
-        <select bind:value={form.type} class="sharp-input w-full px-2.5 py-1.5">
-          {#each Object.entries(ACCOUNT_TYPE_LABEL) as [k, v] (k)}
-            <option value={k}>{v} ({k})</option>
-          {/each}
-        </select>
+        <SelectDropdown
+          value={form.type ?? ''}
+          onSelect={(v) => (form.type = v as Account['type'])}
+          placeholder={i18n.t.accountTypeRequired}
+          options={ACCOUNT_TYPES.map((k) => ({
+            value: k,
+            label: `${accountTypeLabel(k)} (${k})`,
+          }))}
+          class="w-full"
+        />
       </div>
       <div class="grid grid-cols-[110px_1fr] items-center gap-2">
         <span class="label-xs">{i18n.t.currency}</span>
-        <select bind:value={form.currency} class="sharp-input w-full px-2.5 py-1.5">
-          <option value="IDR">IDR — Indonesian Rupiah</option>
-          <option value="USD">USD — US Dollar</option>
-        </select>
+        <SelectDropdown
+          value={form.currency ?? ''}
+          onSelect={(v) => (form.currency = v as Account['currency'])}
+          options={[
+            { value: 'IDR', label: i18n.t.currencyIdrOpt },
+            { value: 'USD', label: i18n.t.currencyUsdOpt },
+          ]}
+          class="w-full"
+        />
       </div>
       <div class="grid grid-cols-[110px_1fr] items-center gap-2">
         <span class="label-xs">{i18n.t.smallestFraction}</span>
@@ -116,44 +162,48 @@
           class="sharp-input text-text-muted flex w-full items-center justify-between px-2.5 py-1.5"
         >
           <span>{i18n.t.useCommodityValue} — {smallestFractionText}</span>
-          <span class="text-text-muted text-[10px]">auto</span>
+          <span class="text-text-muted text-smaller">{i18n.t.commonAuto}</span>
         </div>
       </div>
       <div class="grid grid-cols-[110px_1fr] gap-2">
         <span class="label-xs pt-2">{i18n.t.accountColor}</span>
         <div class="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onclick={() => setColor('')}
-            class="border px-2.5 py-1 text-[11px] {!form.color
-              ? 'bg-line text-text-white border-line'
-              : 'bg-bg-app text-text-muted border-line hover:border-text-muted'}">{i18n.t.defaultColorLabel}</button
+          <Button
+            variant={!form.color ? 'primary' : 'ghost'}
+            size="sm"
+            pressed={!form.color}
+            onclick={() => setColor('')}>{i18n.t.defaultColorLabel}</Button
           >
           {#each presetColors.filter((c) => c) as c (c)}
             <button
               type="button"
               onclick={() => setColor(c)}
-              class="flex size-6 items-center justify-center border transition-all {form.color === c
-                ? 'border-teal ring-teal ring-1'
+              aria-pressed={isActiveSwatch(c)}
+              class="flex size-6 items-center justify-center border transition-colors {isActiveSwatch(
+                c
+              )
+                ? 'border-teal'
                 : 'border-line hover:border-text-muted'}"
               style="background:{c}"
               title={c}
-              aria-label="color {c}"
+              aria-label={i18n.t.accountColorAria.replace('{c}', c)}
             >
-              {#if form.color === c}<span
-                  class="text-[10px]"
-                  style="color:{c === '#ffffff' ? '#000' : '#fff'}">✓</span
+              {#if isActiveSwatch(c)}<span
+                  class="font-proto text-smaller font-bold"
+                  style="color:{isLightSwatch(c)
+                    ? 'var(--color-bg-app)'
+                    : 'var(--color-text-white)'}">✓</span
                 >{/if}
             </button>
           {/each}
           <label class="ml-1 flex items-center gap-1">
             <input
               type="color"
-              value={form.color ?? '#4ea398'}
+              value={form.color?.startsWith('#') ? form.color : DEFAULT_SWATCH_HEX}
               oninput={(e) => setColor((e.target as HTMLInputElement).value)}
               class="border-line size-6 cursor-pointer border bg-transparent p-0"
             />
-            <span class="text-text-muted text-[10px]">{i18n.t.customColorLabel}</span>
+            <span class="text-text-muted text-smaller">{i18n.t.customColorLabel}</span>
           </label>
         </div>
       </div>
@@ -172,16 +222,16 @@
         {i18n.t.balanceLimitTitle}
       </p>
       <div class="border-line bg-bg-app space-y-2 border p-3">
-        <p class="text-text-muted text-[10px] leading-relaxed">
+        <p class="text-text-muted text-smaller leading-relaxed">
           {i18n.t.placeholderHiddenDesc}
         </p>
         <label
-          class="border-line text-text-base flex cursor-pointer items-center gap-2 border-y py-2 text-[11px] uppercase"
+          class="border-line text-text-base text-small flex cursor-pointer items-center gap-2 border-y py-2 uppercase"
         >
           <input type="checkbox" bind:checked={form.placeholder} class="accent-teal" />
           {i18n.t.placeholderGroup}
         </label>
-        <label class="text-text-base flex cursor-pointer items-center gap-2 text-[11px] uppercase">
+        <label class="text-text-base text-small flex cursor-pointer items-center gap-2 uppercase">
           <input type="checkbox" bind:checked={form.hidden} class="accent-teal" />
           {i18n.t.hiddenAccount}
         </label>
@@ -196,7 +246,7 @@
             <span class="label-xs">{i18n.t.colBalance}</span>
             <input
               bind:value={openingBalance}
-              placeholder="0.00"
+              placeholder={i18n.t.commonZeroPlaceholder}
               type="text"
               inputmode="decimal"
               class="sharp-input w-full px-2.5 py-1.5 text-right"
@@ -210,7 +260,7 @@
               class="sharp-input w-full px-2.5 py-1.5"
             />
           </div>
-          <p class="text-text-muted text-[10px] leading-relaxed">
+          <p class="text-text-muted text-smaller leading-relaxed">
             {#if isNew}
               {i18n.t.openingBalanceHintNew}
             {:else}
@@ -222,11 +272,11 @@
       <div>
         <p class="label-xs mb-2">{i18n.t.initialBalanceTransfer}</p>
         <div class="border-line bg-bg-app border p-3">
-          <label class="text-text-base flex items-center gap-2 text-[11px]">
+          <label class="text-text-base text-small flex items-center gap-2">
             <input type="radio" checked disabled class="accent-teal" />
             {i18n.t.openingBalanceEquityLabel}
           </label>
-          <p class="text-text-muted mt-1 ml-6 text-[10px]">
+          <p class="text-text-muted text-smaller mt-1 ml-6">
             {i18n.t.openingBalanceEquityHint}
           </p>
         </div>

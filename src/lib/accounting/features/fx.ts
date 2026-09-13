@@ -1,5 +1,5 @@
 import type { VaultData } from '../types';
-import { convertMinor } from '../core/math';
+import { convertMinor, roundHalfToEven } from '../core/math';
 
 export interface FxRevaluationResult {
   accountId: string;
@@ -21,16 +21,26 @@ export function calculateFxRevaluation(vault: VaultData): {
 
   for (const acc of foreignAccounts) {
     let nativeBalance = 0;
+    let remainingQty = 0;
     let costBasisIdr = 0;
 
-    for (const tx of vault.transactions) {
+    const orderedTxs = [...vault.transactions].sort((a, b) => a.date.localeCompare(b.date));
+    for (const tx of orderedTxs) {
       for (const s of tx.splits) {
         if (s.accountId === acc.id) {
           nativeBalance += s.amount;
 
           const txRate = tx.fxRateAtTransaction || currentFxRate;
-          const idrCost = convertMinor(s.amount, acc.currency, 'IDR', txRate);
-          costBasisIdr += idrCost;
+          if (s.amount > 0) {
+            costBasisIdr += convertMinor(s.amount, acc.currency, 'IDR', txRate);
+            remainingQty += s.amount;
+          } else if (s.amount < 0 && remainingQty > 0) {
+            costBasisIdr -= roundHalfToEven((costBasisIdr * -s.amount) / remainingQty);
+            remainingQty += s.amount;
+          } else {
+            costBasisIdr += convertMinor(s.amount, acc.currency, 'IDR', txRate);
+            remainingQty += s.amount;
+          }
         }
       }
     }

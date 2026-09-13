@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { i18n } from '$lib/i18n.svelte';
   import Icon from './Icon.svelte';
 
   let {
     value = $bindable(''),
-    placeholder = 'Search...',
+    placeholder = '',
     scope,
     class: extraClass = 'max-w-70',
     oninput,
@@ -42,7 +43,7 @@
 </script>
 
 <div
-  class="bg-bg-card border-line focus-within:border-teal flex h-7 w-full min-w-37.5 items-center border transition-colors {extraClass}"
+  class="bg-bg-app border-line focus-within:border-teal flex h-7 w-full min-w-40 items-center border transition-colors {extraClass}"
 >
   {#if scope}
     <div
@@ -52,11 +53,11 @@
       <button
         type="button"
         onclick={() => (scopeOpen = !scopeOpen)}
-        class="text-text-base font-mono hover:text-text-strong inline-flex h-full cursor-pointer items-center gap-1.5 bg-transparent pr-2 pl-2 text-[10px] uppercase select-none"
+        class="text-text-base hover:text-text-strong text-smaller font-proto inline-flex h-full cursor-pointer items-center gap-1.5 bg-transparent pr-2 pl-2 uppercase select-none"
       >
         <span>{selectedScope?.label ?? scope.value}</span>
         <span
-          class="text-text-icon inline-flex transition-transform duration-150 {scopeOpen
+          class="text-text-base inline-flex transition-transform duration-150 {scopeOpen
             ? 'text-teal rotate-180'
             : ''}"
         >
@@ -66,7 +67,7 @@
 
       {#if scopeOpen}
         <div
-          class="border-line bg-bg-card absolute top-full left-0 z-50 mt-1 min-w-32 border py-1 font-mono text-[10px] select-none"
+          class="border-line bg-bg-card text-smaller font-proto absolute top-full left-0 z-50 mt-1 min-w-32 border py-1 select-none"
         >
           {#each scope.options as opt (opt.id || opt)}
             <button
@@ -75,14 +76,14 @@
                 scope?.onchange?.(opt.value);
                 scopeOpen = false;
               }}
-              class="font-mono flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left text-[10px] uppercase transition-colors {opt.value ===
+              class="text-smaller font-proto flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left uppercase transition-colors {opt.value ===
               scope.value
                 ? 'bg-teal/10 text-teal font-semibold'
                 : 'text-text-base hover:bg-line/40 hover:text-text-strong'}"
             >
               <span>{opt.label}</span>
               {#if opt.value === scope.value}
-                <span class="text-teal text-[10px] font-bold">✓</span>
+                <span class="text-teal text-smaller font-bold">✓</span>
               {/if}
             </button>
           {/each}
@@ -90,34 +91,34 @@
       {/if}
     </div>
   {:else}
-    <span class="text-text-icon inline-flex pl-2">
+    <span class="text-text-base inline-flex pl-2">
       <Icon name="search" size={12} />
     </span>
   {/if}
   <input
     type="text"
     bind:value
-    oninput={oninput}
-    {placeholder}
-    aria-label={placeholder || 'Search'}
-    class="text-text-strong placeholder:text-text-muted font-mono h-full w-full bg-transparent px-2 text-[11px] outline-none"
+    {oninput}
+    placeholder={placeholder || i18n.t.searchAllPlaceholder}
+    aria-label={placeholder || i18n.t.searchAriaFallback}
+    class="text-text-strong placeholder:text-text-muted text-small h-full w-full bg-transparent px-2 font-mono outline-none"
   />
   {#if value}
     <button
       type="button"
-      onclick={(e) => {
+      onclick={() => {
         value = '';
         onclear?.();
       }}
-      class="text-text-icon hover:text-text-strong inline-flex h-full items-center px-2"
-      aria-label="Clear search"
+      class="text-text-base hover:text-text-strong inline-flex h-full items-center px-2"
+      aria-label={i18n.t.searchClearLabel}
     >
       <Icon name="close" size={12} />
     </button>
   {:else}
     <div class="flex h-full shrink-0 items-center justify-center px-2">
-      <kbd class="font-mono border-line/50 text-text-muted border px-1 py-0.5 text-[9px]"
-        >CTRL+K</kbd
+      <kbd class="border-line/50 text-text-muted text-smaller font-proto border px-1 py-0.5"
+        >{i18n.t.searchKbdHint}</kbd
       >
     </div>
   {/if}

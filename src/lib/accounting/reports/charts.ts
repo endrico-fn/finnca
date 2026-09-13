@@ -28,9 +28,12 @@ export function historicalDailyBalances(
     acc.name.toLowerCase().includes('kas') ||
     acc.name.toLowerCase().includes('bank');
 
-  let assetsIdr = 0, assetsUsd = 0;
-  let liabilitiesIdr = 0, liabilitiesUsd = 0;
-  let liquidCashIdr = 0, liquidCashUsd = 0;
+  let assetsIdr = 0,
+    assetsUsd = 0;
+  let liabilitiesIdr = 0,
+    liabilitiesUsd = 0;
+  let liquidCashIdr = 0,
+    liquidCashUsd = 0;
 
   const applySplit = (sp: import('../types').Split) => {
     const acc = leafMap.get(sp.accountId);
@@ -77,7 +80,7 @@ export function historicalDailyBalances(
     const d = String(cur.getDate()).padStart(2, '0');
     const dStr = `${y}-${m}-${d}`;
     const dayTxs = txsByDate.get(dStr);
-    
+
     if (dayTxs) {
       for (const tx of dayTxs) {
         for (const sp of tx.splits) applySplit(sp);

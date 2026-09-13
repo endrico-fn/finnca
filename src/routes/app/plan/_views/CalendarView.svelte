@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
-  import { formatIDR, fromMinor, isPlanPostedOnDate, todayString } from '$lib/accounting/finance';
+  import { formatIDR, formatMoney, isPlanPostedOnDate, todayString } from '$lib/accounting/finance';
   import { i18n } from '$lib/i18n.svelte';
-  import type { PaymentPlan } from '$lib/accounting/types';
+  import type { PaymentPlan, Transaction } from '$lib/accounting/types';
   import type { CalendarDay, DateEvents } from '$lib/accounting/finance';
   import { Icon, Badge, Button, Card } from '$lib/components/ui';
 
@@ -62,6 +62,10 @@
     return { in: inTotal, out: outTotal };
   }
 
+  function getTxPositiveTotal(tx: Transaction): number {
+    return tx.splits.filter((s) => s.amount > 0).reduce((acc, sp) => acc + sp.amount, 0);
+  }
+
   const todayStr = todayString();
   const isSelectedToday = $derived(selectedDate === todayStr);
 
@@ -80,18 +84,18 @@
   const rowCount = $derived(calendarDays.length / 7);
 
   function formatCompact(minor: number): string {
-    const n = Math.abs(fromMinor('IDR', minor));
+    const n = Math.abs(minor);
     if (n >= 1_000_000_000) {
       const val = (n / 1_000_000_000).toFixed(1).replace(/\.0$/, '');
-      return `${val}B`;
+      return `${val}${i18n.t.compactBillion}`;
     }
     if (n >= 1_000_000) {
       const val = (n / 1_000_000).toFixed(1).replace(/\.0$/, '');
-      return `${val}M`;
+      return `${val}${i18n.t.compactMillion}`;
     }
     if (n >= 1_000) {
       const val = (n / 1_000).toFixed(0);
-      return `${val}K`;
+      return `${val}${i18n.t.compactThousand}`;
     }
     return String(n);
   }
@@ -101,9 +105,11 @@
   <!-- Left Side: Calendar Grid -->
   <Card class="col-span-8 flex min-h-0 flex-col" padding={false}>
     {#snippet header()}
-      <div class="flex items-center justify-between w-full min-h-7">
+      <div class="flex min-h-7 w-full items-center justify-between">
         <div class="flex items-baseline gap-2">
-          <h2 class="font-proto text-[20px] font-bold tracking-tight text-text-strong uppercase leading-none tabular-nums">
+          <h2
+            class="font-proto text-text-strong text-large leading-none font-bold tracking-tight uppercase tabular-nums"
+          >
             {nav.monthName}
             {#if nav.currentYear}
               <span class="text-text-muted ml-2">{nav.currentYear}</span>
@@ -133,11 +139,13 @@
     {/snippet}
 
     <!-- Secondary Container: Calendar Table & Legend -->
-    <div class="border-line bg-bg-app mx-3 mb-2.5 mt-2 flex min-h-0 flex-1 flex-col overflow-hidden border">
+    <div
+      class="border-line bg-bg-app mx-3 mt-2 mb-2.5 flex min-h-0 flex-1 flex-col overflow-hidden border"
+    >
       <!-- Headers -->
       <div class="border-line bg-bg-card grid shrink-0 grid-cols-7 border-b">
         {#each nav.dayHeaders as dh (dh)}
-          <div class="font-proto text-text-muted py-2 text-center text-[10px] tracking-widest">
+          <div class="font-proto text-text-muted text-smaller py-2 text-center tracking-widest">
             {dh}
           </div>
         {/each}
@@ -155,17 +163,17 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             onclick={() => (selectedDate = day.dateStr)}
-            class="group relative flex h-full min-h-0 cursor-pointer flex-col p-1.5 transition-all duration-200
+            class="group relative flex h-full min-h-0 cursor-pointer flex-col p-1.5 transition-colors
             {day.dateStr === selectedDate
-              ? 'bg-teal/5 z-10 shadow-[inset_0_0_0_1px_var(--color-teal)]'
+              ? 'bg-bg-row-active outline-teal z-10 outline outline-1 -outline-offset-1'
               : !day.isCurrentMonth
-                ? 'bg-bg-app text-text-dim hover:bg-bg-row-hover/50'
-                : 'bg-bg-card hover:bg-bg-row-hover'}
+                ? 'bg-bg-app text-text-dim hover:bg-bg-btn'
+                : 'bg-bg-card hover:bg-bg-btn'}
             "
           >
             <div class="mb-1 flex shrink-0 items-start justify-between gap-1">
               <span
-                class="font-proto flex h-5.5 min-w-5.5 px-1 items-center justify-center text-[11px] transition-colors
+                class="font-proto text-small flex h-6 min-w-6 items-center justify-center px-1 transition-colors
                 {day.dateStr === todayStr
                   ? 'bg-teal text-bg-app font-bold'
                   : day.dateStr === selectedDate
@@ -182,14 +190,14 @@
               <div class="flex flex-col items-end gap-0.5">
                 {#if flow.in > 0}
                   <span
-                    class="font-proto text-income bg-income/10 border-income/20 border px-1 py-0.25 text-[8px] leading-none"
+                    class="font-proto text-income bg-income/10 border-income/20 text-smaller border px-1 py-px leading-none"
                   >
                     +{formatCompact(flow.in)}
                   </span>
                 {/if}
                 {#if flow.out > 0}
                   <span
-                    class="font-proto text-expense bg-expense/10 border-expense/20 border px-1 py-0.25 text-[8px] leading-none"
+                    class="font-proto text-expense bg-expense/10 border-expense/20 text-smaller border px-1 py-px leading-none"
                   >
                     -{formatCompact(flow.out)}
                   </span>
@@ -201,7 +209,7 @@
               {#if evts}
                 {#each evts.plans.slice(0, 2) as p (p.id)}
                   <div
-                    class="font-proto truncate border-l-2 px-1.5 py-0.75 text-[8.5px] {p.type ===
+                    class="font-proto text-smaller truncate border-l px-1.5 py-0.5 {p.type ===
                     'RECEIVABLE'
                       ? 'border-income bg-income/10 text-income'
                       : 'border-expense bg-expense/10 text-expense'}"
@@ -211,14 +219,14 @@
                   </div>
                 {/each}
                 {#if evts.plans.length > 2}
-                  <div class="text-text-dim font-proto px-1 text-[8.5px] italic">
+                  <div class="text-text-dim font-proto text-smaller px-1 italic">
                     +{evts.plans.length - 2}
-                    {i18n.t.planLeft?.toLowerCase() ?? 'more'}
+                    {i18n.t.calendarMoreLabel}
                   </div>
                 {/if}
                 {#if evts.txs.length > 0}
                   <div
-                    class="text-text-muted font-proto border-line bg-bg-app mt-auto self-end border px-1.5 py-0.5 text-[8px]"
+                    class="text-text-muted font-proto border-line bg-bg-app text-smaller mt-auto self-end border px-1.5 py-0.5"
                   >
                     {i18n.t.planTxCount.replace('{count}', String(evts.txs.length))}
                   </div>
@@ -231,7 +239,7 @@
 
       <!-- Calendar Legend Footer inside Secondary Container -->
       <div
-        class="bg-bg-card border-line font-proto text-text-muted flex shrink-0 items-center gap-4 border-t px-3 py-1.5 text-[9px]"
+        class="bg-bg-card border-line font-proto text-text-muted text-smaller flex shrink-0 items-center gap-4 border-t px-3 py-1.5"
       >
         <div class="flex items-center gap-1.5">
           <div class="bg-income h-2 w-2"></div>
@@ -252,14 +260,14 @@
   <!-- Right Side: Agenda Panel -->
   <Card class="col-span-4 flex min-h-0 flex-col" padding={false}>
     {#snippet header()}
-      <div class="flex items-center justify-between w-full min-h-7">
+      <div class="flex min-h-7 w-full items-center justify-between">
         <h3 class="label-title truncate leading-none uppercase">{selWeekday}</h3>
         {#if isSelectedToday}
-          <span class="badge-ok font-proto px-1.5 py-0.5 text-[8px] leading-none uppercase">
+          <span class="badge-ok font-proto text-smaller px-1.5 py-0.5 leading-none uppercase">
             {i18n.t.today}
           </span>
         {:else}
-          <span class="text-text-muted font-proto text-[10px] leading-none uppercase">
+          <span class="text-text-muted font-proto text-smaller leading-none uppercase">
             {selectedDateRelative}
           </span>
         {/if}
@@ -271,48 +279,48 @@
       <!-- Secondary Container: Daily Cash Flow Impact List -->
       <div class="font-proto flex shrink-0 flex-col gap-2">
         <div
-          class="border-line/60 text-text-dim flex items-center justify-between border-b pb-2 text-[9px] tracking-wider uppercase"
+          class="border-line/60 text-text-dim text-smaller flex items-center justify-between border-b pb-2 tracking-wider uppercase"
         >
-          <span class="text-text-icon flex items-center gap-1.5 font-medium">
+          <span class="text-text-base flex items-center gap-1.5 font-medium">
             <Icon name="chart" size={10} />
             {i18n.t.planDailyCashflowImpact}
           </span>
-          <span class="text-text-muted font-mono">{selectedDate}</span>
+          <span class="text-text-muted font-proto text-smaller tabular-nums">{selectedDate}</span>
         </div>
 
         <!-- [1] EXPECTED IN -->
         <div class="sharp-card bg-income/5 border-income/20 flex flex-col gap-1 p-2">
           <div class="flex items-center gap-1.5">
-            <span class="text-text-muted text-[9px] tracking-wider uppercase"
+            <span class="text-text-muted text-smaller tracking-wider uppercase"
               >{i18n.t.planExpectedIn}</span
             >
           </div>
-          <span class="text-income text-[12px] leading-none font-bold tabular-nums font-proto">
-            {selectedDayTotalIn > 0 ? `+${formatIDR(selectedDayTotalIn)}` : 'Rp 0'}
+          <span class="text-income font-proto text-small leading-none font-bold tabular-nums">
+            {selectedDayTotalIn > 0 ? `+${formatIDR(selectedDayTotalIn)}` : formatIDR(0)}
           </span>
         </div>
 
         <!-- [2] EXPECTED OUT -->
         <div class="sharp-card bg-expense/5 border-expense/20 flex flex-col gap-1 p-2">
           <div class="flex items-center gap-1.5">
-            <span class="text-text-muted text-[9px] tracking-wider uppercase"
+            <span class="text-text-muted text-smaller tracking-wider uppercase"
               >{i18n.t.planExpectedOut}</span
             >
           </div>
-          <span class="text-expense text-[12px] leading-none font-bold tabular-nums font-proto">
-            {selectedDayTotalOut > 0 ? `-${formatIDR(selectedDayTotalOut)}` : 'Rp 0'}
+          <span class="text-expense font-proto text-small leading-none font-bold tabular-nums">
+            {selectedDayTotalOut > 0 ? `-${formatIDR(selectedDayTotalOut)}` : formatIDR(0)}
           </span>
         </div>
 
         <!-- [3] NET ESTIMATE -->
         <div class="sharp-card bg-bg-app border-line flex flex-col gap-1 p-2">
           <div class="flex items-center gap-1.5">
-            <span class="text-text-strong text-[9px] font-medium tracking-wider uppercase"
+            <span class="text-text-strong text-smaller font-medium tracking-wider uppercase"
               >{i18n.t.planNetEstimate}</span
             >
           </div>
           <span
-            class="text-[12px] leading-none font-bold tabular-nums font-proto {selectedDayNet > 0
+            class="font-proto text-small leading-none font-bold tabular-nums {selectedDayNet > 0
               ? 'text-income'
               : selectedDayNet < 0
                 ? 'text-expense'
@@ -322,7 +330,7 @@
               ? `+${formatIDR(selectedDayNet)}`
               : selectedDayNet < 0
                 ? `-${formatIDR(Math.abs(selectedDayNet))}`
-                : 'Rp 0'}
+                : formatIDR(0)}
           </span>
         </div>
       </div>
@@ -331,14 +339,14 @@
           class="m-2 flex flex-1 flex-col items-center justify-center py-8 text-center opacity-80"
         >
           <div class="text-text-dim mb-3"><Icon name="calendar" size={32} /></div>
-          <p class="font-proto text-text-muted mb-3 text-[11px] tracking-wide">
+          <p class="font-proto text-text-muted text-small mb-3 tracking-wide">
             {i18n.t.planNoDueOnDate}
           </p>
           {#if openCreatePlan}
             <button
               type="button"
               onclick={openCreatePlan}
-              class="sharp-btn bg-teal/10 text-teal border-teal/30 hover:bg-teal hover:text-bg-app font-proto border px-3 py-1.5 text-[10px] transition-all"
+              class="sharp-btn bg-teal/10 text-teal border-teal/30 hover:bg-teal hover:text-bg-app font-proto text-smaller border px-3 py-1.5 transition-all"
             >
               {i18n.t.planAddForDate}
             </button>
@@ -362,31 +370,31 @@
                 <div
                   class="bg-bg-app border-line border p-2.5 transition-colors {p.type ===
                   'RECEIVABLE'
-                    ? 'border-l-income border-l-2'
-                    : 'border-l-expense border-l-2'}"
+                    ? 'border-l-income border-l'
+                    : 'border-l-expense border-l'}"
                 >
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0 flex-1">
                       <span
-                        class="font-proto text-text-strong block truncate text-[11px] font-semibold"
+                        class="font-proto text-text-strong text-small block truncate font-semibold"
                         title={p.title}
                       >
                         {p.title}
                       </span>
                       <span
-                        class="text-text-muted font-proto mt-1 flex items-center gap-1.5 truncate text-[9.5px]"
+                        class="text-text-muted font-proto text-smaller mt-1 flex items-center gap-1.5 truncate"
                       >
                         <span class="max-w-20 truncate" title={fromAcc?.name}
                           >{fromAcc?.name ?? '—'}</span
                         >
-                        <span class="text-text-dim font-proto text-[8px]">-></span>
+                        <span class="text-text-dim font-proto text-smaller">→</span>
                         <span class="max-w-20 truncate" title={toAcc?.name}
                           >{toAcc?.name ?? '—'}</span
                         >
                       </span>
                     </div>
                     <div class="flex shrink-0 flex-col items-end gap-1">
-                      <span class="font-proto text-text-white text-[11px]">
+                      <span class="font-proto text-text-white text-small">
                         {formatIDR(p.installmentAmount)}
                       </span>
                       {#if isPosted}
@@ -396,7 +404,7 @@
                           type="button"
                           onclick={() => postInstallment(p)}
                           disabled={postingBusyId === p.id}
-                          class="sharp-btn bg-teal/10 text-teal border-teal/20 hover:bg-teal hover:text-bg-app border px-2 py-0.5 text-[9px] transition-all"
+                          class="sharp-btn bg-teal/10 text-teal border-teal/20 hover:bg-teal hover:text-bg-app text-smaller border px-2 py-0.5 transition-all"
                         >
                           {#if postingBusyId === p.id}
                             <span class="spinner-sm border-teal"></span>
@@ -423,15 +431,13 @@
             </p>
             <div class="flex flex-col gap-1.5">
               {#each selectedDayEvents.txs as tx (tx.id)}
-                {@const total = tx.splits
-                  .filter((s: any) => s.amount > 0)
-                  .reduce((s: number, sp: any) => s + sp.amount, 0)}
+                {@const total = getTxPositiveTotal(tx)}
                 <div
-                  class="bg-bg-app border-line flex items-center justify-between border p-2 text-[11px]"
+                  class="bg-bg-app border-line text-small flex items-center justify-between border p-2"
                 >
-                  <span class="text-text-base mr-3 truncate font-mono">{tx.description}</span>
+                  <span class="text-text-base mr-3 truncate">{tx.description}</span>
                   <span class="font-proto text-text-dim shrink-0">
-                    {formatIDR(fromMinor(tx.currency, total))}
+                    {formatMoney(total, tx.currency)}
                   </span>
                 </div>
               {/each}

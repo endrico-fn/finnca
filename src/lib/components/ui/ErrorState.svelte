@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { i18n } from '$lib/i18n.svelte';
   import Button from './Button.svelte';
 
   let {
@@ -11,8 +12,8 @@
 </script>
 
 <div class="flex flex-1 flex-col items-center justify-center gap-3 py-16">
-  <p class="badge-err max-w-sm px-3 py-2 text-center text-[11px]">{message}</p>
+  <p class="badge-err text-small max-w-sm px-3 py-2 text-center">{message}</p>
   {#if onRetry}
-    <Button variant="ghost" onclick={onRetry}>RETRY</Button>
+    <Button variant="ghost" onclick={onRetry}>{i18n.t.commonRetry}</Button>
   {/if}
 </div>

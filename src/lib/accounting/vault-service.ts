@@ -6,10 +6,11 @@ import { DEFAULT_FX_RATE } from './types';
 export async function loadVault(): Promise<VaultData> {
   const raw = await api.readVaultData();
   if (!raw || !raw.trim()) throw new Error('vault empty — refusing to overwrite');
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
-  } catch {
+  } catch (e) {
+    console.error('Failed to parse vault data:', e);
     parsed = [];
   }
   const migrated = migrateLegacy(parsed, DEFAULT_FX_RATE);

@@ -2,15 +2,21 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import * as pdfMake from 'pdfmake/build/pdfmake';
 import Papa from 'papaparse';
-import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+import type { TDocumentDefinitions, Margins, Content } from 'pdfmake/interfaces';
 import { pdfMakeVfs } from '../../vfs_fonts';
 import { APP_NAME } from '../../types';
 import type { Account, VaultData } from '../types';
-import { fromMinor, convertMinor, accountBalanceMinorFiltered, accountBalanceMinor } from '../finance';
+import {
+  fromMinor,
+  convertMinor,
+  accountBalanceMinorFiltered,
+  accountBalanceMinor,
+} from '../finance';
 import { incomeStatement, balanceSheet, trialBalance, totalDebitsCredits } from './statements';
+import { i18n } from '$lib/i18n.svelte';
 
-(pdfMake as any).vfs = pdfMakeVfs;
-(pdfMake as any).fonts = {
+(pdfMake as unknown as { vfs: unknown; fonts: unknown }).vfs = pdfMakeVfs;
+(pdfMake as unknown as { vfs: unknown; fonts: unknown }).fonts = {
   ProtoMono: {
     normal: 'ProtoMono.ttf',
     bold: 'ProtoMono.ttf',
@@ -18,6 +24,8 @@ import { incomeStatement, balanceSheet, trialBalance, totalDebitsCredits } from 
     bolditalics: 'ProtoMono.ttf',
   },
 };
+
+const right = 'right' as const;
 
 export interface StatementRow {
   date: string;
@@ -57,7 +65,7 @@ async function savePDF(docDefinition: TDocumentDefinitions, defaultPath: string)
 
   const pdfDocGenerator = pdfMake.createPdf(docDefinition);
   const base64 = await new Promise<string>((resolve) => {
-    // @ts-ignore - The types say 0 args, but the browser implementation requires a callback
+    // @ts-expect-error - The types say 0 args, but the browser implementation requires a callback
     pdfDocGenerator.getBase64((data: string) => resolve(data));
   });
 
@@ -69,51 +77,97 @@ async function savePDF(docDefinition: TDocumentDefinitions, defaultPath: string)
   await invoke('write_file_raw', { path: filePath, contents: Array.from(bytes) });
 }
 
-function buildReportPDFBody(opts: ReportPDFOptions): any[] {
+function buildReportPDFBody(opts: ReportPDFOptions): Content[] {
   const fmt = (minor: number) => fromMinor('IDR', minor).toLocaleString('id-ID');
   const { tab, vault, from, to, fxRate } = opts;
 
   if (tab === 'pnl') {
     const pnl = incomeStatement(vault, from || undefined, to || undefined);
     const incomeRows = opts.incomeAccounts.map((a) => {
-      const bal = accountBalanceMinorFiltered(a.id, vault, from || undefined, to || undefined, opts.childrenMap);
+      const bal = accountBalanceMinorFiltered(
+        a.id,
+        vault,
+        from || undefined,
+        to || undefined,
+        opts.childrenMap
+      );
       return [
         { text: `  ${a.code}  ${a.name}`, style: 'bodyRow' },
-        { text: fmt(convertMinor(Math.abs(bal), a.currency, 'IDR', fxRate)), style: 'bodyRow', alignment: 'right' },
+        {
+          text: fmt(convertMinor(Math.abs(bal), a.currency, 'IDR', fxRate)),
+          style: 'bodyRow',
+          alignment: right,
+        },
       ];
     });
     const expenseRows = opts.expenseAccounts.map((a) => {
-      const bal = accountBalanceMinorFiltered(a.id, vault, from || undefined, to || undefined, opts.childrenMap);
+      const bal = accountBalanceMinorFiltered(
+        a.id,
+        vault,
+        from || undefined,
+        to || undefined,
+        opts.childrenMap
+      );
       return [
         { text: `  ${a.code}  ${a.name}`, style: 'bodyRow' },
-        { text: fmt(convertMinor(Math.abs(bal), a.currency, 'IDR', fxRate)), style: 'bodyRow', alignment: 'right' },
+        {
+          text: fmt(convertMinor(Math.abs(bal), a.currency, 'IDR', fxRate)),
+          style: 'bodyRow',
+          alignment: right,
+        },
       ];
     });
-    const margin4: [number, number, number, number] = [0, 4, 0, 4];
+    const margin4: Margins = [0, 4, 0, 4];
     return [
-      { text: 'REVENUES', style: 'section', margin: [0, 0, 0, 4] as any },
+      { text: i18n.t.revenues, style: 'section', margin: [0, 0, 0, 4] as Margins },
       {
-        table: { widths: ['*', 120], body: incomeRows.length ? incomeRows : [[{ text: '  —', style: 'bodyRow' }, { text: '0', style: 'bodyRow', alignment: 'right' }]] },
+        table: {
+          widths: ['*', 120],
+          body: incomeRows.length
+            ? incomeRows
+            : [
+                [
+                  { text: '  —', style: 'bodyRow' },
+                  { text: '0', style: 'bodyRow', alignment: right },
+                ],
+              ],
+        },
         layout: 'noBorders',
       },
-      { text: ' ', margin: margin4 as any },
-      { text: 'EXPENSES', style: 'section', margin: [0, 4, 0, 4] as any },
+      { text: ' ', margin: margin4 },
+      { text: i18n.t.operationalExpenses, style: 'section', margin: [0, 4, 0, 4] as Margins },
       {
-        table: { widths: ['*', 120], body: expenseRows.length ? expenseRows : [[{ text: '  —', style: 'bodyRow' }, { text: '0', style: 'bodyRow', alignment: 'right' }]] },
+        table: {
+          widths: ['*', 120],
+          body: expenseRows.length
+            ? expenseRows
+            : [
+                [
+                  { text: '  —', style: 'bodyRow' },
+                  { text: '0', style: 'bodyRow', alignment: right },
+                ],
+              ],
+        },
         layout: 'noBorders',
       },
-      { canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#333' }] },
+      {
+        canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#333' }],
+      },
       {
         columns: [
-          { text: 'NET INCOME', style: 'total' },
-          { text: fmt(pnl.net), style: 'total', alignment: 'right' },
+          { text: i18n.t.netIncome, style: 'total' },
+          { text: fmt(pnl.net), style: 'total', alignment: right },
         ],
-        margin: [0, 8, 0, 4] as any,
+        margin: [0, 8, 0, 4] as Margins,
       },
       {
         columns: [
-          { text: 'PROFIT MARGIN', style: 'bodyRow' },
-          { text: pnl.income > 0 ? `${((pnl.net / pnl.income) * 100).toFixed(1)}%` : '—', style: 'bodyRow', alignment: 'right' },
+          { text: i18n.t.profitMargin, style: 'bodyRow' },
+          {
+            text: pnl.income > 0 ? `${((pnl.net / pnl.income) * 100).toFixed(1)}%` : '—',
+            style: 'bodyRow',
+            alignment: right,
+          },
         ],
       },
     ];
@@ -122,31 +176,42 @@ function buildReportPDFBody(opts: ReportPDFOptions): any[] {
   if (tab === 'bs') {
     const bs = balanceSheet(vault, to || undefined, opts.childrenMap);
     const sections = [
-      { label: 'ASSETS', accounts: opts.assetAccounts },
-      { label: 'LIABILITIES', accounts: opts.liabilityAccounts },
-      { label: 'EQUITY', accounts: opts.equityAccounts },
+      { label: i18n.t.assetsTitle, accounts: opts.assetAccounts },
+      { label: i18n.t.liabilitiesTitle, accounts: opts.liabilityAccounts },
+      { label: i18n.t.equityTitle, accounts: opts.equityAccounts },
     ];
-    const rows: object[] = [];
+    const rows: Content[] = [];
     for (const sec of sections) {
-      rows.push({ text: sec.label, style: 'section', margin: [0, 6, 0, 4] as any });
+      rows.push({ text: sec.label, style: 'section', margin: [0, 6, 0, 4] as Margins });
       const accountRows = sec.accounts.map((a) => {
         const bal = accountBalanceMinor(a.id, vault, opts.childrenMap);
         return [
           { text: `  ${a.code}  ${a.name}`, style: 'bodyRow' },
-          { text: fmt(convertMinor(Math.abs(bal), a.currency, 'IDR', fxRate)), style: 'bodyRow', alignment: 'right' },
+          {
+            text: fmt(convertMinor(Math.abs(bal), a.currency, 'IDR', fxRate)),
+            style: 'bodyRow',
+            alignment: right,
+          },
         ];
       });
       if (accountRows.length) {
         rows.push({ table: { widths: ['*', 120], body: accountRows }, layout: 'noBorders' });
       }
     }
-    rows.push({ canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#333' }] });
+    rows.push({
+      canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#333' }],
+    });
     rows.push({
       columns: [
-        { text: bs.balanced ? 'A = L + E  ✓ BALANCED' : 'A = L + E  ✗ UNBALANCED', style: 'total' },
-        { text: fmt(bs.assets), style: 'total', alignment: 'right' },
+        {
+          text: bs.balanced
+            ? `A = L + E  ✓ ${i18n.t.auditBalanced}`
+            : `A = L + E  ✗ ${i18n.t.auditUnbalanced}`,
+          style: 'total',
+        },
+        { text: fmt(bs.assets), style: 'total', alignment: right },
       ],
-      margin: [0, 8, 0, 0] as any,
+      margin: [0, 8, 0, 0] as Margins,
     });
     return rows;
   }
@@ -157,14 +222,14 @@ function buildReportPDFBody(opts: ReportPDFOptions): any[] {
     const tbRows = tb.map((r) => [
       { text: r.account.code, style: 'bodyRow' },
       { text: r.account.name, style: 'bodyRow' },
-      { text: r.debit > 0 ? fmt(r.debit) : '', style: 'bodyRow', alignment: 'right' },
-      { text: r.credit > 0 ? fmt(r.credit) : '', style: 'bodyRow', alignment: 'right' },
+      { text: r.debit > 0 ? fmt(r.debit) : '', style: 'bodyRow', alignment: right },
+      { text: r.credit > 0 ? fmt(r.credit) : '', style: 'bodyRow', alignment: right },
     ]);
     tbRows.push([
       { text: '', style: 'bodyRow' },
-      { text: 'TOTAL', style: 'total' },
-      { text: fmt(totals.debit), style: 'total', alignment: 'right' },
-      { text: fmt(totals.credit), style: 'total', alignment: 'right' },
+      { text: i18n.t.totals, style: 'total' },
+      { text: fmt(totals.debit), style: 'total', alignment: right },
+      { text: fmt(totals.credit), style: 'total', alignment: right },
     ]);
     return [
       {
@@ -173,10 +238,10 @@ function buildReportPDFBody(opts: ReportPDFOptions): any[] {
           widths: [40, '*', 100, 100],
           body: [
             [
-              { text: 'CODE', style: 'tableHeader' },
-              { text: 'ACCOUNT', style: 'tableHeader' },
-              { text: 'DEBIT', style: 'tableHeader', alignment: 'right' },
-              { text: 'CREDIT', style: 'tableHeader', alignment: 'right' },
+              { text: i18n.t.colCode, style: 'tableHeader' },
+              { text: i18n.t.name, style: 'tableHeader' },
+              { text: i18n.t.debit, style: 'tableHeader', alignment: right },
+              { text: i18n.t.credit, style: 'tableHeader', alignment: right },
             ],
             ...tbRows,
           ],
@@ -186,12 +251,12 @@ function buildReportPDFBody(opts: ReportPDFOptions): any[] {
     ];
   }
 
-  return [{ text: `Report type "${tab}" does not support PDF export.`, style: 'bodyRow' }];
+  return [{ text: i18n.t.reportNoPdf.replace('{tab}', tab), style: 'bodyRow' }];
 }
 
 export async function exportReportPDF(opts: ReportPDFOptions) {
   try {
-    const margin4: [number, number, number, number] = [0, 4, 0, 4];
+    const margin4: Margins = [0, 4, 0, 4];
     const docDefinition: TDocumentDefinitions = {
       pageSize: 'A4',
       pageOrientation: 'landscape',
@@ -203,27 +268,33 @@ export async function exportReportPDF(opts: ReportPDFOptions) {
             {
               stack: [
                 { text: APP_NAME, style: 'brandTitle' },
-                { text: 'EXPORT REPORT', style: 'brandTitle' },
+                { text: i18n.t.exportReportTitle, style: 'brandTitle' },
               ],
               width: 'auto',
             },
             { text: '', width: '*' },
             {
               stack: [
-                { text: opts.vaultName.toUpperCase(), style: 'brandTitle', alignment: 'right' },
+                { text: opts.vaultName.toUpperCase(), style: 'brandTitle', alignment: right },
               ],
               width: 'auto',
             },
           ],
-          margin: [0, 0, 0, 16] as any,
+          margin: [0, 0, 0, 16] as Margins,
         },
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 742, y2: 0, lineWidth: 1, lineColor: '#222' }] },
+        {
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 742, y2: 0, lineWidth: 1, lineColor: '#222' }],
+        },
         {
           columns: [
             { text: opts.reportTitle.toUpperCase(), style: 'reportTitle' },
-            { text: `PERIOD: ${opts.period || 'ALL TIME'}`, style: 'reportTitle', alignment: 'right' },
+            {
+              text: `${i18n.t.exportPeriod}: ${opts.period || i18n.t.allTime}`,
+              style: 'reportTitle',
+              alignment: right,
+            },
           ],
-          margin: [0, 10, 0, 20] as any,
+          margin: [0, 10, 0, 20] as Margins,
         },
         ...buildReportPDFBody(opts),
       ],
@@ -233,7 +304,7 @@ export async function exportReportPDF(opts: ReportPDFOptions) {
         section: { fontSize: 10, bold: true, color: '#111' },
         total: { fontSize: 10, bold: true, color: '#111' },
         bodyRow: { fontSize: 9, color: '#333' },
-        tableHeader: { bold: true, fontSize: 8, fillColor: '#eeeeee', margin: margin4 as any },
+        tableHeader: { bold: true, fontSize: 8, fillColor: '#eeeeee', margin: margin4 },
       },
     };
 
@@ -257,11 +328,11 @@ export async function exportAccountStatementCSV(
     if (!filePath) return;
 
     const csvData = rows.map((row) => ({
-      Date: row.date,
-      Description: row.description,
-      Debit: row.debit !== 0 ? fromMinor(account.currency, row.debit) : '',
-      Credit: row.credit !== 0 ? fromMinor(account.currency, row.credit) : '',
-      Balance: fromMinor(account.currency, row.balance),
+      [i18n.t.date]: row.date,
+      [i18n.t.description]: row.description,
+      [i18n.t.debit]: row.debit !== 0 ? fromMinor(account.currency, row.debit) : '',
+      [i18n.t.credit]: row.credit !== 0 ? fromMinor(account.currency, row.credit) : '',
+      [i18n.t.colBalance]: fromMinor(account.currency, row.balance),
     }));
 
     const csvStr = Papa.unparse(csvData);

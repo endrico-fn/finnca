@@ -51,17 +51,18 @@ export function validateTransaction(
   return null;
 }
 
-export function migrateLegacy(legacy: any, fxRate = DEFAULT_FX_RATE): VaultData {
-  if (legacy && legacy.version === 2 && Array.isArray(legacy.accounts)) {
-    if (!legacy.fxRate) legacy.fxRate = fxRate;
-    if (!legacy.updatedAt) legacy.updatedAt = new Date().toISOString();
-    if (!legacy.dashboardPrefs) legacy.dashboardPrefs = {};
-    return legacy as VaultData;
+export function migrateLegacy(legacy: unknown, fxRate = DEFAULT_FX_RATE): VaultData {
+  const obj = legacy as Record<string, unknown> | null | undefined;
+  if (obj && obj.version === 2 && Array.isArray(obj.accounts)) {
+    if (!obj.fxRate) obj.fxRate = fxRate;
+    if (!obj.updatedAt) obj.updatedAt = new Date().toISOString();
+    if (!obj.dashboardPrefs) obj.dashboardPrefs = {};
+    return obj as unknown as VaultData;
   }
   const accounts = seedAccounts();
   const txs: Transaction[] = [];
   if (Array.isArray(legacy)) {
-    for (const r of legacy as any[]) {
+    for (const r of legacy as Record<string, unknown>[]) {
       const amt = Math.round(Number(r.nominal) || 0);
       if (!amt) continue;
       txs.push({

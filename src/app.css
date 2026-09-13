@@ -24,6 +24,12 @@
     'Proto Mono', 'Aux Mono', 'JetBrainsMono Nerd Font', 'JetBrains Mono', 'Symbols Nerd Font Mono',
     'Geist Mono', ui-monospace, monospace;
 
+  --text-smaller: 10px;
+  --text-small: 12px;
+  --text-medium: 14px;
+  --text-large: 18px;
+  --text-largest: 26px;
+
   --color-bg-app: #0e0f0f;
   --color-bg-card: #161717;
   --color-bg-btn: #1d1e1e;
@@ -98,6 +104,7 @@
 html,
 body {
   height: 100%;
+  color-scheme: dark;
   background: var(--color-bg-app);
   color: var(--color-text-base);
   -webkit-font-smoothing: antialiased;
@@ -142,7 +149,6 @@ input[type='number'] {
 .sharp-btn {
   font-weight: 400;
   letter-spacing: 0.06em;
-  font-size: 12px;
   text-transform: uppercase;
   border-radius: 0;
   display: inline-flex;
@@ -175,7 +181,7 @@ input[type='number'] {
   background: var(--color-bg-btn);
   color: var(--color-text-base);
   border-radius: 0;
-  font-size: 13px;
+  font-size: var(--text-medium);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transition:
@@ -212,7 +218,7 @@ input[type='number'] {
   background: var(--color-bg-btn);
   border: 1px solid var(--color-line);
   color: var(--color-text-base);
-  font-size: 11px;
+  font-size: var(--text-smaller);
   cursor: pointer;
   transition:
     background var(--duration-fast) ease,
@@ -264,8 +270,7 @@ input[type='number'] {
   background: var(--color-bg-app);
   border: 1px solid var(--color-line);
   color: var(--color-text-strong);
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-small);
   border-radius: 0;
   transition: border-color var(--duration-fast) ease;
 }
@@ -306,15 +311,9 @@ select.sharp-input {
 .badge-ok,
 .badge-warn,
 .badge-err,
-.badge-neutral,
-.badge-info,
 .tabular-nums,
-.num-proto,
-.code-acc,
 .label-title,
 .label-xs,
-.tab-btn,
-.tab-indicator,
 h1,
 h2,
 h3,
@@ -359,18 +358,6 @@ h6 {
   background: var(--color-danger-bg);
   border: 1px solid var(--color-danger-border);
   color: var(--color-danger);
-  border-radius: 0;
-}
-.badge-neutral {
-  background: var(--color-bg-btn);
-  border: 1px solid var(--color-line);
-  color: var(--color-text-base);
-  border-radius: 0;
-}
-.badge-info {
-  background: #0f1624;
-  border: 1px solid #1e2c45;
-  color: var(--palette-blue);
   border-radius: 0;
 }
 
@@ -453,7 +440,7 @@ h6 {
 
 .label-title {
   font-family: var(--font-proto);
-  font-size: 13px;
+  font-size: var(--text-small);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 600;
@@ -462,14 +449,14 @@ h6 {
 
 .label-xs {
   font-family: var(--font-proto);
-  font-size: 10px;
+  font-size: var(--text-smaller);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .sharp-table {
   width: 100%;
-  font-size: 11px;
+  font-size: var(--text-small);
   border-collapse: collapse;
   border: 1px solid var(--color-line);
 }

@@ -2,7 +2,6 @@
   import { store } from '$lib/stores/app-store.svelte';
   import { i18n } from '$lib/i18n.svelte';
   import { APP_NAME } from '$lib/types';
-  import { onMount } from 'svelte';
   import { Splash, ErrorState, PageLayout, Tabs } from '$lib/components/ui';
 
   import GeneralSettings from './_views/GeneralSettings.svelte';
@@ -19,14 +18,6 @@
     { id: 'security', label: i18n.t.tabSecurity },
     { id: 'data', label: i18n.t.tabData },
   ]);
-
-  let securitySettingsRef = $state<any>();
-  let dataSettingsRef = $state<any>();
-
-  onMount(() => {
-    securitySettingsRef?.onMountLogic?.();
-    dataSettingsRef?.loadLocalPrefs?.();
-  });
 </script>
 
 <svelte:head>
@@ -53,9 +44,9 @@
       {:else if activeTab === 'finance'}
         <FinanceSettings />
       {:else if activeTab === 'security'}
-        <SecuritySettings bind:this={securitySettingsRef} />
+        <SecuritySettings />
       {:else if activeTab === 'data'}
-        <DataSettings bind:this={dataSettingsRef} />
+        <DataSettings />
       {/if}
     </div>
   </PageLayout>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { SvelteDate } from 'svelte/reactivity';
   import { ledger } from '$lib/accounting/store.svelte';
   import {
     balanceSheet,
@@ -7,18 +8,13 @@
     fromMinor,
     buildChildrenMap,
     isBalanced as txBalanced,
+    todayString,
+    diffCalendarDays,
   } from '$lib/accounting/finance';
   import { DEFAULT_FX_RATE } from '$lib/accounting/types';
   import { i18n } from '$lib/i18n.svelte';
   import TransferModal from '$lib/components/TransferModal.svelte';
-  import {
-    Splash,
-    ErrorState,
-    PageLayout,
-    Button,
-    SearchBar,
-    Icon,
-  } from '$lib/components/ui';
+  import { Splash, ErrorState, PageLayout, Button, SearchBar, Icon } from '$lib/components/ui';
   import BalanceCard from './dashboard/_widgets/BalanceCard.svelte';
   import DebtCard from './dashboard/_widgets/DebtCard.svelte';
   import HealthCard from './dashboard/_widgets/HealthCard.svelte';
@@ -69,14 +65,11 @@
       .map((t) => t.date)
       .sort((a, b) => b.localeCompare(a))
   );
-  const lastReconText = $derived(() => {
+  const lastReconText = $derived.by(() => {
     if (reconciledDates.length === 0) {
       return ledger.transactions.length === 0 ? i18n.t.reconNever : i18n.t.reconPending;
     }
-    const days = Math.max(
-      0,
-      Math.floor((Date.now() - new Date(reconciledDates[0]).getTime()) / 86_400_000)
-    );
+    const days = Math.max(0, diffCalendarDays(todayString(), reconciledDates[0]));
     return days === 0 ? i18n.t.reconToday : i18n.t.reconDaysAgo.replace('{days}', String(days));
   });
 
@@ -98,13 +91,22 @@
   const childrenMap = $derived(ledger.data ? buildChildrenMap(ledger.data.accounts) : new Map());
   const leafAccounts = $derived(ledger.accounts.filter((a) => !a.placeholder && !a.hidden));
 
-  const pnlCurrent = $derived(
-    ledger.data ? incomeStatement(ledger.data) : { income: 0, expense: 0, net: 0 }
-  );
+  const monthlyBurn = $derived.by(() => {
+    if (!ledger.data) return 0;
+    const today = new SvelteDate();
+    const d30 = new SvelteDate(today);
+    d30.setDate(d30.getDate() - 30);
+    const pnl30 = incomeStatement(ledger.data, todayString(d30), todayString(today));
+    if (pnl30.expense > 0) return pnl30.expense;
+    const curMonthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    const curMonthPnl = incomeStatement(ledger.data, curMonthStart, undefined);
+    return curMonthPnl.expense;
+  });
+
   const runwayMonths = $derived.by(() => {
     if (!bs || bs.assets <= 0) return 0;
-    if (pnlCurrent.expense <= 0) return 999;
-    return Math.round((bs.assets / pnlCurrent.expense) * 10) / 10;
+    if (monthlyBurn <= 0) return 999;
+    return Math.round((bs.assets / monthlyBurn) * 10) / 10;
   });
   const quickRatio = $derived.by(() => {
     if (!bs || bs.liabilities <= 0) return 999;
@@ -124,9 +126,9 @@
       scope={{
         value: searchScope,
         options: [
-          { value: 'ALL', label: 'ALL' },
-          { value: 'ACCOUNT', label: 'ACCOUNT' },
-          { value: 'RECENT', label: 'RECENT' },
+          { value: 'ALL', label: i18n.t.searchScopeAll },
+          { value: 'ACCOUNT', label: i18n.t.searchScopeAccount },
+          { value: 'RECENT', label: i18n.t.searchScopeRecent },
         ],
         onchange: (v) => (searchScope = v as typeof searchScope),
       }}
@@ -175,7 +177,7 @@
             unbalanced={unbalancedCount}
             uncategorized={uncategorizedCount}
             pending={pendingCount}
-            lastRecon={lastReconText()}
+            lastRecon={lastReconText}
             {runwayMonths}
             {quickRatio}
           />

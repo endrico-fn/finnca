@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import { SvelteDate } from 'svelte/reactivity';
   import { ledger } from '$lib/accounting/store.svelte';
   import { i18n } from '$lib/i18n.svelte';
   import {
@@ -8,9 +9,6 @@
     incomeStatement,
     balanceSheet,
     fromMinor,
-    convertMinor,
-    accountBalanceMinor,
-    accountBalanceMinorFiltered,
     buildChildrenMap,
     historicalDailyBalances,
     todayString,
@@ -19,28 +17,29 @@
   import { invoke } from '@tauri-apps/api/core';
   import { notifStore } from '$lib/notifications/store.svelte';
   import { onMount } from 'svelte';
-  import { PageLayout, Tabs, Button, DateRangeDropdown } from '$lib/components/ui';
+  import {
+    PageLayout,
+    Tabs,
+    Button,
+    Icon,
+    DateRangeDropdown,
+    DateDropdown,
+  } from '$lib/components/ui';
   import TrialBalance from './_views/TrialBalance.svelte';
   import DebtReport from './_views/DebtReport.svelte';
-  import BalanceSheet from './_views/BalanceSheet.svelte';
-  import ProfitLoss from './_views/ProfitLoss.svelte';
   import Trends from './_views/Trends.svelte';
   import Cashflow from './_views/Cashflow.svelte';
   import FxReport from './_views/FxReport.svelte';
 
   import ExportOverlay from '$lib/components/ExportOverlay.svelte';
 
-  let reportTab = $state<'pnl' | 'bs' | 'tb' | 'trends' | 'debt' | 'cashflow' | 'fx'>('pnl');
+  let reportTab = $state<'tb' | 'trends' | 'debt' | 'cashflow' | 'fx'>('tb');
   let from = $state('');
   let to = $state('');
   let exportOpen = $state(false);
 
   const currentTabLabel = $derived.by(() => {
     switch (reportTab) {
-      case 'pnl':
-        return i18n.t.pnlTitle;
-      case 'bs':
-        return i18n.t.balanceSheetTitle;
       case 'tb':
         return i18n.t.trialBalanceTitle;
       case 'trends':
@@ -56,7 +55,7 @@
     }
   });
 
-  function setReportTab(t: 'pnl' | 'bs' | 'tb' | 'trends' | 'debt' | 'cashflow' | 'fx') {
+  function setReportTab(t: 'tb' | 'trends' | 'debt' | 'cashflow' | 'fx') {
     reportTab = t;
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -68,7 +67,7 @@
   onMount(() => {
     if (!ledger.data) ledger.load();
     const p = page.url.searchParams.get('tab');
-    if (p && ['pnl', 'bs', 'tb', 'trends', 'debt', 'cashflow', 'fx'].includes(p)) {
+    if (p && ['tb', 'trends', 'debt', 'cashflow', 'fx'].includes(p)) {
       reportTab = p as typeof reportTab;
     }
   });
@@ -87,6 +86,18 @@
       ? balanceSheet(ledger.data, undefined, ledger.childrenMap)
       : { assets: 0, liabilities: 0, equity: 0, netIncome: 0, balanced: false }
   );
+
+  const monthlyBurn = $derived.by(() => {
+    if (!ledger.data) return 0;
+    const today = new SvelteDate();
+    const d30 = new SvelteDate(today);
+    d30.setDate(d30.getDate() - 30);
+    const pnl30 = incomeStatement(ledger.data, todayString(d30), todayString(today));
+    if (pnl30.expense > 0) return pnl30.expense;
+    const curMonthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    const curMonthPnl = incomeStatement(ledger.data, curMonthStart, undefined);
+    return curMonthPnl.expense > 0 ? curMonthPnl.expense : pnl.expense;
+  });
 
   const childrenMap = $derived(ledger.data ? buildChildrenMap(ledger.data.accounts) : new Map());
   const incomeAccounts = $derived(
@@ -111,26 +122,26 @@
   let trendsMetric = $state<'netWorth' | 'assets' | 'liabilities' | 'liquidCash'>('netWorth');
 
   const trendsDateRange = $derived.by(() => {
-    const today = new Date();
+    const today = new SvelteDate();
     const todayStr = todayString(today);
     let startStr = todayStr;
 
     if (trendsPeriod === '1W') {
-      const d = new Date(today);
+      const d = new SvelteDate(today);
       d.setDate(d.getDate() - 6);
       startStr = todayString(d);
     } else if (trendsPeriod === '1M') {
-      const d = new Date(today);
+      const d = new SvelteDate(today);
       d.setDate(d.getDate() - 29);
       startStr = todayString(d);
     } else if (trendsPeriod === '3M') {
-      const d = new Date(today);
+      const d = new SvelteDate(today);
       d.setDate(d.getDate() - 89);
       startStr = todayString(d);
     } else if (trendsPeriod === 'YTD') {
       startStr = `${today.getFullYear()}-01-01`;
     } else if (trendsPeriod === '1Y') {
-      const d = new Date(today);
+      const d = new SvelteDate(today);
       d.setDate(d.getDate() - 364);
       startStr = todayString(d);
     } else if (trendsPeriod === 'ALL') {
@@ -138,7 +149,7 @@
         const sorted = [...ledger.transactions].sort((a, b) => a.date.localeCompare(b.date));
         startStr = sorted[0].date;
       } else {
-        const d = new Date(today);
+        const d = new SvelteDate(today);
         d.setDate(d.getDate() - 29);
         startStr = todayString(d);
       }
@@ -152,55 +163,11 @@
     return historicalDailyBalances(ledger.data, trendsDateRange.startStr, trendsDateRange.endStr);
   });
 
-  async function exportCSV(rangeFrom: string = from, rangeTo: string = to) {
+  async function exportCSV() {
     if (!ledger.data) return;
     let csvRows: string[] = [];
-    const activeFrom = rangeFrom;
-    const activeTo = rangeTo;
 
-    if (reportTab === 'pnl') {
-      csvRows.push('TYPE,CODE,ACCOUNT_NAME,AMOUNT_IDR');
-      for (const a of incomeAccounts) {
-        const bal = accountBalanceMinorFiltered(
-          a.id,
-          ledger.data,
-          activeFrom || undefined,
-          activeTo || undefined,
-          childrenMap
-        );
-        const idrMinor = convertMinor(Math.abs(bal), a.currency, 'IDR', ledger.fxRate);
-        csvRows.push(`INCOME,"${a.code}","${a.name}",${fromMinor('IDR', idrMinor)}`);
-      }
-      for (const a of expenseAccounts) {
-        const bal = accountBalanceMinorFiltered(
-          a.id,
-          ledger.data,
-          activeFrom || undefined,
-          activeTo || undefined,
-          childrenMap
-        );
-        const idrMinor = convertMinor(Math.abs(bal), a.currency, 'IDR', ledger.fxRate);
-        csvRows.push(`EXPENSE,"${a.code}","${a.name}",${fromMinor('IDR', idrMinor)}`);
-      }
-      csvRows.push(`,,,TOTAL_NET_INCOME,${fromMinor('IDR', pnl.net)}`);
-    } else if (reportTab === 'bs') {
-      csvRows.push('SECTION,CODE,ACCOUNT_NAME,AMOUNT_IDR');
-      for (const a of assetAccounts) {
-        const bal = accountBalanceMinor(a.id, ledger.data, childrenMap);
-        const idrMinor = convertMinor(Math.abs(bal), a.currency, 'IDR', ledger.fxRate);
-        csvRows.push(`ASSET,"${a.code}","${a.name}",${fromMinor('IDR', idrMinor)}`);
-      }
-      for (const a of liabilityAccounts) {
-        const bal = accountBalanceMinor(a.id, ledger.data, childrenMap);
-        const idrMinor = convertMinor(Math.abs(bal), a.currency, 'IDR', ledger.fxRate);
-        csvRows.push(`LIABILITY,"${a.code}","${a.name}",${fromMinor('IDR', idrMinor)}`);
-      }
-      for (const a of equityAccounts) {
-        const bal = accountBalanceMinor(a.id, ledger.data, childrenMap);
-        const idrMinor = convertMinor(Math.abs(bal), a.currency, 'IDR', ledger.fxRate);
-        csvRows.push(`EQUITY,"${a.code}","${a.name}",${fromMinor('IDR', idrMinor)}`);
-      }
-    } else if (reportTab === 'trends') {
+    if (reportTab === 'trends') {
       csvRows.push('DATE,NET_WORTH_IDR,ASSETS_IDR,LIABILITIES_IDR,LIQUID_CASH_IDR');
       for (const pt of historicalPoints) {
         csvRows.push(
@@ -226,7 +193,7 @@
       // 1. Try native desktop save dialog (Tauri)
       const selectedPath = await save({
         defaultPath: defaultFilename,
-        filters: [{ name: 'CSV Spreadsheet', extensions: ['csv'] }],
+        filters: [{ name: i18n.t.dialogCsvFilter, extensions: ['csv'] }],
       });
 
       if (selectedPath) {
@@ -257,7 +224,7 @@
 
   async function handleExport(format: 'pdf' | 'csv', rangeFrom: string, rangeTo: string) {
     if (format === 'csv') {
-      await exportCSV(rangeFrom, rangeTo);
+      await exportCSV();
     } else {
       await exportPDF(rangeFrom, rangeTo);
     }
@@ -302,8 +269,9 @@
 
 <PageLayout crumb={i18n.t.report} crumbHref="/app/reports" title={currentTabLabel}>
   {#snippet actions()}
-    <Button variant="ghost" onclick={() => (exportOpen = true)}>
-      {i18n.t.exportCsv}
+    <Button variant="ghost" onclick={() => (exportOpen = true)} class="flex items-center gap-1.5">
+      {i18n.t.exportReportBtn}
+      <Icon name="export" size={14} />
     </Button>
   {/snippet}
 
@@ -319,8 +287,6 @@
     <div class="flex min-w-0 items-center gap-1">
       <Tabs
         tabs={[
-          { id: 'pnl', label: i18n.t.pnlTitle },
-          { id: 'bs', label: i18n.t.balanceSheetTitle },
           { id: 'tb', label: i18n.t.trialBalanceTitle },
           { id: 'trends', label: i18n.t.trendsTitle },
           { id: 'debt', label: i18n.t.debtReportTitle },
@@ -328,28 +294,27 @@
           { id: 'fx', label: i18n.t.fxRevalTab },
         ]}
         active={reportTab}
-        onSelect={(id) =>
-          setReportTab(id as 'pnl' | 'bs' | 'tb' | 'trends' | 'debt' | 'cashflow' | 'fx')}
+        onSelect={(id) => setReportTab(id as 'tb' | 'trends' | 'debt' | 'cashflow' | 'fx')}
       />
     </div>
 
-    {#if reportTab === 'pnl' || reportTab === 'cashflow' || reportTab === 'fx'}
+    {#if reportTab === 'cashflow' || reportTab === 'fx'}
       <div class="flex shrink-0 items-center">
         <DateRangeDropdown bind:from bind:to />
       </div>
     {:else if reportTab !== 'trends'}
       <div class="flex h-6 shrink-0 items-center gap-2">
-        <label for="as-of-date" class="font-proto text-text-dim text-[10px] tracking-wider uppercase">
+        <label
+          for="as-of-date"
+          class="font-proto text-text-dim text-smaller tracking-wider uppercase"
+        >
           {i18n.t.asOfTodayLabel}:
         </label>
-        <input 
-          id="as-of-date"
-          type="date" 
-          bind:value={to} 
-          class="bg-bg-input border-line text-text-base focus:border-teal h-6 rounded-none border px-2 py-0.5 text-[11px] font-mono outline-none"
-        />
+        <DateDropdown bind:value={to} />
         {#if to && to > todayString()}
-           <span class="text-teal font-proto text-[10px] font-bold animate-pulse">[FORECAST]</span>
+          <span class="text-teal font-proto text-smaller animate-pulse font-bold"
+            >{i18n.t.forecastBadge}</span
+          >
         {/if}
       </div>
     {/if}
@@ -357,20 +322,14 @@
 
   <!-- MAIN REPORT CONTENT AREA — 100% FIT SCREEN -->
   <div class="flex min-h-0 flex-1 overflow-hidden">
-    <!-- 1. PROFIT & LOSS TAB -->
-    {#if reportTab === 'pnl'}
-      <ProfitLoss {from} {to} />
-      <!-- 2. BALANCE SHEET TAB -->
-    {:else if reportTab === 'bs'}
-      <BalanceSheet asOf={to} />
-      <!-- 3. TRIAL BALANCE TAB -->
-    {:else if reportTab === 'tb'}
+    <!-- 3. TRIAL BALANCE TAB -->
+    {#if reportTab === 'tb'}
       <TrialBalance asOf={to} />
       <!-- 4. TRENDS TAB -->
     {:else if reportTab === 'trends'}
       <Trends
         {bs}
-        monthlyExpense={pnl.expense > 0 ? pnl.expense : 1}
+        monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
         {childrenMap}
         bind:trendsPeriod
         bind:trendsMetric

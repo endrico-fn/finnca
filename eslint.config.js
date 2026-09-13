@@ -24,6 +24,18 @@ export default ts.config(
     },
   },
   {
+    files: ['**/*.ts', '**/*.svelte.ts'],
+    languageOptions: {
+      parser: ts.parser,
+    },
+  },
+  {
+    files: ['**/*.cjs'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
     ignores: ['build/', '.svelte-kit/', 'src-tauri/target/', 'node_modules/'],
   }
 );

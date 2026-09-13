@@ -1,14 +1,35 @@
 import type { Account, VaultData } from '../types';
 import { convertMinor } from '../core/math';
-import { accountBalanceMinor, accountBalanceMinorFiltered, buildChildrenMap } from '../ledger/accounts';
+import {
+  accountBalanceMinor,
+  accountBalanceMinorFiltered,
+  buildChildrenMap,
+} from '../ledger/accounts';
 import { todayString } from '../core/date';
 import { generateGhostTransactions } from '../features/planning';
+import { calculateFxRevaluation } from '../features/fx';
 
 export function getHistoricalFx(vault: VaultData, date?: string): number {
   if (!date || !vault.fxHistory || vault.fxHistory.length === 0) return vault.fxRate;
   const history = [...vault.fxHistory].sort((a, b) => b.date.localeCompare(a.date));
-  const entry = history.find(e => e.date <= date);
+  const entry = history.find((e) => e.date <= date);
   return entry ? entry.rate : vault.fxRate;
+}
+
+export function buildAsOfVault(vault: VaultData, asOf?: string): VaultData {
+  if (!asOf) return vault;
+  let ghostTxs: import('../types').Transaction[] = [];
+  const today = todayString();
+  if (asOf > today) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = todayString(tomorrow);
+    ghostTxs = generateGhostTransactions(vault, tomorrowStr, asOf);
+  }
+  return {
+    ...vault,
+    transactions: [...vault.transactions.filter((t) => t.date <= asOf), ...ghostTxs],
+  };
 }
 
 export function trialBalance(
@@ -18,27 +39,12 @@ export function trialBalance(
 ): { account: Account; debit: number; credit: number }[] {
   const cmapActual = cmap ?? buildChildrenMap(vault.accounts);
   const fx = getHistoricalFx(vault, asOf);
-  
-  let ghostTxs: import('../types').Transaction[] = [];
-  const today = todayString();
-  if (asOf && asOf > today) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = todayString(tomorrow);
-    ghostTxs = generateGhostTransactions(vault, tomorrowStr, asOf);
-  }
-
-  const filteredVault = asOf
-    ? {
-        ...vault,
-        transactions: [...vault.transactions.filter((t) => t.date <= asOf), ...ghostTxs],
-      }
-    : vault;
+  const filteredVault = buildAsOfVault(vault, asOf);
 
   return vault.accounts
-    .filter((a) => !a.placeholder)
+    .filter((a) => !a.placeholder && !cmapActual.has(a.id))
     .map((a) => {
-      const raw = asOf 
+      const raw = asOf
         ? accountBalanceMinorFiltered(a.id, filteredVault, undefined, asOf, cmapActual)
         : accountBalanceMinor(a.id, filteredVault, cmapActual);
       const bal = a.currency === 'USD' ? convertMinor(raw, 'USD', 'IDR', fx) : raw;
@@ -94,39 +100,25 @@ export function balanceSheet(
   equity: number;
   netIncome: number;
   unrealizedFx: number;
+  discrepancy: number;
   balanced: boolean;
 } {
   const cmapActual = cmap ?? buildChildrenMap(vault.accounts);
-  
-  let ghostTxs: import('../types').Transaction[] = [];
-  const today = todayString();
-  if (asOf && asOf > today) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = todayString(tomorrow);
-    ghostTxs = generateGhostTransactions(vault, tomorrowStr, asOf);
-  }
-
-  const filteredVault = asOf
-    ? {
-        ...vault,
-        transactions: [...vault.transactions.filter((t) => t.date <= asOf), ...ghostTxs],
-      }
-    : vault;
+  const filteredVault = buildAsOfVault(vault, asOf);
   const fx = getHistoricalFx(vault, asOf);
-  
+
   let assets = 0,
     liabilities = 0,
     equity = 0;
-  
+
   const imbalances = new Map<string, number>();
   const isLeaf = (id: string) => !cmapActual.has(id);
-  
+
   for (const a of vault.accounts) {
     if (!isLeaf(a.id) || a.placeholder) continue;
     const raw = accountBalanceMinor(a.id, filteredVault, cmapActual);
     const bal = a.currency === 'USD' ? convertMinor(raw, 'USD', 'IDR', fx) : raw;
-    
+
     if (a.type === 'ASSET') assets += bal;
     else if (a.type === 'LIABILITY') liabilities += -bal;
     else if (a.type === 'EQUITY') equity += -bal;
@@ -134,11 +126,20 @@ export function balanceSheet(
     const current = imbalances.get(a.currency) || 0;
     imbalances.set(a.currency, current + raw);
   }
-  
+
   const { net } = incomeStatement(filteredVault);
   const netIdr = net;
-  const unrealizedFx = assets - liabilities - equity - netIdr;
-  const balanced = Array.from(imbalances.values()).every(v => v === 0);
-  
-  return { assets, liabilities, equity, netIncome: netIdr, unrealizedFx, balanced };
+  const { totalUnrealizedGain } = calculateFxRevaluation({ ...filteredVault, fxRate: fx });
+  const discrepancy = assets - liabilities - equity - netIdr - totalUnrealizedGain;
+  const balanced = Array.from(imbalances.values()).every((v) => v === 0) && discrepancy === 0;
+
+  return {
+    assets,
+    liabilities,
+    equity,
+    netIncome: netIdr,
+    unrealizedFx: totalUnrealizedGain,
+    discrepancy,
+    balanced,
+  };
 }

@@ -1,10 +1,16 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
-  import { uid, toMinor, parseStringAmountToMinor, suggestInstallmentOptions, formatIDR } from '$lib/accounting/finance';
+  import {
+    uid,
+    fromMinor,
+    parseStringAmountToMinor,
+    suggestInstallmentOptions,
+    formatMoney,
+  } from '$lib/accounting/finance';
   import type { PaymentPlan, PlanType, PlanFrequency } from '$lib/accounting/types';
   import { i18n } from '$lib/i18n.svelte';
   import { notifStore } from '$lib/notifications/store.svelte';
-  import { Button, ModalShell } from '$lib/components/ui';
+  import { Button, ModalShell, SelectDropdown } from '$lib/components/ui';
 
   let { open = $bindable(false), selectedDate } = $props<{
     open: boolean;
@@ -34,9 +40,7 @@
     )
   );
 
-  let prevOpen = open;
-  if (open !== prevOpen) {
-    prevOpen = open;
+  $effect(() => {
     if (open) {
       planTitle = '';
       planType = 'RECEIVABLE';
@@ -56,17 +60,23 @@
       planNotes = '';
       planError = '';
     }
-  }
+  });
 
-  const parsedTotal = $derived(parseStringAmountToMinor(planTotal, 'IDR'));
-  const parsedInst = $derived(parseStringAmountToMinor(planInstallment, 'IDR'));
+  const planCurrency = $derived(
+    ledger.accountsById.get(planFromAcc)?.currency ||
+      ledger.accountsById.get(planToAcc)?.currency ||
+      'IDR'
+  );
+
+  const parsedTotal = $derived(parseStringAmountToMinor(planTotal, planCurrency));
+  const parsedInst = $derived(parseStringAmountToMinor(planInstallment, planCurrency));
 
   const installmentOptions = $derived(
     parsedTotal > 0 ? suggestInstallmentOptions(parsedTotal) : []
   );
 
   function selectOption(opt: { count: number; amount: number; frequency: string }) {
-    planInstallment = String(opt.amount);
+    planInstallment = String(fromMinor(planCurrency, opt.amount));
     planFrequency = opt.frequency as PlanFrequency;
   }
 
@@ -139,7 +149,7 @@
       <input
         bind:value={planTitle}
         placeholder={i18n.t.planTitleExampleEn}
-        class="sharp-input w-full px-2.5 py-1.5 text-[12px]"
+        class="sharp-input text-small w-full px-2.5 py-1.5"
       />
     </div>
 
@@ -148,24 +158,29 @@
         <div class="label-xs text-text-base mb-1 block">
           {i18n.t.type}
         </div>
-        <select bind:value={planType} class="sharp-input bg-bg-app w-full px-2.5 py-2 text-[11px]">
-          <option value="RECEIVABLE">{i18n.t.planTypeReceivableOpt}</option>
-          <option value="PAYABLE">{i18n.t.planTypePayableOpt}</option>
-          <option value="RECURRING">{i18n.t.planTypeRecurringOpt}</option>
-        </select>
+        <SelectDropdown
+          bind:value={planType}
+          options={[
+            { value: 'RECEIVABLE', label: i18n.t.planTypeReceivableOpt },
+            { value: 'PAYABLE', label: i18n.t.planTypePayableOpt },
+            { value: 'RECURRING', label: i18n.t.planTypeRecurringOpt },
+          ]}
+          class="w-full"
+        />
       </div>
       <div>
         <div class="label-xs text-text-base mb-1 block">
           {i18n.t.planFrequencyLabel}
         </div>
-        <select
+        <SelectDropdown
           bind:value={planFrequency}
-          class="sharp-input bg-bg-app w-full px-2.5 py-2 text-[11px]"
-        >
-          <option value="DAILY">{i18n.t.planFreqDailyOpt}</option>
-          <option value="WEEKLY">{i18n.t.planFreqWeeklyOpt}</option>
-          <option value="MONTHLY">{i18n.t.planFreqMonthlyOpt}</option>
-        </select>
+          options={[
+            { value: 'DAILY', label: i18n.t.planFreqDailyOpt },
+            { value: 'WEEKLY', label: i18n.t.planFreqWeeklyOpt },
+            { value: 'MONTHLY', label: i18n.t.planFreqMonthlyOpt },
+          ]}
+          class="w-full"
+        />
       </div>
     </div>
 
@@ -176,8 +191,8 @@
         </div>
         <input
           bind:value={planTotal}
-          placeholder="1500000"
-          class="sharp-input w-full px-2.5 py-1.5 text-[12px]"
+          placeholder={i18n.t.planTotalExample}
+          class="sharp-input text-small w-full px-2.5 py-1.5"
         />
       </div>
       <div>
@@ -186,23 +201,26 @@
         </div>
         <input
           bind:value={planInstallment}
-          placeholder="50000"
-          class="sharp-input w-full px-2.5 py-1.5 text-[12px]"
+          placeholder={i18n.t.planInstallmentExample}
+          class="sharp-input text-small w-full px-2.5 py-1.5"
         />
       </div>
     </div>
 
     {#if installmentOptions.length > 0 && !planInstallment}
-      <div class="bg-line/10 border-line border p-2">
+      <div class="bg-bg-app border-line border p-2">
         <span class="label-xs text-text-dim mb-1.5 block">{i18n.t.planSuggestedOptions}</span>
         <div class="flex flex-wrap gap-1.5">
           {#each installmentOptions as opt (opt.count)}
             <button
               type="button"
               onclick={() => selectOption(opt)}
-              class="sharp-btn btn-ghost font-proto px-2 py-1 text-[10px]"
+              class="sharp-btn btn-ghost font-proto text-smaller px-2 py-1"
             >
-              {opt.count}x • {formatIDR(toMinor('IDR', opt.amount))}
+              {i18n.t.planCountShort.replace('{n}', String(opt.count))} • {formatMoney(
+                opt.amount,
+                planCurrency
+              )}
             </button>
           {/each}
         </div>
@@ -210,7 +228,7 @@
     {/if}
 
     {#if estimatedCount > 0}
-      <div class="text-teal font-proto px-1 text-right text-[10px]">
+      <div class="text-teal font-proto text-smaller px-1 text-right">
         {i18n.t.planEstimatedEnd}: {i18n.t.planInstallmentsCount.replace(
           '{count}',
           String(estimatedCount)
@@ -223,24 +241,33 @@
         <div class="label-xs text-text-base mb-1 block">
           {i18n.t.sourceAccount}
         </div>
-        <select
+        <SelectDropdown
           bind:value={planFromAcc}
-          class="sharp-input bg-bg-app w-full px-2.5 py-2 text-[11px]"
-        >
-          {#each eligibleAssetAccounts as a (a.id)}
-            <option value={a.id}>{a.code} - {a.name} [{a.currency}]</option>
-          {/each}
-        </select>
+          searchable
+          placeholder={i18n.t.txSelectAccount}
+          options={eligibleAssetAccounts.map((a) => ({
+            value: a.id,
+            label: `${a.code} - ${a.name} [${a.currency}]`,
+          }))}
+          class="w-full"
+          menuClass="w-full"
+        />
       </div>
       <div>
         <div class="label-xs text-text-base mb-1 block">
           {i18n.t.targetAccount}
         </div>
-        <select bind:value={planToAcc} class="sharp-input bg-bg-app w-full px-2.5 py-2 text-[11px]">
-          {#each eligibleAssetAccounts as a (a.id)}
-            <option value={a.id}>{a.code} - {a.name} [{a.currency}]</option>
-          {/each}
-        </select>
+        <SelectDropdown
+          bind:value={planToAcc}
+          searchable
+          placeholder={i18n.t.txSelectAccount}
+          options={eligibleAssetAccounts.map((a) => ({
+            value: a.id,
+            label: `${a.code} - ${a.name} [${a.currency}]`,
+          }))}
+          class="w-full"
+          menuClass="w-full"
+        />
       </div>
     </div>
 
@@ -251,12 +278,12 @@
       <input
         bind:value={planNotes}
         placeholder={i18n.t.planNotesExampleEn}
-        class="sharp-input w-full px-2.5 py-1.5 text-[12px]"
+        class="sharp-input text-small w-full px-2.5 py-1.5"
       />
     </div>
 
     {#if planError}
-      <p class="badge-err px-2.5 py-1 text-[11px]">{planError}</p>
+      <p class="badge-err text-small px-2.5 py-1">{planError}</p>
     {/if}
   </div>
 

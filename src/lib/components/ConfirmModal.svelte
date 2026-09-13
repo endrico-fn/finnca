@@ -42,7 +42,7 @@
 </script>
 
 <ModalShell bind:open {title} onClose={onCancel}>
-  <p class="text-text-base py-3 text-[12px] leading-relaxed">
+  <p class="text-text-base text-small py-3 leading-relaxed">
     {message}
   </p>
   <div class="border-line flex justify-end gap-2 border-t pt-3">

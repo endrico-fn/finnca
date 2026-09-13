@@ -4,10 +4,11 @@
   import {
     fromMinor,
     formatIDR,
+    convertMinor,
     buildChildrenMap,
     accountBalanceMinorFiltered,
   } from '$lib/accounting/finance';
-  import { EmptyState, ReportCard } from '$lib/components/ui';
+  import { EmptyState, Card } from '$lib/components/ui';
 
   let { from, to } = $props<{ from: string; to: string }>();
 
@@ -61,7 +62,7 @@
         childrenMap
       );
       if (bal !== 0) {
-        const val = Math.abs(bal);
+        const val = convertMinor(Math.abs(bal), a.currency, 'IDR', ledger.fxRate);
         totalIncome += val;
         nodes.push({
           id: a.id,
@@ -89,7 +90,7 @@
         childrenMap
       );
       if (bal !== 0) {
-        const val = Math.abs(bal);
+        const val = convertMinor(Math.abs(bal), a.currency, 'IDR', ledger.fxRate);
         totalExpense += val;
         nodes.push({
           id: a.id,
@@ -117,7 +118,7 @@
     const centerVal = Math.max(totalIncome, totalExpense);
     nodes.push({
       id: 'CENTER',
-      label: 'CASH POOL',
+      label: i18n.t.cashflowCenterNode,
       value: centerVal,
       color: 'var(--color-text-strong)',
       column: 1,
@@ -128,7 +129,7 @@
       // Net Savings (Column 2)
       nodes.push({
         id: 'NET',
-        label: 'NET SAVINGS',
+        label: i18n.t.cashflowNetSavings,
         value: net,
         color: 'var(--color-teal)',
         column: 2,
@@ -143,7 +144,7 @@
       // Net Deficit (Column 0)
       nodes.push({
         id: 'NET',
-        label: 'NET DEFICIT',
+        label: i18n.t.cashflowNetDeficit,
         value: Math.abs(net),
         color: 'var(--color-expense)',
         column: 0,
@@ -212,9 +213,9 @@
 
     // Position Links (Bezier curves)
     // We need to track the current y-offset on the left and right side of each node
-    const nodeOffsets = new Map<string, { left: number; right: number }>();
+    const nodeOffsets: Record<string, { left: number; right: number }> = {};
     nodes.forEach((n) => {
-      nodeOffsets.set(n.id, { left: n.y!, right: n.y! });
+      nodeOffsets[n.id] = { left: n.y!, right: n.y! };
     });
 
     links.forEach((link) => {
@@ -224,12 +225,12 @@
       const linkHeight = link.value * scale;
 
       const startX = sourceNode.column === 0 ? colWidth : width / 2 + colWidth / 2;
-      let startY = nodeOffsets.get(sourceNode.id)!.right;
-      nodeOffsets.get(sourceNode.id)!.right += linkHeight;
+      const startY = nodeOffsets[sourceNode.id].right;
+      nodeOffsets[sourceNode.id].right += linkHeight;
 
       const endX = targetNode.column === 2 ? width - colWidth : width / 2 - colWidth / 2;
-      let endY = nodeOffsets.get(targetNode.id)!.left;
-      nodeOffsets.get(targetNode.id)!.left += linkHeight;
+      const endY = nodeOffsets[targetNode.id].left;
+      nodeOffsets[targetNode.id].left += linkHeight;
 
       const curvature = 0.5;
       const xOffset = (endX - startX) * curvature;
@@ -241,21 +242,17 @@
   });
 </script>
 
-<ReportCard
-  title={i18n.t.cashflowChartTitle}
-  description={i18n.t.cashflowChartDesc}
-  class="flex-1"
->
-    {#if sankeyData.nodes.length === 0}
-      <div class="border-line bg-bg-app flex min-h-0 flex-1 items-center justify-center border">
-        <EmptyState
-          title={i18n.t.noCashflowDataTitle}
-          hint={i18n.t.noCashflowDataHint}
-          icon="chart"
-        />
-      </div>
-    {:else}
-      <div class="border-line bg-bg-app relative min-h-0 flex-1 overflow-auto border">
+<Card divided title={i18n.t.cashflowChartTitle} class="flex-1">
+  {#if sankeyData.nodes.length === 0}
+    <div class="border-line bg-bg-app flex min-h-0 flex-1 items-center justify-center border">
+      <EmptyState
+        title={i18n.t.noCashflowDataTitle}
+        hint={i18n.t.noCashflowDataHint}
+        icon="chart"
+      />
+    </div>
+  {:else}
+    <div class="border-line bg-bg-app relative min-h-0 flex-1 overflow-auto border">
       <svg
         width="100%"
         height="100%"
@@ -307,7 +304,7 @@
               y={Math.max(14, (node.height ?? 0) / 2 + 4)}
               fill="var(--color-text-strong)"
               font-size="10"
-              font-family="monospace"
+              font-family="var(--font-proto)"
               text-anchor={node.column === 0 ? 'end' : 'start'}
               class="pointer-events-none"
             >
@@ -319,8 +316,8 @@
               x={node.column === 0 ? sankeyData.colWidth! - 12 : 12}
               y={Math.max(14, (node.height ?? 0) / 2 + 4) + 14}
               fill="var(--color-text-muted)"
-              font-size="9"
-              font-family="monospace"
+              font-size="10"
+              font-family="var(--font-proto)"
               text-anchor={node.column === 0 ? 'end' : 'start'}
               class="pointer-events-none"
             >
@@ -331,4 +328,4 @@
       </svg>
     </div>
   {/if}
-</ReportCard>
+</Card>

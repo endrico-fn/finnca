@@ -15,6 +15,31 @@ export function diffCalendarDays(dateA: string, dateB: string): number {
   return Math.trunc((utcA - utcB) / 86_400_000);
 }
 
+export function parseLocalDateParts(value: string): { y: number; m: number; d: number } | null {
+  const parts = value.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return null;
+  return { y: parts[0], m: parts[1], d: parts[2] };
+}
+
+export function daysInMonth(year: number, month1Based: number): number {
+  return new Date(year, month1Based, 0).getDate();
+}
+
+export function matchesMonthlyDay(
+  year: number,
+  month1Based: number,
+  dayOfMonth: number,
+  dayNum: number
+): boolean {
+  return dayNum === Math.min(dayOfMonth, daysInMonth(year, month1Based));
+}
+
+export function endOfMonthString(yearMonth: string): string {
+  const [y, m] = yearMonth.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
+}
+
 export interface CalendarDay {
   dayNum: number;
   dateStr: string;
@@ -75,7 +100,7 @@ export function buildEventsByDate(
 
       let match = false;
       if (p.dueDate === d.dateStr) match = true;
-      
+
       if (!match) {
         if (p.frequency === 'DAILY') match = true;
         else if (p.frequency === 'WEEKLY') {
@@ -84,7 +109,10 @@ export function buildEventsByDate(
             return new Date(y, m - 1, day, 12).getDay();
           };
           if (getLocalDay(p.startDate) === getLocalDay(d.dateStr)) match = true;
-        } else if (p.frequency === 'MONTHLY' && p.dayOfMonth === dayNum) match = true;
+        } else if (p.frequency === 'MONTHLY') {
+          const [py, pm] = d.dateStr.split('-').map(Number);
+          if (p.dayOfMonth != null && matchesMonthlyDay(py, pm, p.dayOfMonth, dayNum)) match = true;
+        }
       }
 
       if (match) {
@@ -106,7 +134,7 @@ export function isPlanPostedOnDate(
     (tx) =>
       tx.date === date &&
       (tx.planId === plan.id ||
-        (!tx.planId && 
+        (!tx.planId &&
           tx.description.toLowerCase().includes(plan.title.toLowerCase()) &&
           tx.splits.some((s) => Math.abs(s.amount) === plan.installmentAmount)))
   );

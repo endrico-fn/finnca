@@ -4,7 +4,7 @@
   import { ledger } from '$lib/accounting/store.svelte';
   import { todayString, fromMinor } from '$lib/accounting/finance';
   import * as api from '$lib/api';
-  import { ModalShell, Card } from '$lib/components/ui';
+  import { ModalShell, Card, Button } from '$lib/components/ui';
   import {
     forgetVault,
     clearVaultRegistry,
@@ -12,6 +12,7 @@
     getActiveVaultId,
     setActiveVault,
   } from '$lib/stores/vault-registry.svelte';
+  import { onMount } from 'svelte';
 
   let notifToggles = $state({
     due: true,
@@ -20,13 +21,17 @@
     integrity: true,
   });
 
-  export function loadLocalPrefs() {
+  function loadLocalPrefs() {
     if (typeof localStorage === 'undefined') return;
     try {
       const n = JSON.parse(localStorage.getItem('finnca_notif_toggles') || '{}');
       notifToggles = { ...notifToggles, ...n };
-    } catch {}
+    } catch (e) {
+      console.error('Failed to load local prefs:', e);
+    }
   }
+
+  onMount(loadLocalPrefs);
 
   function saveNotifToggles() {
     if (typeof localStorage === 'undefined') return;
@@ -71,8 +76,8 @@
         clearVaultRegistry();
         window.location.href = '/setup';
       }
-    } catch (e: any) {
-      deleteError = e.message;
+    } catch (e: unknown) {
+      deleteError = e instanceof Error ? e.message : String(e);
     } finally {
       deleteBusy = false;
     }
@@ -121,9 +126,9 @@
       const dest = await api.pickDirectory();
       if (!dest) return;
       await api.createVaultBackup(dest);
-      alert('Encrypted Backup successfully created at ' + dest);
-    } catch (e: any) {
-      alert('Backup failed: ' + e.message);
+      alert(i18n.t.backupCreatedMsg.replace('{dest}', dest));
+    } catch (e: unknown) {
+      alert(i18n.t.backupFailedMsg.replace('{msg}', e instanceof Error ? e.message : String(e)));
     }
   }
 </script>
@@ -132,43 +137,38 @@
   <!-- LEFT COLUMN: BACKUP & EXPORT + DANGER ZONE -->
   <div class="flex flex-col gap-2">
     <!-- 1. BACKUP & EXPORT CARD -->
-    <Card title={i18n.t.backupExportTitle} badge="STORAGE & ARCHIVE" class="justify-between">
+    <Card
+      title={i18n.t.backupExportTitle}
+      badge={i18n.t.badgeStorageArchive}
+      class="justify-between"
+    >
       <div>
-        <p class="text-text-dim mb-3 font-mono text-[11px] leading-relaxed">
+        <p class="text-text-dim text-small mb-3 font-mono leading-relaxed">
           {i18n.t.backupExportDesc}
         </p>
 
         <div class="flex flex-col gap-2.5">
-          <button
-            type="button"
-            onclick={handleEncryptedBackup}
-            class="sharp-btn btn-primary font-proto flex items-center justify-center gap-2 p-2.5 text-[10px]"
-          >
+          <Button variant="primary" onclick={handleEncryptedBackup}>
             <span>{i18n.t.backupEncryptedVaultBtn}</span>
-          </button>
+          </Button>
 
           <div class="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onclick={exportVaultBackupJson}
-              class="sharp-btn btn-ghost font-proto border-line hover:border-text-dim flex items-center justify-center gap-2 p-2.5 text-[9px]"
               title={i18n.t.exportPlaintextJsonTitle}
             >
               <span>{i18n.t.exportPlaintextJsonBtn}</span>
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              onclick={exportTransactionsCsv}
-              class="sharp-btn btn-ghost font-proto border-line hover:border-text-dim flex items-center justify-center gap-2 p-2.5 text-[10px]"
-            >
+            <Button variant="ghost" onclick={exportTransactionsCsv}>
               <span>{i18n.t.exportCsvBtn}</span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      <p class="text-text-dim border-line/30 mt-auto border-t pt-2 font-mono text-[9px]">
+      <p class="text-text-dim border-line/30 text-smaller mt-auto border-t pt-2 font-mono">
         {i18n.t.backupEncryptedNote}
       </p>
     </Card>
@@ -176,28 +176,24 @@
     <!-- 2. DANGER ZONE CARD -->
     <Card
       title={i18n.t.dangerZoneTitle}
-      badge="DESTRUCTIVE"
+      badge={i18n.t.badgeDestructive}
       badgeTone="err"
       class="border-expense/40 bg-expense/5 justify-between"
     >
       <div>
-        <p class="text-text-dim mb-3 font-mono text-[10px] leading-relaxed">
+        <p class="text-text-dim text-smaller mb-3 font-mono leading-relaxed">
           {i18n.t.deleteVaultWarning}
         </p>
       </div>
 
-      <button
-        type="button"
-        onclick={() => (deleteModalOpen = true)}
-        class="sharp-btn btn-danger font-proto self-start px-4 py-2 text-[10px]"
-      >
+      <Button variant="danger" onclick={() => (deleteModalOpen = true)}>
         {i18n.t.deleteVaultBtn}
-      </button>
+      </Button>
     </Card>
   </div>
 
   <!-- RIGHT COLUMN: NOTIFICATIONS PREFERENCES CARD -->
-  <Card title={i18n.t.notificationsTitle} badge="ALERTS" class="justify-between">
+  <Card title={i18n.t.notificationsTitle} badge={i18n.t.badgeAlerts} class="justify-between">
     <div>
       <div class="flex flex-col gap-2">
         <label
@@ -211,12 +207,12 @@
               class="accent-teal size-3.5"
             />
             <span
-              class="font-proto text-text-strong group-hover:text-text-white text-[11px] transition-colors"
+              class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
               >{i18n.t.notifDueDatesLabel}</span
             >
           </div>
           <span
-            class="font-proto text-[9px] {notifToggles.due
+            class="font-proto text-smaller {notifToggles.due
               ? 'text-teal font-bold'
               : 'text-text-muted'}"
           >
@@ -235,12 +231,12 @@
               class="accent-teal size-3.5"
             />
             <span
-              class="font-proto text-text-strong group-hover:text-text-white text-[11px] transition-colors"
+              class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
               >{i18n.t.notifFxAlertsLabel}</span
             >
           </div>
           <span
-            class="font-proto text-[9px] {notifToggles.fx
+            class="font-proto text-smaller {notifToggles.fx
               ? 'text-teal font-bold'
               : 'text-text-muted'}"
           >
@@ -259,12 +255,12 @@
               class="accent-teal size-3.5"
             />
             <span
-              class="font-proto text-text-strong group-hover:text-text-white text-[11px] transition-colors"
+              class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
               >{i18n.t.notifExpenseSpikeLabel}</span
             >
           </div>
           <span
-            class="font-proto text-[9px] {notifToggles.spike
+            class="font-proto text-smaller {notifToggles.spike
               ? 'text-teal font-bold'
               : 'text-text-muted'}"
           >
@@ -283,12 +279,12 @@
               class="accent-teal size-3.5"
             />
             <span
-              class="font-proto text-text-strong group-hover:text-text-white text-[11px] transition-colors"
+              class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
               >{i18n.t.notifLedgerIntegrityLabel}</span
             >
           </div>
           <span
-            class="font-proto text-[9px] {notifToggles.integrity
+            class="font-proto text-smaller {notifToggles.integrity
               ? 'text-teal font-bold'
               : 'text-text-muted'}"
           >
@@ -298,7 +294,7 @@
       </div>
     </div>
 
-    <p class="text-text-muted font-proto border-line/40 mt-auto border-t pt-2 text-[9px]">
+    <p class="text-text-muted font-proto border-line/40 text-smaller mt-auto border-t pt-2">
       {i18n.t.notifStoredLocally}
     </p>
   </Card>
@@ -314,7 +310,7 @@
       deleteError = '';
     }}
   >
-    <p class="text-text-base py-3 font-mono text-[12px] leading-relaxed">
+    <p class="text-text-base text-small py-3 font-mono leading-relaxed">
       {i18n.t.enterPasswordToConfirm}
     </p>
     <div class="mt-2 mb-6">
@@ -324,14 +320,13 @@
         placeholder={i18n.t.enterMasterPassword}
         class="sharp-input w-full px-3 py-2 text-center font-mono"
       />
-      {#if deleteError}<p class="badge-err font-proto mt-2 px-2.5 py-1 text-center text-[11px]">
+      {#if deleteError}<p class="badge-err font-proto text-small mt-2 px-2.5 py-1 text-center">
           {deleteError}
         </p>{/if}
     </div>
     <div class="border-line flex justify-end gap-2 border-t pt-3">
-      <button
-        type="button"
-        class="sharp-btn btn-ghost font-proto px-4 py-2 text-[11px]"
+      <Button
+        variant="ghost"
         onclick={() => {
           deleteModalOpen = false;
           deletePassword = '';
@@ -340,15 +335,10 @@
         disabled={deleteBusy}
       >
         {i18n.t.cancelBtn}
-      </button>
-      <button
-        type="button"
-        class="sharp-btn btn-danger font-proto px-4 py-2 text-[11px]"
-        onclick={handleDeleteVault}
-        disabled={deleteBusy}
-      >
+      </Button>
+      <Button variant="danger" onclick={handleDeleteVault} disabled={deleteBusy}>
         {deleteBusy ? i18n.t.processingBtn : i18n.t.deleteVaultBtn}
-      </button>
+      </Button>
     </div>
   </ModalShell>
 {/if}

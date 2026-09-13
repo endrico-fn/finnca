@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
-  import { toMinor, todayString, parseStringAmountToMinor } from '$lib/accounting/finance';
-  import { ModalShell, Button } from '$lib/components/ui';
+  import { todayString, parseStringAmountToMinor } from '$lib/accounting/finance';
+  import { ModalShell, Button, SelectDropdown } from '$lib/components/ui';
   import { i18n } from '$lib/i18n.svelte';
 
   let {
@@ -110,24 +110,34 @@
       <div class="label-xs text-text-base mb-1 block">
         {i18n.t.transferSource}
       </div>
-      <select bind:value={transferFrom} class="sharp-input w-full px-2.5 py-1.5 text-[12px]">
-        <option value="">{i18n.t.transferSelectSource}</option>
-        {#each transferAssetAccounts as a (a.id || a)}
-          <option value={a.id}>{a.code} - {a.name} ({a.currency})</option>
-        {/each}
-      </select>
+      <SelectDropdown
+        bind:value={transferFrom}
+        searchable
+        placeholder={i18n.t.transferSelectSource}
+        options={transferAssetAccounts.map((a) => ({
+          value: a.id,
+          label: `${a.code} - ${a.name}`,
+          sublabel: a.currency,
+        }))}
+        class="w-full"
+      />
     </div>
 
     <div>
       <div class="label-xs text-text-base mb-1 block">
         {i18n.t.transferTarget}
       </div>
-      <select bind:value={transferTo} class="sharp-input w-full px-2.5 py-1.5 text-[12px]">
-        <option value="">{i18n.t.transferSelectTarget}</option>
-        {#each transferAssetAccounts as a (a.id || a)}
-          <option value={a.id}>{a.code} - {a.name} ({a.currency})</option>
-        {/each}
-      </select>
+      <SelectDropdown
+        bind:value={transferTo}
+        searchable
+        placeholder={i18n.t.transferSelectTarget}
+        options={transferAssetAccounts.map((a) => ({
+          value: a.id,
+          label: `${a.code} - ${a.name}`,
+          sublabel: a.currency,
+        }))}
+        class="w-full"
+      />
     </div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -138,8 +148,8 @@
         <input
           type="text"
           bind:value={transferAmount}
-          placeholder="500000"
-          class="sharp-input w-full px-2.5 py-1.5 text-[12px]"
+          placeholder={i18n.t.transferAmountExample}
+          class="sharp-input text-small w-full px-2.5 py-1.5"
         />
       </div>
       <div>
@@ -147,7 +157,7 @@
         <input
           type="date"
           bind:value={transferDate}
-          class="sharp-input w-full px-2 py-2 text-[11px]"
+          class="sharp-input text-small w-full px-2 py-2"
         />
       </div>
     </div>
@@ -160,12 +170,12 @@
         type="text"
         bind:value={transferNote}
         placeholder={i18n.t.transferNotePlaceholder}
-        class="sharp-input w-full px-2.5 py-1.5 text-[12px]"
+        class="sharp-input text-small w-full px-2.5 py-1.5"
       />
     </div>
 
     {#if transferError}
-      <p class="badge-err px-2.5 py-1 text-[11px]">{transferError}</p>
+      <p class="badge-err text-small px-2.5 py-1">{transferError}</p>
     {/if}
   </div>
 

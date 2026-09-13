@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { store } from '$lib/stores/app-store.svelte';
-  import { ledger } from '$lib/accounting/store.svelte';
-  import { Icon } from '$lib/components/ui';
+  import { Icon, Button } from '$lib/components/ui';
   import { i18n } from '$lib/i18n.svelte';
   import {
     getKnownVaults,
@@ -63,7 +63,7 @@
             id: store.appState.vault_path,
             name: store.appState.vault_name,
             path: store.appState.vault_path,
-            username: store.appState.username ?? 'USER',
+            username: store.appState.username ?? i18n.t.vaultUnknownUser,
           });
         }
       }
@@ -83,7 +83,7 @@
     open = false;
     setActiveVault(target.path);
     await store.lock();
-    goto(`/login?vault=${encodeURIComponent(target.path)}`);
+    goto(resolve(`/login?vault=${encodeURIComponent(target.path)}` as '/login'));
   }
 
   function toggleDropdown() {
@@ -95,15 +95,11 @@
 
   function handleAddVault() {
     open = false;
-    goto('/setup?from=app');
+    goto(resolve('/setup?from=app'));
   }
 </script>
 
-<div
-  bind:this={containerEl}
-  class="relative w-full"
-  role="group"
->
+<div bind:this={containerEl} class="relative w-full" role="group">
   <button
     type="button"
     onclick={toggleDropdown}
@@ -116,16 +112,16 @@
     <!-- User & Vault Details -->
     <div class="flex min-w-0 flex-1 flex-col gap-0.5">
       <div
-        class="text-text-strong font-proto group-hover:text-teal truncate text-[12px] leading-tight font-medium tracking-wide uppercase transition-colors"
+        class="text-text-strong font-proto group-hover:text-teal text-small truncate leading-tight font-medium tracking-wide uppercase transition-colors"
       >
-        {store.appState?.username ?? activeVault?.username ?? 'USER'}
+        {store.appState?.username ?? activeVault?.username ?? i18n.t.vaultUnknownUser}
       </div>
       <div
-        class="text-text-muted font-proto mt-1 flex items-center gap-1.5 truncate text-[10.5px] leading-tight"
+        class="text-text-muted font-proto text-smaller mt-1 flex items-center gap-1.5 truncate leading-tight"
       >
         <span class="bg-income size-1.5 shrink-0"></span>
         <span class="truncate">
-          {store.appState?.vault_name ?? activeVault?.name ?? 'Personal Vault'}
+          {store.appState?.vault_name ?? activeVault?.name ?? i18n.t.vaultDefaultName}
         </span>
       </div>
     </div>
@@ -147,10 +143,12 @@
     >
       <!-- Popover Header -->
       <div class="border-line mb-1.5 flex items-start justify-between border-b px-2 py-1.5">
-        <span class="font-proto text-text-dim text-[9px] font-semibold tracking-widest uppercase">
+        <span class="font-proto text-text-dim text-smaller font-semibold tracking-widest uppercase">
           {i18n.t.vault}
         </span>
-        <span class="font-proto text-income flex items-center gap-1 text-[9px] tracking-wider uppercase">
+        <span
+          class="font-proto text-income text-smaller flex items-center gap-1 tracking-wider uppercase"
+        >
           <span class="bg-income size-1.5 animate-pulse"></span>
           {i18n.t.vaultEncrypted}
         </span>
@@ -170,22 +168,22 @@
           >
             <div class="min-w-0 flex-1 pr-2">
               <div
-                class="truncate text-[11px] leading-tight font-medium {isActive
+                class="text-small truncate leading-tight font-medium {isActive
                   ? 'text-income'
                   : 'text-text-strong'}"
               >
                 {v.name}
               </div>
-              <div class="text-text-muted font-proto mt-1 truncate text-[10px] leading-tight">
+              <div class="text-text-muted font-proto text-smaller mt-1 truncate leading-tight">
                 {v.username}
               </div>
             </div>
             {#if isActive}
-              <span class="text-income ml-1 shrink-0 text-[11px] font-bold">✓</span>
+              <span class="text-income text-small ml-1 shrink-0 font-bold">✓</span>
             {/if}
           </button>
         {:else}
-          <p class="text-text-muted font-proto px-2 py-2 text-[10px]">
+          <p class="text-text-muted font-proto text-smaller px-2 py-2">
             {i18n.t.noSavedVaults}
           </p>
         {/each}
@@ -193,14 +191,10 @@
 
       <!-- Action Footer -->
       <div class="border-line mt-1.5 border-t pt-1.5">
-        <button
-          type="button"
-          onclick={handleAddVault}
-          class="sharp-btn btn-ghost font-proto text-teal hover:text-text-strong border-line/60 hover:border-teal/50 flex w-full cursor-pointer items-center justify-center gap-1.5 border px-2 py-1.5 text-[10.5px] transition-colors"
-        >
+        <Button variant="ghost" size="sm" onclick={handleAddVault} class="w-full gap-1.5">
           <Icon name="plus" size={10} />
-          <span class="tracking-wider uppercase">{i18n.t.addVaultBtn}</span>
-        </button>
+          {i18n.t.addVaultBtn}
+        </Button>
       </div>
     </div>
   {/if}

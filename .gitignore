@@ -33,3 +33,6 @@ extract-calendar.cjs
 split_finance.cjs
 test-pdfmake.mjs
 lint_output.txt
+
+# agent run workspace (teamwork_preview session logs) — local archive only
+.agents/

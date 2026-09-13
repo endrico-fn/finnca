@@ -1,6 +1,7 @@
 <script lang="ts">
   import { notifStore, type AppNotification } from '$lib/notifications/store.svelte';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { getNotificationAccent } from '$lib/ui/theme';
   import { i18n } from '$lib/i18n.svelte';
   import { Icon, Button, CloseButton } from '$lib/components/ui';
@@ -31,12 +32,12 @@
     notifStore.markAsRead(notif.id);
     notifStore.dismissToast(notif.id);
     if (notif.actionHref) {
-      goto(notif.actionHref);
+      goto(resolve(notif.actionHref as '/app'));
     }
   }
 </script>
 
-<div class="pointer-events-none fixed top-12 right-6 z-50 flex max-w-95 flex-col gap-2.5 font-mono">
+<div class="pointer-events-none fixed top-12 right-6 z-50 flex max-w-95 flex-col gap-2.5">
   {#each notifStore.activeToasts as notif (notif.id)}
     {@const accent = getAccentColor(notif.type)}
     <div
@@ -48,22 +49,19 @@
           <span class="text-text-strong inline-flex"
             ><Icon name={getIconName(notif.type)} size={14} /></span
           >
-          <p class="text-text-strong text-[12px] font-medium tracking-wide uppercase">
+          <p class="text-text-strong text-small font-proto font-medium tracking-wide uppercase">
             {notif.title}
           </p>
         </div>
-        <CloseButton
-          onclick={() => notifStore.dismissToast(notif.id)}
-          label={i18n.t.notifClose}
-        />
+        <CloseButton onclick={() => notifStore.dismissToast(notif.id)} label={i18n.t.notifClose} />
       </div>
 
-      <p class="text-text-base mt-1 text-[11px] leading-relaxed">
+      <p class="text-text-base text-small mt-1 leading-relaxed">
         {notif.message}
       </p>
 
       {#if notif.detail}
-        <p class="text-text-muted mt-1 text-[10px] leading-normal">
+        <p class="text-text-muted text-smaller mt-1 leading-normal">
           {notif.detail}
         </p>
       {/if}

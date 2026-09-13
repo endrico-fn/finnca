@@ -21,11 +21,6 @@
   const titleText = $derived(title ?? ariaLabel);
 </script>
 
-<Button
-  variant="pager"
-  size="icon"
-  {onclick}
-  ariaLabel={ariaLabel}
-  title={titleText}
-  class={extraClass}><Icon name="close" size={iconSize} /></Button
+<Button variant="pager" size="icon" {onclick} {ariaLabel} title={titleText} class={extraClass}
+  ><Icon name="close" size={iconSize} /></Button
 >

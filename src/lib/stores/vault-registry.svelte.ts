@@ -34,11 +34,15 @@ class VaultRegistryStore {
     await this.syncVaultsFromBackend();
   }
 
-  async setActiveVault(path: string) {
+  async setActiveVault(path: string): Promise<boolean> {
     try {
       await api.setActiveVault(path);
       this.activeVaultId = path;
-    } catch {}
+      return true;
+    } catch (e) {
+      console.error('Failed to set active vault:', e);
+      return false;
+    }
   }
 
   async forgetVault(idOrPath: string) {
@@ -65,7 +69,9 @@ class VaultRegistryStore {
       } else if (this.knownVaults.length > 0) {
         this.activeVaultId = this.knownVaults[0].path;
       }
-    } catch {}
+    } catch (e) {
+      console.error('Failed to sync vaults from backend:', e);
+    }
     return this.knownVaults;
   }
 
@@ -91,7 +97,7 @@ export function getActiveVaultId() {
 export function rememberVault(v: Omit<KnownVault, 'lastOpenedAt'>) {
   return vaultRegistry.rememberVault(v);
 }
-export function setActiveVault(path: string) {
+export function setActiveVault(path: string): Promise<boolean> {
   return vaultRegistry.setActiveVault(path);
 }
 export function forgetVault(id: string) {

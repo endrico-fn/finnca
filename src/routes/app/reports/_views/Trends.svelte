@@ -1,9 +1,11 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { Tabs, Card } from '$lib/components/ui';
+  import { Card, KpiCard } from '$lib/components/ui';
+  import { FilterMenu, FilterSection, FilterOption } from '$lib/components/ui';
+
+  let periodFilterOpen = $state(false);
   import {
-    historicalDailyBalances,
     accountBalanceMinor,
     convertMinor,
     formatIDR,
@@ -218,9 +220,9 @@
   });
 </script>
 
-<div class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto pr-1 font-mono">
+<div class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto pr-1">
   <!-- HERO CARD: ROBINHOOD SIGNATURE FINANCIAL LINE CHART -->
-  <div class="sharp-card relative flex shrink-0 flex-col px-3 py-2.5">
+  <div class="sharp-card relative flex shrink-0 flex-col px-3 pt-2 pb-2.5">
     <!-- Header: Hero Metric Label & Large Balance -->
     <div class="flex items-start justify-between pb-1">
       <div>
@@ -235,7 +237,7 @@
                   : i18n.t.metricLiquidCash}
           </p>
           <span
-            class="border-line bg-bg-app text-text-muted font-proto inline-flex items-center justify-center border px-1.5 py-0.5 text-[9px] leading-none tracking-wider uppercase transition-opacity {hoveredCoord
+            class="border-line bg-bg-app text-text-muted font-proto text-smaller inline-flex items-center justify-center border px-1.5 py-0.5 leading-none tracking-wider uppercase transition-opacity {hoveredCoord
               ? 'opacity-100'
               : 'pointer-events-none opacity-0'}"
           >
@@ -243,11 +245,11 @@
           </span>
         </div>
         <div
-          class="text-text-strong font-proto mt-1.5 text-[26px] leading-none font-bold tracking-tight tabular-nums"
+          class="text-text-strong font-proto text-largest mt-1.5 leading-none font-bold tracking-tight tabular-nums"
         >
           {formatIDR(currentValue)}
         </div>
-        <div class="mt-1.5 flex items-center gap-2 text-[11px]">
+        <div class="text-small mt-1.5 flex items-center gap-2">
           <span
             class="font-proto font-bold tabular-nums {isHealthyChange
               ? 'text-income'
@@ -256,26 +258,28 @@
             {deltaNominal >= 0 ? '▲' : '▼'}
             {deltaNominal >= 0 ? '+' : ''}{formatIDR(deltaNominal)}
             {#if isNewCapital}
-              (NEW)
+              {i18n.t.trendsNewBadge}
             {:else}
               ({deltaPercent >= 0 ? '+' : ''}{deltaPercent.toFixed(2)}%)
             {/if}
           </span>
-          <span class="text-text-dim font-proto text-[10px] tracking-wide uppercase">
+          <span class="text-text-dim font-proto text-smaller tracking-wide uppercase">
             {hoveredCoord
-              ? `vs ${trendsDateRange.startStr}`
+              ? i18n.t.trendsVsDate.replace('{date}', trendsDateRange.startStr)
               : `${i18n.t.pastPeriodLabel} (${trendsPeriod})`}
           </span>
         </div>
       </div>
 
       <!-- High / Low indicator for period -->
-      <div class="text-text-dim font-proto hidden space-y-0.5 text-right text-[10px] sm:block">
+      <div class="text-text-dim font-proto text-smaller hidden space-y-0.5 text-right sm:block">
         <div>
-          HIGH: <span class="text-text-base">{formatIDR(chartCoords.maxVal)}</span>
+          {i18n.t.trendsHighLabel}:
+          <span class="text-text-base">{formatIDR(chartCoords.maxVal)}</span>
         </div>
         <div>
-          LOW: <span class="text-text-base">{formatIDR(chartCoords.minVal)}</span>
+          {i18n.t.trendsLowLabel}:
+          <span class="text-text-base">{formatIDR(chartCoords.minVal)}</span>
         </div>
       </div>
     </div>
@@ -283,14 +287,14 @@
     <!-- Interactive SVG Chart -->
     <div
       role="region"
-      aria-label="Interactive Financial Chart"
-      class="relative mt-2 h-55 w-full cursor-crosshair select-none"
+      aria-label={i18n.t.trendsChartAria}
+      class="relative mt-2 h-56 w-full cursor-crosshair select-none"
       onpointermove={handlePointerMove}
       onpointerleave={handlePointerLeave}
     >
       {#if historicalPoints.length === 0}
         <div
-          class="text-text-dim border-line font-proto flex h-full w-full items-center justify-center border border-dashed text-[11px]"
+          class="text-text-dim border-line font-proto text-small flex h-full w-full items-center justify-center border border-dashed"
         >
           {i18n.t.noHistoricalData}
         </div>
@@ -348,13 +352,13 @@
               x={chartCoords.peakPoint.x}
               y={Math.max(12, chartCoords.peakPoint.y - 6)}
               fill="var(--color-income)"
-              font-size="8.5"
-              font-family="var(--font-mono)"
+              font-size="10"
+              font-family="var(--font-proto)"
               font-weight="bold"
               text-anchor="middle"
               opacity="0.85"
             >
-              H
+              {i18n.t.trendsPeakMarker}
             </text>
 
             <!-- Trough Point Marker -->
@@ -369,13 +373,13 @@
               x={chartCoords.troughPoint.x}
               y={Math.min(chartHeight - 6, chartCoords.troughPoint.y + 12)}
               fill="var(--color-expense)"
-              font-size="8.5"
-              font-family="var(--font-mono)"
+              font-size="10"
+              font-family="var(--font-proto)"
               font-weight="bold"
               text-anchor="middle"
               opacity="0.85"
             >
-              L
+              {i18n.t.trendsTroughMarker}
             </text>
           {/if}
 
@@ -423,8 +427,8 @@
                 x={tipX + tipW / 2}
                 y={tipY + 14}
                 fill="var(--color-text-strong)"
-                font-size="9"
-                font-family="var(--font-mono)"
+                font-size="10"
+                font-family="var(--font-proto)"
                 font-weight="bold"
                 text-anchor="middle"
               >
@@ -438,16 +442,30 @@
 
     <!-- Period Selector Pills (1W, 1M, 3M, YTD, 1Y, ALL) -->
     <div class="border-line/60 mt-1 flex shrink-0 items-center justify-between border-t pt-2.5">
-      <Tabs
-        variant="outline"
-        tabs={(['1W', '1M', '3M', 'YTD', '1Y', 'ALL'] as const).map((p) => ({
-          id: p,
-          label: p,
-        }))}
-        active={trendsPeriod}
-        onSelect={(id) => (trendsPeriod = id as typeof trendsPeriod)}
-      />
-      <div class="text-text-dim font-proto hidden text-[10px] sm:block">
+      <FilterMenu
+        bind:open={periodFilterOpen}
+        label={trendsPeriod}
+        active={trendsPeriod !== 'ALL'}
+        count={trendsPeriod !== 'ALL' ? 1 : 0}
+        onReset={() => (trendsPeriod = 'ALL')}
+        resetLabel={i18n.t.reset}
+        resetDisabled={trendsPeriod === 'ALL'}
+      >
+        <FilterSection title={i18n.t.filterPeriodTitle} layout="list">
+          {#each ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'] as p (p)}
+            <FilterOption
+              label={p}
+              selected={trendsPeriod === p}
+              check={p !== 'ALL'}
+              onclick={() => {
+                trendsPeriod = p as typeof trendsPeriod;
+                periodFilterOpen = false;
+              }}
+            />
+          {/each}
+        </FilterSection>
+      </FilterMenu>
+      <div class="text-text-dim font-proto text-smaller hidden sm:block">
         {trendsDateRange.startStr} — {trendsDateRange.endStr} ({historicalPoints.length}
         {i18n.t.daysCountLabel})
       </div>
@@ -455,120 +473,46 @@
   </div>
 
   <!-- BRUTALIST MONOSPACE BREAKDOWN (Interactive Metric Switchers) -->
-  <div class="grid shrink-0 grid-cols-4 gap-3 text-[11px]">
-    <!-- [01] ASSETS (Click to plot Total Assets) -->
-    <button
-      type="button"
+  <div class="grid shrink-0 grid-cols-4 gap-3">
+    <KpiCard
+      label={`[01] ${i18n.t.assetsTitle}`}
+      badge={i18n.t.trendsBadgeTotal}
+      value={formatIDR(bs.assets)}
+      subValue={i18n.t.allAccountsDesc}
+      valueClass="text-text-strong"
+      selected={trendsMetric === 'assets'}
       onclick={() => (trendsMetric = 'assets')}
-      class="bg-bg-card cursor-pointer space-y-1 border px-3 py-2.5 text-left transition-all {trendsMetric ===
-      'assets'
-        ? 'border-teal/70 bg-bg-row-active/40'
-        : 'border-line hover:border-line/80 hover:bg-bg-card/70'}"
-    >
-      <div class="text-text-dim font-proto flex items-center justify-between gap-1 text-[10px]">
-        <span class="truncate {trendsMetric === 'assets' ? 'text-teal font-semibold' : ''}"
-          >[01] {i18n.t.assetsTitle}</span
-        >
-        <span
-          class="py-0.2 shrink-0 border px-1 text-[8.5px] whitespace-nowrap {trendsMetric ===
-          'assets'
-            ? 'border-teal/50 text-teal'
-            : 'border-line text-text-dim'}">TOTAL</span
-        >
-      </div>
-      <div class="text-text-strong font-proto text-[15px] font-bold tabular-nums">
-        {formatIDR(bs.assets)}
-      </div>
-      <div class="text-text-muted font-proto truncate text-[9px]">
-        {i18n.t.allAccountsDesc}
-      </div>
-    </button>
+    />
 
-    <!-- [02] LIABILITIES (Click to plot Liabilities) -->
-    <button
-      type="button"
+    <KpiCard
+      label={`[02] ${i18n.t.liabilitiesShortLabel}`}
+      badge={i18n.t.trendsBadgeDebt}
+      value={formatIDR(bs.liabilities)}
+      subValue={i18n.t.liabilitiesDesc}
+      valueClass="text-expense"
+      selected={trendsMetric === 'liabilities'}
       onclick={() => (trendsMetric = 'liabilities')}
-      class="bg-bg-card cursor-pointer space-y-1 border px-3 py-2.5 text-left transition-all {trendsMetric ===
-      'liabilities'
-        ? 'border-teal/70 bg-bg-row-active/40'
-        : 'border-line hover:border-line/80 hover:bg-bg-card/70'}"
-    >
-      <div class="text-text-dim font-proto flex items-center justify-between gap-1 text-[10px]">
-        <span class="truncate {trendsMetric === 'liabilities' ? 'text-teal font-semibold' : ''}"
-          >[02] {i18n.t.liabilitiesShortLabel}</span
-        >
-        <span
-          class="py-0.2 shrink-0 border px-1 text-[8.5px] whitespace-nowrap {trendsMetric ===
-          'liabilities'
-            ? 'border-teal/50 text-teal'
-            : 'border-line text-text-dim'}">DEBT</span
-        >
-      </div>
-      <div class="text-expense font-proto text-[15px] font-bold tabular-nums">
-        {formatIDR(bs.liabilities)}
-      </div>
-      <div class="text-text-muted font-proto truncate text-[9px]">
-        {i18n.t.liabilitiesDesc}
-      </div>
-    </button>
+    />
 
-    <!-- [03] LIQUID CASH (Click to plot Liquid Cash) -->
-    <button
-      type="button"
+    <KpiCard
+      label={`[03] ${i18n.t.metricLiquidCash}`}
+      badge={i18n.t.trendsBadgeLiquid}
+      value={formatIDR(activePoint ? activePoint.liquidCash : 0)}
+      subValue={i18n.t.liquidCashDesc}
+      valueClass="text-text-strong"
+      selected={trendsMetric === 'liquidCash'}
       onclick={() => (trendsMetric = 'liquidCash')}
-      class="bg-bg-card cursor-pointer space-y-1 border px-3 py-2.5 text-left transition-all {trendsMetric ===
-      'liquidCash'
-        ? 'border-teal/70 bg-bg-row-active/40'
-        : 'border-line hover:border-line/80 hover:bg-bg-card/70'}"
-    >
-      <div class="text-text-dim font-proto flex items-center justify-between gap-1 text-[10px]">
-        <span class="truncate {trendsMetric === 'liquidCash' ? 'text-teal font-semibold' : ''}"
-          >[03] {i18n.t.metricLiquidCash}</span
-        >
-        <span
-          class="py-0.2 shrink-0 border px-1 text-[8.5px] whitespace-nowrap {trendsMetric ===
-          'liquidCash'
-            ? 'border-teal/50 text-teal'
-            : 'border-line text-text-dim'}">LIQUID</span
-        >
-      </div>
-      <div class="text-text-strong font-proto text-[15px] font-bold tabular-nums">
-        {formatIDR(activePoint ? activePoint.liquidCash : 0)}
-      </div>
-      <div class="text-text-muted font-proto truncate text-[9px]">
-        {i18n.t.liquidCashDesc}
-      </div>
-    </button>
+    />
 
-    <!-- [04] NET WORTH (Click to plot Net Worth) -->
-    <button
-      type="button"
+    <KpiCard
+      label={`[04] ${i18n.t.metricNetWorth}`}
+      badge={i18n.t.trendsBadgeNet}
+      value={formatIDR(activePoint ? activePoint.netWorth : bs.equity)}
+      subValue={`Δ ${deltaNominal >= 0 ? '+' : ''}${formatIDR(deltaNominal)} (${isNewCapital ? i18n.t.trendsNewBadge.replace(/[()]/g, '') : `${deltaPercent >= 0 ? '+' : ''}${deltaPercent.toFixed(2)}%`})`}
+      valueClass="text-text-strong"
+      selected={trendsMetric === 'netWorth'}
       onclick={() => (trendsMetric = 'netWorth')}
-      class="bg-bg-card cursor-pointer space-y-1 border px-3 py-2.5 text-left transition-all {trendsMetric ===
-      'netWorth'
-        ? 'border-teal/70 bg-bg-row-active/40'
-        : 'border-line hover:border-line/80 hover:bg-bg-card/70'}"
-    >
-      <div class="text-text-dim font-proto flex items-center justify-between gap-1 text-[10px]">
-        <span class="truncate {trendsMetric === 'netWorth' ? 'text-teal font-semibold' : ''}"
-          >[04] {i18n.t.metricNetWorth}</span
-        >
-        <span
-          class="py-0.2 shrink-0 border px-1 text-[8.5px] whitespace-nowrap {trendsMetric ===
-          'netWorth'
-            ? 'border-teal/50 text-teal'
-            : 'border-line text-text-dim'}">NET</span
-        >
-      </div>
-      <div class="text-text-strong font-proto text-[15px] font-bold tabular-nums">
-        {formatIDR(activePoint ? activePoint.netWorth : bs.equity)}
-      </div>
-      <div class="text-text-muted font-proto truncate text-[9px]">
-        Δ {deltaNominal >= 0 ? '+' : ''}{formatIDR(deltaNominal)} ({isNewCapital
-          ? 'NEW'
-          : `${deltaPercent >= 0 ? '+' : ''}${deltaPercent.toFixed(2)}%`})
-      </div>
-    </button>
+    />
   </div>
 
   <!-- BOTTOM ROW: TOP ASSET ALLOCATION & FINANCIAL HEALTH RATIOS -->
@@ -576,20 +520,20 @@
     <!-- Left: Top Asset Holdings (Col-span-7) -->
     <Card title={i18n.t.topHoldings} class="col-span-7">
       {#snippet header()}
-        <span class="text-text-dim font-proto text-[10px] leading-none">TOP 5</span>
+        <span class="text-text-dim font-proto text-smaller leading-none">{i18n.t.trendsTop5}</span>
       {/snippet}
 
       <div class="space-y-2.5">
         {#each topAssetAccounts as item (item.account.id)}
           <div class="space-y-1">
-            <div class="flex items-center justify-between text-[11px]">
+            <div class="text-small flex items-center justify-between">
               <div class="flex items-center gap-1.5 truncate">
-                <span class="text-text-dim font-proto text-[10px]">{item.account.code}</span>
+                <span class="text-text-dim font-proto text-smaller">{item.account.code}</span>
                 <span class="text-text-strong truncate font-medium">{item.account.name}</span>
               </div>
               <div class="font-proto shrink-0 text-right">
                 <span class="text-text-base">{formatIDR(item.balIdr)}</span>
-                <span class="text-text-dim ml-1 text-[10px]">({item.percent}%)</span>
+                <span class="text-text-dim text-smaller ml-1">({item.percent}%)</span>
               </div>
             </div>
             <!-- Distribution Bar -->
@@ -598,7 +542,7 @@
             </div>
           </div>
         {:else}
-          <div class="text-text-dim p-4 text-center text-[11px]">No asset holdings recorded</div>
+          <div class="text-text-dim text-small p-4 text-center">{i18n.t.trendsNoHoldings}</div>
         {/each}
       </div>
     </Card>
@@ -606,16 +550,18 @@
     <!-- Right: Financial Health Ratios (Col-span-5) -->
     <Card title={i18n.t.financialHealthRatios} class="col-span-5">
       {#snippet header()}
-        <span class="text-text-dim font-proto text-[10px] leading-none">METRICS</span>
+        <span class="text-text-dim font-proto text-smaller leading-none"
+          >{i18n.t.trendsMetricsLabel}</span
+        >
       {/snippet}
 
-      <div class="space-y-3 text-[11px]">
+      <div class="text-small space-y-3">
         <!-- Debt Ratio -->
-        <div class="sharp-card space-y-1 p-2.5">
+        <div class="border-line bg-bg-app space-y-1 border p-2.5">
           <div class="flex items-center justify-between">
-            <span class="text-text-muted text-[10px]">{i18n.t.debtToAssetRatio}</span>
+            <span class="text-text-muted text-smaller font-proto">{i18n.t.debtToAssetRatio}</span>
             <span
-              class="border-line border px-1.5 py-0.5 text-[9px] font-bold uppercase
+              class="border-line text-smaller font-proto border px-1.5 py-0.5 font-bold uppercase
               {Number(debtRatio) < 30
                 ? 'text-income border-income/40'
                 : Number(debtRatio) < 60
@@ -625,23 +571,23 @@
               {debtStatus}
             </span>
           </div>
-          <div class="text-text-strong text-[16px] font-bold">
+          <div class="text-text-strong text-medium font-proto font-bold tabular-nums">
             {debtRatio}%
           </div>
-          <div class="text-text-dim text-[9px]">Total Debt / Total Assets</div>
+          <div class="text-text-dim text-smaller font-proto">{i18n.t.debtRatioFormula}</div>
         </div>
 
         <!-- Cash Runway -->
-        <div class="sharp-card space-y-1 p-2.5">
+        <div class="border-line bg-bg-app space-y-1 border p-2.5">
           <div class="flex items-center justify-between">
-            <span class="text-text-muted text-[10px]">{i18n.t.cashRunwayMonths}</span>
-            <span class="text-text-dim font-proto text-[9px] uppercase">RESERVES</span>
+            <span class="text-text-muted text-smaller font-proto">{i18n.t.cashRunwayMonths}</span>
+            <span class="text-text-dim font-proto text-smaller uppercase">RESERVES</span>
           </div>
-          <div class="text-text-strong text-[16px] font-bold">
+          <div class="text-text-strong text-medium font-proto font-bold tabular-nums">
             {runwayMonths}
-            <span class="text-text-muted text-[11px] font-normal">{i18n.t.months}</span>
+            <span class="text-text-muted text-small font-normal">{i18n.t.months}</span>
           </div>
-          <div class="text-text-dim text-[9px]">Liquid Cash / Monthly Expense</div>
+          <div class="text-text-dim text-smaller font-proto">{i18n.t.runwayFormula}</div>
         </div>
       </div>
     </Card>

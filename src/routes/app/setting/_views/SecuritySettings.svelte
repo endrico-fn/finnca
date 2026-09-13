@@ -3,7 +3,8 @@
   import { i18n } from '$lib/i18n.svelte';
   import * as api from '$lib/api';
   import type { Settings } from '$lib/types';
-  import { SelectDropdown, Card } from '$lib/components/ui';
+  import { SelectDropdown, Card, Button } from '$lib/components/ui';
+  import { onMount } from 'svelte';
 
   let mode = $state<Settings['auto_lock_mode']>(
     store.appState?.settings?.auto_lock_mode || 'always'
@@ -26,10 +27,10 @@
     sessionTimeout = localStorage.getItem('finnca_lock_timeout') ?? '15';
   }
 
-  export function onMountLogic() {
+  onMount(() => {
     mode = store.appState?.settings?.auto_lock_mode || 'always';
     loadLocalPrefs();
-  }
+  });
 
   async function handleSaveSettings() {
     busy = true;
@@ -43,8 +44,8 @@
       }
       saved = true;
       setTimeout(() => (saved = false), 3000);
-    } catch (e: any) {
-      error = e.message;
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     } finally {
       busy = false;
     }
@@ -74,10 +75,8 @@
       confirmPassword = '';
       pwdSuccess = i18n.t.passwordChangedOk;
       setTimeout(() => (pwdSuccess = ''), 4000);
-    } catch (e: any) {
-      pwdError =
-        e.message ||
-        i18n.t.genericChangePasswordFail;
+    } catch (e: unknown) {
+      pwdError = (e instanceof Error ? e.message : String(e)) || i18n.t.genericChangePasswordFail;
     } finally {
       pwdBusy = false;
     }
@@ -86,40 +85,40 @@
 
 <div class="grid grid-cols-1 gap-2 select-none lg:grid-cols-2">
   <!-- LEFT COLUMN: ACCESS CONTROL & SESSION TIMEOUT -->
-  <Card title={i18n.t.autoLockTitle} badge="ACCESS CONTROL" class="justify-between">
+  <Card title={i18n.t.autoLockTitle} badge={i18n.t.badgeAccessControl} class="justify-between">
     <div>
-      <p class="text-text-dim mb-3 font-mono text-[11px]">{i18n.t.autoLockDesc}</p>
+      <p class="text-text-dim text-small mb-3 font-mono">{i18n.t.autoLockDesc}</p>
 
       <div class="flex flex-col gap-2">
         <label
-          class="flex cursor-pointer items-start gap-2 border p-2.5 transition-all {mode ===
+          class="flex cursor-pointer items-start gap-2 border p-2.5 transition-colors {mode ===
           'always'
-            ? 'border-teal/60 bg-teal/5 ring-teal/30 ring-1'
+            ? 'border-teal/60 bg-bg-row-active'
             : 'border-line hover:border-text-dim bg-bg-app'}"
         >
           <input type="radio" bind:group={mode} value="always" class="accent-teal mt-0.5" />
           <div>
-            <p class="font-proto text-text-strong mb-1 text-[11px] leading-none font-bold">
+            <p class="font-proto text-text-strong text-small mb-1 leading-none font-bold">
               {i18n.t.lockEveryOpen}
             </p>
-            <p class="text-text-muted font-mono text-[9px] leading-relaxed">
+            <p class="text-text-muted text-smaller font-mono leading-relaxed">
               {i18n.t.lockEveryOpenDesc}
             </p>
           </div>
         </label>
 
         <label
-          class="flex cursor-pointer items-start gap-2 border p-2.5 transition-all {mode ===
+          class="flex cursor-pointer items-start gap-2 border p-2.5 transition-colors {mode ===
           'on-reboot'
-            ? 'border-teal/60 bg-teal/5 ring-teal/30 ring-1'
+            ? 'border-teal/60 bg-bg-row-active'
             : 'border-line hover:border-text-dim bg-bg-app'}"
         >
           <input type="radio" bind:group={mode} value="on-reboot" class="accent-teal mt-0.5" />
           <div>
-            <p class="font-proto text-text-strong mb-1 text-[11px] leading-none font-bold">
+            <p class="font-proto text-text-strong text-small mb-1 leading-none font-bold">
               {i18n.t.lockReboot}
             </p>
-            <p class="text-text-muted font-mono text-[9px] leading-relaxed">
+            <p class="text-text-muted text-smaller font-mono leading-relaxed">
               {i18n.t.lockRebootDesc}
             </p>
           </div>
@@ -146,44 +145,34 @@
               ]}
             />
 
-            <button
-              type="button"
-              onclick={handleSaveSettings}
-              disabled={busy}
-              class="sharp-btn btn-primary font-proto h-8 shrink-0 px-3.5 text-[10px]"
-            >
+            <Button variant="primary" onclick={handleSaveSettings} disabled={busy}>
               {#if busy}<span class="spinner-sm"></span>{:else}{i18n.t.saveSettings}{/if}
-            </button>
+            </Button>
           </div>
         </div>
       {:else}
         <div class="border-line/40 mt-3 flex items-center justify-between border-t pt-3">
-          <button
-            type="button"
-            onclick={handleSaveSettings}
-            disabled={busy}
-            class="sharp-btn btn-primary font-proto h-8 px-3.5 text-[10px]"
-          >
+          <Button variant="primary" onclick={handleSaveSettings} disabled={busy}>
             {#if busy}<span class="spinner-sm"></span>{:else}{i18n.t.saveSettings}{/if}
-          </button>
+          </Button>
         </div>
       {/if}
 
-      {#if error}<p class="text-expense font-proto mt-2 text-[10px]">{error}</p>{/if}
-      {#if saved}<p class="badge-ok font-proto mt-2 px-2.5 py-1 text-[10px]">
+      {#if error}<p class="text-expense font-proto text-smaller mt-2">{error}</p>{/if}
+      {#if saved}<p class="badge-ok font-proto text-smaller mt-2 px-2.5 py-1">
           {i18n.t.settingsSavedOk}
         </p>{/if}
     </div>
 
-    <p class="text-text-dim border-line/30 mt-auto border-t pt-2 font-mono text-[9px]">
-        {i18n.t.inactivityHeartbeatNote}
-      </p>
+    <p class="text-text-dim border-line/30 text-smaller mt-auto border-t pt-2 font-mono">
+      {i18n.t.inactivityHeartbeatNote}
+    </p>
   </Card>
 
   <!-- RIGHT COLUMN: CHANGE MASTER PASSWORD -->
-  <Card title={i18n.t.changePasswordTitle} badge="SECURITY KEY" class="justify-between">
+  <Card title={i18n.t.changePasswordTitle} badge={i18n.t.securityKeyBadge} class="justify-between">
     <div>
-      <p class="text-text-dim mb-3 font-mono text-[11px]">{i18n.t.changePasswordNotice}</p>
+      <p class="text-text-dim text-small mb-3 font-mono">{i18n.t.changePasswordNotice}</p>
 
       <div class="flex flex-col gap-2.5">
         <div>
@@ -194,7 +183,7 @@
             id="old-pwd"
             type="password"
             bind:value={oldPassword}
-            class="sharp-input w-full px-3 py-1.5 font-mono text-[12px]"
+            class="sharp-input text-small w-full px-3 py-1.5 font-mono"
             placeholder="••••••••"
           />
         </div>
@@ -208,7 +197,7 @@
               id="new-pwd"
               type="password"
               bind:value={newPassword}
-              class="sharp-input w-full px-3 py-1.5 font-mono text-[12px]"
+              class="sharp-input text-small w-full px-3 py-1.5 font-mono"
               placeholder="••••••••"
             />
           </div>
@@ -221,7 +210,7 @@
               id="confirm-pwd"
               type="password"
               bind:value={confirmPassword}
-              class="sharp-input w-full px-3 py-1.5 font-mono text-[12px]"
+              class="sharp-input text-small w-full px-3 py-1.5 font-mono"
               placeholder="••••••••"
             />
           </div>
@@ -229,22 +218,23 @@
       </div>
 
       <div class="mt-1 flex items-center gap-2 pt-3">
-        <button
-          type="button"
+        <Button
+          variant="primary"
           onclick={handleChangePassword}
           disabled={pwdBusy || !oldPassword || !newPassword}
-          class="sharp-btn btn-primary font-proto h-8 px-4 text-[10px] disabled:opacity-40"
         >
           {#if pwdBusy}<span class="spinner-sm"></span>{:else}{i18n.t.changePasswordBtn}{/if}
-        </button>
+        </Button>
 
-        {#if pwdError}<p class="text-expense font-proto text-[10px]">{pwdError}</p>{/if}
-        {#if pwdSuccess}<p class="badge-ok font-proto px-2.5 py-1 text-[10px]">{pwdSuccess}</p>{/if}
+        {#if pwdError}<p class="text-expense font-proto text-smaller">{pwdError}</p>{/if}
+        {#if pwdSuccess}<p class="badge-ok font-proto text-smaller px-2.5 py-1">
+            {pwdSuccess}
+          </p>{/if}
       </div>
     </div>
 
-    <p class="text-text-dim border-line/30 mt-auto border-t pt-2 font-mono text-[9px]">
-        {i18n.t.reEncryptNote}
-      </p>
+    <p class="text-text-dim border-line/30 text-smaller mt-auto border-t pt-2 font-mono">
+      {i18n.t.reEncryptNote}
+    </p>
   </Card>
 </div>

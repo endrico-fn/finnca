@@ -1,26 +1,31 @@
+<script lang="ts" module>
+  export type IconName =
+    | 'lock'
+    | 'bell'
+    | 'gear'
+    | 'search'
+    | 'close'
+    | 'chev-down'
+    | 'chev-left'
+    | 'chev-right'
+    | 'transfer'
+    | 'plus'
+    | 'check'
+    | 'alert'
+    | 'calendar'
+    | 'chart'
+    | 'wallet'
+    | 'clock'
+    | 'refresh'
+    | 'export';
+</script>
+
 <script lang="ts">
   let {
     name,
     size = 18,
   }: {
-    name:
-      | 'lock'
-      | 'bell'
-      | 'gear'
-      | 'search'
-      | 'close'
-      | 'chev-down'
-      | 'chev-left'
-      | 'chev-right'
-      | 'transfer'
-      | 'plus'
-      | 'check'
-      | 'alert'
-      | 'calendar'
-      | 'chart'
-      | 'wallet'
-      | 'clock'
-      | 'refresh';
+    name: IconName;
     size?: number;
   } = $props();
 
@@ -47,6 +52,7 @@
     clock:
       'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
     refresh: 'M17.65 6.35A8 8 0 1 0 19.73 14h-2.08a6 6 0 1 1-1.41-6.24L13 11h7V4z',
+    export: 'M6 6v2h8.59L5 17.59 6.41 19 16 9.41V18h2V6z',
   };
 </script>
 

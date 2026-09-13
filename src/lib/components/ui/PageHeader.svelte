@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { resolve } from '$app/paths';
 
   let {
     crumb,
@@ -16,10 +17,13 @@
 
 <div class="app-header relative z-30 gap-4">
   <nav
-    class="font-proto flex shrink-0 items-center gap-1.5 text-[14px] tracking-[0.08em] uppercase"
+    class="font-proto text-medium flex shrink-0 items-center gap-1.5 tracking-[0.08em] uppercase"
   >
     {#if crumb}
-      <a href={crumbHref} class="text-text-muted hover:text-text-strong transition-colors">
+      <a
+        href={resolve(crumbHref as '/app')}
+        class="text-text-muted hover:text-text-strong transition-colors"
+      >
         {crumb}
       </a>
       <span class="text-text-muted font-bold">/</span>

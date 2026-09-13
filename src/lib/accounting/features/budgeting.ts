@@ -23,7 +23,7 @@ export function calculateBudgetMonth(
   const envelopes: EnvelopeData[] = [];
 
   let totalIncomeAllTime = 0;
-  
+
   const activityAllTimeMap = new Map<string, number>();
   const activityThisMonthMap = new Map<string, number>();
 
@@ -38,15 +38,19 @@ export function calculateBudgetMonth(
       const acc = byId.get(s.accountId);
       if (!acc) continue;
 
-      const amt = acc.currency === 'USD' ? convertMinor(s.amount, 'USD', 'IDR', fx) : s.amount;
+      const baseCurr = 'IDR';
+      const amt =
+        acc.currency !== baseCurr ? convertMinor(s.amount, acc.currency, baseCurr, fx) : s.amount;
 
       if (acc.type === 'INCOME') {
         if (isPastOrThisMonth) {
-          totalIncomeAllTime += (amt > 0 ? amt : -amt);
+          totalIncomeAllTime += -amt;
         }
       } else if (acc.type === 'EXPENSE') {
-        if (isPastOrThisMonth) activityAllTimeMap.set(acc.id, (activityAllTimeMap.get(acc.id) || 0) + amt);
-        if (isThisMonth) activityThisMonthMap.set(acc.id, (activityThisMonthMap.get(acc.id) || 0) + amt);
+        if (isPastOrThisMonth)
+          activityAllTimeMap.set(acc.id, (activityAllTimeMap.get(acc.id) || 0) + amt);
+        if (isThisMonth)
+          activityThisMonthMap.set(acc.id, (activityThisMonthMap.get(acc.id) || 0) + amt);
       }
     }
   }
@@ -58,7 +62,10 @@ export function calculateBudgetMonth(
       assignedAllTimeMap.set(b.accountId, (assignedAllTimeMap.get(b.accountId) || 0) + b.amount);
     }
     if (b.month === monthPrefix) {
-      assignedThisMonthMap.set(b.accountId, (assignedThisMonthMap.get(b.accountId) || 0) + b.amount);
+      assignedThisMonthMap.set(
+        b.accountId,
+        (assignedThisMonthMap.get(b.accountId) || 0) + b.amount
+      );
     }
   }
 

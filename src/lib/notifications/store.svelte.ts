@@ -1,15 +1,19 @@
+import { SvelteDate, SvelteSet } from 'svelte/reactivity';
 import type { VaultData } from '$lib/accounting/types';
 import { DEFAULT_FX_RATE } from '$lib/accounting/types';
 import {
   isBalanced,
   formatIDR,
   formatUSD,
+  formatMoney,
+  convertMinor,
   incomeStatement,
   accountBalanceMinor,
   buildChildrenMap,
   calculatePlanProgress,
   todayString,
   diffCalendarDays,
+  endOfMonthString,
 } from '$lib/accounting/finance';
 import { fetchLiveFxRate } from '$lib/fx/fx-service';
 import { ledger } from '$lib/accounting/store.svelte';
@@ -54,7 +58,9 @@ class NotificationStore {
       if (!raw) return false;
       const dict = JSON.parse(raw);
       if (dict[key] && Number(dict[key]) > Date.now()) return true;
-    } catch {}
+    } catch (e) {
+      console.error('Failed to read snoozed notifications:', e);
+    }
     return false;
   }
 
@@ -68,7 +74,9 @@ class NotificationStore {
         const dict = raw ? JSON.parse(raw) : {};
         dict[key] = Date.now() + 24 * 60 * 60 * 1000;
         localStorage.setItem('finnca_snoozed_notifs', JSON.stringify(dict));
-      } catch {}
+      } catch (e) {
+        console.error('Failed to save snoozed notifications:', e);
+      }
     }
     this.notifications = this.notifications.filter((n) => n.id !== id);
     this.dismissToast(id);
@@ -140,7 +148,9 @@ class NotificationStore {
       try {
         const saved = JSON.parse(localStorage.getItem('finnca_notif_toggles') ?? 'null');
         if (saved) toggles = { ...toggles, ...saved };
-      } catch {}
+      } catch (e) {
+        console.error('Failed to read notification toggles:', e);
+      }
     }
 
     // 1. Ledger Integrity Check
@@ -228,12 +238,16 @@ class NotificationStore {
       // Monitor Active Debt & Receivable Plans
       if (vault.plans && vault.plans.length > 0) {
         for (const plan of vault.plans) {
+          const planCurr =
+            vault.accounts.find((a) => a.id === plan.fromAccountId)?.currency ||
+            vault.accounts.find((a) => a.id === plan.toAccountId)?.currency ||
+            'IDR';
           const prog = calculatePlanProgress(plan, vault);
           if (prog.isSettled) {
             this.addNotification({
               type: 'DUE_DATE',
               title: i18n.t.planSettledNotifTitle,
-              message: `${plan.title} — 100% (${formatIDR(plan.totalAmount)})`,
+              message: `${plan.title} — 100% (${formatMoney(plan.totalAmount, planCurr)})`,
               detail: i18n.t.planSettledNotifDetail,
               priority: 'low',
               actionHref: '/app/plan',
@@ -250,7 +264,7 @@ class NotificationStore {
                 title: i18n.t.planOverdueTitle.replace('{term}', planTerm),
                 message: i18n.t.planOverdueMsg
                   .replace('{title}', plan.title)
-                  .replace('{amount}', formatIDR(prog.remainingAmount))
+                  .replace('{amount}', formatMoney(prog.remainingAmount, planCurr))
                   .replace('{days}', String(Math.abs(diffDays))),
                 priority: 'high',
                 actionHref: '/app/plan',
@@ -262,7 +276,7 @@ class NotificationStore {
                 title: i18n.t.planDueTitle.replace('{term}', planTerm),
                 message: (diffDays === 0 ? i18n.t.planDueMsgToday : i18n.t.planDueMsgDays)
                   .replace('{title}', plan.title)
-                  .replace('{amount}', formatIDR(prog.remainingAmount))
+                  .replace('{amount}', formatMoney(prog.remainingAmount, planCurr))
                   .replace('{days}', String(diffDays)),
                 priority: 'high',
                 actionHref: '/app/plan',
@@ -276,7 +290,7 @@ class NotificationStore {
 
     // 3. Cash Flow Deficit Check (Current Month)
     const currentMonth = todayISO.slice(0, 7);
-    const pnl = incomeStatement(vault, `${currentMonth}-01`, `${currentMonth}-31`);
+    const pnl = incomeStatement(vault, `${currentMonth}-01`, endOfMonthString(currentMonth));
     if (pnl.expense > pnl.income && pnl.expense > 0) {
       const deficit = pnl.expense - pnl.income;
       this.addNotification({
@@ -311,21 +325,34 @@ class NotificationStore {
     // 5. Expense Spike Analysis
     if (toggles.spike) {
       const byId = new Map(vault.accounts.map((a) => [a.id, a]));
+      const toIdr = (amt: number, curr: string) =>
+        curr === 'USD' ? convertMinor(amt, 'USD', 'IDR', vault.fxRate || DEFAULT_FX_RATE) : amt;
+
       const todayExpenses = vault.transactions
         .filter((t) => t.date === todayISO)
-        .flatMap((t) => t.splits)
-        .filter((s) => byId.get(s.accountId)?.type === 'EXPENSE' && s.amount > 0)
-        .reduce((a, c) => a + c.amount, 0);
+        .flatMap((t) =>
+          t.splits.map((s) => ({
+            split: s,
+            currency: byId.get(s.accountId)?.currency || t.currency || 'IDR',
+          }))
+        )
+        .filter(({ split }) => byId.get(split.accountId)?.type === 'EXPENSE' && split.amount > 0)
+        .reduce((a, { split, currency }) => a + toIdr(split.amount, currency), 0);
 
       if (todayExpenses > 0) {
-        const pastDate = new Date();
+        const pastDate = new SvelteDate();
         pastDate.setDate(pastDate.getDate() - 30);
         const thirtyDaysAgo = todayString(pastDate);
         const pastExpenses = vault.transactions
           .filter((t) => t.date >= thirtyDaysAgo && t.date < todayISO)
-          .flatMap((t) => t.splits)
-          .filter((s) => byId.get(s.accountId)?.type === 'EXPENSE' && s.amount > 0)
-          .reduce((a, c) => a + c.amount, 0);
+          .flatMap((t) =>
+            t.splits.map((s) => ({
+              split: s,
+              currency: byId.get(s.accountId)?.currency || t.currency || 'IDR',
+            }))
+          )
+          .filter(({ split }) => byId.get(split.accountId)?.type === 'EXPENSE' && split.amount > 0)
+          .reduce((a, { split, currency }) => a + toIdr(split.amount, currency), 0);
 
         const dailyAvg = pastExpenses / 30;
         if (dailyAvg > 0 && todayExpenses > dailyAvg * 2.5 && todayExpenses > 500_000) {
@@ -343,13 +370,12 @@ class NotificationStore {
 
     // 6. Duplicate Transaction Detection
     if (vault.transactions.length > 1) {
-      const pastDate = new Date();
+      const pastDate = new SvelteDate();
       pastDate.setDate(pastDate.getDate() - 30);
       const thirtyDaysAgo = todayString(pastDate);
       const recentTxs = vault.transactions.filter((t) => t.date >= thirtyDaysAgo);
 
-      const seen = new Set<string>();
-      let dupFound = false;
+      const seen = new SvelteSet<string>();
 
       for (const tx of recentTxs) {
         // Create a unique fingerprint: Date + Accounts + Amounts
@@ -362,7 +388,6 @@ class NotificationStore {
         const fingerprint = `${tx.date}|${splitsFingerprint}`;
 
         if (seen.has(fingerprint) && tx.splits.length > 0) {
-          dupFound = true;
           // Calculate amount for display (sum of debits)
           const totalAmt = tx.splits
             .filter((s) => s.amount > 0)
@@ -372,9 +397,7 @@ class NotificationStore {
           this.addNotification({
             type: 'LEDGER_INTEGRITY',
             title: i18n.t.notifDupTxTitle,
-            message: i18n.t.notifDupTxMsg
-              .replace('{date}', tx.date)
-              .replace('{amount}', amtStr),
+            message: i18n.t.notifDupTxMsg.replace('{date}', tx.date).replace('{amount}', amtStr),
             detail: i18n.t.notifDupTxDetail,
             priority: 'medium',
             actionHref: `/app/journal?search=${encodeURIComponent(tx.date)}`,
@@ -433,7 +456,9 @@ class NotificationStore {
           try {
             const saved = JSON.parse(localStorage.getItem('finnca_notif_toggles') ?? 'null');
             if (saved && saved.fx === false) fxToggle = false;
-          } catch {}
+          } catch (e) {
+            console.error('Failed to read fx notification toggle:', e);
+          }
         }
 
         // Trigger notification if rate moved (increase or decrease)

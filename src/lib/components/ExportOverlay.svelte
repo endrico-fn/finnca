@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ModalShell, Button } from '$lib/components/ui';
+  import { ModalShell, Button, FilterSection, FilterOption } from '$lib/components/ui';
   import { i18n } from '$lib/i18n.svelte';
 
   let {
@@ -15,7 +15,9 @@
   } = $props();
 
   let format = $state<'pdf' | 'csv'>('pdf');
-  let periodMode = $state<'this_month' | 'last_month' | 'this_year' | 'all' | 'custom'>('this_month');
+  let periodMode = $state<'this_month' | 'last_month' | 'this_year' | 'all' | 'custom'>(
+    'this_month'
+  );
   let customFrom = $state('');
   let customTo = $state('');
   let busy = $state(false);
@@ -39,7 +41,10 @@
       const prevM = m === 0 ? 12 : m;
       const prevMStr = String(prevM).padStart(2, '0');
       const last = new Date(prevY, prevM, 0).getDate();
-      return { from: `${prevY}-${prevMStr}-01`, to: `${prevY}-${prevMStr}-${String(last).padStart(2, '0')}` };
+      return {
+        from: `${prevY}-${prevMStr}-01`,
+        to: `${prevY}-${prevMStr}-${String(last).padStart(2, '0')}`,
+      };
     }
     if (periodMode === 'this_year') {
       return { from: `${y}-01-01`, to: `${y}-12-31` };
@@ -70,16 +75,17 @@
     { id: 'last_month', label: i18n.t.lastMonth },
     { id: 'this_year', label: i18n.t.thisYear },
     { id: 'all', label: i18n.t.allTime },
-    { id: 'custom', label: 'Custom Range' },
+    { id: 'custom', label: i18n.t.exportCustomRange },
   ];
 </script>
 
-<ModalShell bind:open title="EXPORT — {reportTitle}" maxWidth="max-w-xs">
-  <div class="space-y-4 pb-1 pt-2">
-
+<ModalShell bind:open title="{i18n.t.exportReportTitle} — {reportTitle}" maxWidth="max-w-xs">
+  <div class="space-y-4 pt-2 pb-1">
     {#if supportsPDF}
       <div>
-        <p class="text-text-dim mb-2 text-[10px] uppercase tracking-widest">Format</p>
+        <p class="text-text-dim text-smaller mb-2 tracking-widest uppercase">
+          {i18n.t.exportFormat}
+        </p>
         <div class="flex gap-2">
           <Button
             variant={format === 'pdf' ? 'primary' : 'ghost'}
@@ -102,42 +108,37 @@
     {/if}
 
     <div>
-      <p class="text-text-dim mb-2 text-[10px] uppercase tracking-widest">Periode</p>
-      <div class="space-y-0.5">
+      <FilterSection title={i18n.t.exportPeriod}>
         {#each periods as opt (opt.id)}
-          <button
-            type="button"
+          <FilterOption
+            label={opt.label}
+            selected={periodMode === opt.id}
             onclick={() => (periodMode = opt.id)}
-            class="flex w-full items-center gap-2.5 px-1 py-1.5 text-left text-[11px] transition-colors
-              {periodMode === opt.id
-                ? 'text-text-strong'
-                : 'text-text-muted hover:text-text-base'}"
-          >
-            <span class="text-teal w-3 shrink-0 font-bold leading-none">
-              {periodMode === opt.id ? '●' : '○'}
-            </span>
-            <span class="font-proto uppercase tracking-wider">{opt.label}</span>
-          </button>
+          />
         {/each}
-      </div>
+      </FilterSection>
 
       {#if periodMode === 'custom'}
         <div class="border-line mt-3 space-y-2 border-t pt-3">
           <div class="flex items-center gap-2">
-            <span class="text-text-dim w-6 shrink-0 text-[10px] uppercase tracking-wider">FR</span>
+            <span class="text-text-dim text-smaller w-6 shrink-0 tracking-wider uppercase"
+              >{i18n.t.pickFrom}</span
+            >
             <input
               type="date"
               bind:value={customFrom}
-              class="sharp-input flex-1 px-2 py-1"
+              class="sharp-input text-small flex-1 px-2 py-1"
             />
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-text-dim w-6 shrink-0 text-[10px] uppercase tracking-wider">TO</span>
+            <span class="text-text-dim text-smaller w-6 shrink-0 tracking-wider uppercase"
+              >{i18n.t.pickTo}</span
+            >
             <input
               type="date"
               bind:value={customTo}
               min={customFrom}
-              class="sharp-input flex-1 px-2 py-1"
+              class="sharp-input text-small flex-1 px-2 py-1"
             />
           </div>
         </div>
@@ -150,7 +151,7 @@
       {i18n.t.cancelBtn}
     </Button>
     <Button variant="primary" onclick={handleExport} disabled={busy || !canExport} class="flex-1">
-      {busy ? i18n.t.planProcessing : 'EXPORT →'}
+      {busy ? i18n.t.planProcessing : `${i18n.t.exportReportBtn} →`}
     </Button>
   </div>
 </ModalShell>

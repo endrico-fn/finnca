@@ -29,7 +29,7 @@
 
 {#if open}
   <div
-    class="bg-overlay fixed inset-0 z-50 flex items-center justify-center p-4 font-mono"
+    class="bg-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) close();
@@ -48,7 +48,7 @@
       <div class="flex h-8 shrink-0 items-center justify-between pb-2.5">
         <div class="flex items-center gap-2.5">
           <span class="bg-income size-2 shrink-0"></span>
-          <h2 class="label-title text-[13px] leading-none">{title}</h2>
+          <h2 class="label-title text-medium leading-none">{title}</h2>
         </div>
         <CloseButton onclick={close} />
       </div>

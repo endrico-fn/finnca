@@ -19,7 +19,7 @@
 <Card title={i18n.t.liabilitiesAndDebt} class="h-full">
   {#snippet header()}
     <span
-      class="font-proto border px-1.5 py-0.5 text-[9px] leading-none tracking-wider {isHealthy
+      class="font-proto text-smaller border px-1.5 py-0.5 leading-none tracking-wider {isHealthy
         ? 'border-income/30 text-income bg-income/10'
         : 'border-expense/30 text-expense bg-expense/10'}"
     >
@@ -27,10 +27,10 @@
     </span>
   {/snippet}
 
-  <div class="mt-1 flex h-full flex-col justify-between gap-2 overflow-hidden">
+  <div class="mt-1 flex min-h-0 flex-1 flex-col justify-between gap-2">
     <div>
       <p
-        class="font-proto text-[20px] leading-none font-bold tracking-tight tabular-nums {liabilities !==
+        class="font-proto text-large leading-none font-bold tracking-tight tabular-nums {liabilities !==
           '0' && liabilities !== '0.00'
           ? 'text-expense'
           : 'text-text-strong'}"
@@ -39,18 +39,22 @@
       </p>
     </div>
 
-    <dl class="border-line/40 font-proto mt-auto flex flex-col gap-1 border-t pt-1.5 text-[11px]">
+    <dl class="border-line/40 font-proto text-small mt-auto flex flex-col gap-1 border-t pt-1.5">
       <div class="flex items-center justify-between">
-        <dt class="text-text-icon font-proto text-[10px] tracking-wider uppercase">
+        <dt class="text-text-base font-proto text-smaller tracking-wider uppercase">
           {i18n.t.debtRatio}
         </dt>
-        <dd class="font-proto text-text-strong font-medium tabular-nums">{debtRatio}%</dd>
+        <dd class="font-proto text-text-strong text-smaller font-medium tabular-nums">
+          {debtRatio}%
+        </dd>
       </div>
       <div class="flex items-center justify-between">
-        <dt class="text-text-icon font-proto text-[10px] tracking-wider uppercase">
+        <dt class="text-text-base font-proto text-smaller tracking-wider uppercase">
           {i18n.t.netWorth}
         </dt>
-        <dd class="font-proto text-income font-medium tabular-nums">Rp {netWorth}</dd>
+        <dd class="font-proto text-income text-smaller font-medium tabular-nums">
+          Rp {netWorth}
+        </dd>
       </div>
     </dl>
   </div>

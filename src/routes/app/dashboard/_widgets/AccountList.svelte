@@ -1,9 +1,9 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
-  import { accountBalanceMinor, fromMinor, formatIDR } from '$lib/accounting/finance';
-  import { getAccountCleanPath } from '$lib/accounting/finance';
+  import { accountBalanceMinor, formatMoney, getAccountCleanPath } from '$lib/accounting/finance';
+  import { ACCOUNT_TYPES, accountTypeLabel, type AccountType } from '$lib/accounting/types';
   import { i18n } from '$lib/i18n.svelte';
-  import { Tabs, EmptyState, Icon, Button, Card, Pagination } from '$lib/components/ui';
+  import { Tabs, EmptyState, Card, Pagination } from '$lib/components/ui';
 
   let { searchQuery, searchScope, childrenMap } = $props<{
     searchQuery: string;
@@ -34,9 +34,9 @@
   const totalAccPages = $derived(Math.max(1, Math.ceil(filteredAccounts.length / PAGE_SIZE)));
 
   $effect(() => {
-    searchQuery;
-    categoryFilter;
-    searchScope;
+    void searchQuery;
+    void categoryFilter;
+    void searchScope;
     accPage = 1;
   });
 
@@ -44,7 +44,6 @@
     filteredAccounts.slice((accPage - 1) * PAGE_SIZE, accPage * PAGE_SIZE)
   );
 
-  const fmt = (n: number) => n.toLocaleString('en-US');
   function getCleanPath(accId: string): string {
     return getAccountCleanPath(accId, ledger.accountsById);
   }
@@ -52,23 +51,24 @@
 
 <Card title="{i18n.t.account} {filteredAccounts.length}" class="col-span-8 h-full">
   {#snippet header()}
-    <div class="flex w-full items-center gap-4">
+    <div class="flex min-w-0 flex-1 items-center justify-end gap-3">
       <Tabs
+        variant="outline"
         tabs={[
-          { id: 'ALL', label: 'ALL' },
-          { id: 'ASSET', label: 'ASSETS' },
-          { id: 'LIABILITY', label: 'LIAB' },
-          { id: 'EQUITY', label: 'EQUITY' },
-          { id: 'INCOME', label: 'INCOME' },
-          { id: 'EXPENSE', label: 'EXP' },
+          { id: 'ALL', label: i18n.t.filterAllLabel },
+          ...ACCOUNT_TYPES.map((t: AccountType) => ({
+            id: t,
+            label: accountTypeLabel(t).toUpperCase(),
+          })),
         ]}
         active={categoryFilter}
         onSelect={(id) => {
           categoryFilter = id;
         }}
+        class="max-w-full overflow-x-auto"
       />
       <span
-        class="text-text-dim ml-auto text-[9px] tracking-widest uppercase tabular-nums font-proto"
+        class="text-text-dim font-proto text-smaller ml-auto shrink-0 tracking-widest uppercase tabular-nums"
       >
         {i18n.t.showingOf
           .replace('{shown}', String(pagedAccounts.length))
@@ -89,23 +89,23 @@
         {#each pagedAccounts as acc (acc.id)}
           {@const bal = ledger.data ? accountBalanceMinor(acc.id, ledger.data, childrenMap) : 0}
           <div
-            class="group hover:bg-bg-row-hover -mx-1 flex cursor-default items-end gap-2 px-1 transition-colors"
+            class="group hover:bg-bg-btn -mx-1 flex cursor-default items-end gap-2 px-1 transition-colors"
           >
-            <span class="font-proto text-text-muted w-8 shrink-0 text-[11px]">{acc.code}</span>
-            <span class="font-proto text-text-base shrink-0 text-[11px]"
+            <span class="font-proto text-text-muted text-smaller w-8 shrink-0">{acc.code}</span>
+            <span class="font-proto text-text-base text-smaller shrink-0"
               >{getCleanPath(acc.id)}</span
             >
 
             <div
-              class="border-line/80 group-hover:border-line mb-[3px] flex-1 border-b border-dotted transition-colors"
+              class="border-line/80 group-hover:border-line mb-0.5 flex-1 border-b border-dotted transition-colors"
             ></div>
 
             <span
-              class="font-proto text-text-strong shrink-0 text-[11.5px] font-medium tabular-nums font-proto"
+              class="font-proto text-text-strong text-smaller shrink-0 font-medium tabular-nums"
             >
-              {formatIDR(fromMinor(acc.currency, Math.abs(bal)))}
+              {formatMoney(Math.abs(bal), acc.currency)}
             </span>
-            <span class="font-proto text-text-dim mb-[1px] w-6 shrink-0 text-right text-[9px]"
+            <span class="font-proto text-text-dim text-smaller mb-px w-6 shrink-0 text-right"
               >{acc.currency}</span
             >
           </div>
@@ -114,12 +114,12 @@
     {/if}
   </div>
 
-  <div class="border-line/40 mt-auto flex shrink-0 items-center border-t pt-1">
+  <div class="border-line/40 mt-auto flex shrink-0 items-center border-t pt-1.5">
     <Pagination
       bind:currentPage={accPage}
       totalPages={totalAccPages}
       layout="spread"
-      class="flex-1 text-[11px]"
+      class="flex-1"
     />
   </div>
 </Card>

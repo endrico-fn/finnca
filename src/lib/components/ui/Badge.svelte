@@ -4,7 +4,7 @@
     class: extraClass = '',
     children,
   }: {
-    tone?: 'ok' | 'warn' | 'err' | 'info' | 'neutral';
+    tone?: 'ok' | 'warn' | 'err' | 'neutral';
     class?: string;
     children: import('svelte').Snippet;
   } = $props();
@@ -16,14 +16,12 @@
         ? 'badge-warn'
         : tone === 'err'
           ? 'badge-err'
-          : tone === 'info'
-            ? 'badge-info'
-            : 'badge-neutral'
+          : 'border-line bg-bg-app text-text-muted'
   );
 </script>
 
 <span
-  class="{cls} font-proto inline-flex items-center gap-1 px-2 py-0.5 text-[10px] tracking-wider uppercase {extraClass}"
+  class="{cls} font-proto text-smaller inline-flex items-center gap-1 px-2 py-0.5 tracking-wider uppercase {extraClass}"
 >
   {@render children()}
 </span>

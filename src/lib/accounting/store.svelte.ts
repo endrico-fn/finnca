@@ -80,7 +80,9 @@ class LedgerStore {
     const idx = this.data.transactions.findIndex((t) => t.id === tx.id);
     if (idx >= 0) this.data.transactions[idx] = tx;
     else this.data.transactions.push(tx);
-    this.data.transactions = [...this.data.transactions].sort((a, b) => b.date.localeCompare(a.date));
+    this.data.transactions = [...this.data.transactions].sort((a, b) =>
+      b.date.localeCompare(a.date)
+    );
     await this.save();
   }
 

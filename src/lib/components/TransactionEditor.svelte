@@ -9,9 +9,10 @@
     todayString,
     parseStringAmountToMinor,
   } from '$lib/accounting/finance';
+  import { accountTypeLabel } from '$lib/accounting/types';
   import { i18n } from '$lib/i18n.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-  import { Icon, Button, CloseButton, SelectDropdown } from '$lib/components/ui';
+  import { Icon, Button, SelectDropdown } from '$lib/components/ui';
   import ReceiptScanner from '$lib/components/ui/ReceiptScanner.svelte';
 
   let {
@@ -219,17 +220,6 @@
 
   let showScanner = $state(false);
 
-  const headerBalanced = $derived(expanded ? isBalanced : simpleValid);
-  const headerImbalanceText = $derived(
-    expanded
-      ? isBalanced
-        ? i18n.t.balanced
-        : `${i18n.t.imbalance} ${fromMinor(draft.currency, Math.abs(imbalance)).toLocaleString('en-US')} ${draft.currency}`
-      : simpleValid
-        ? i18n.t.balanced
-        : i18n.t.txIncomplete
-  );
-
   async function save() {
     error = '';
     if (!draft.description.trim()) {
@@ -320,15 +310,16 @@
   }
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   tabindex="-1"
   role="region"
-  aria-label="Transaction Editor"
+  aria-label={i18n.t.txEditorAria}
   onkeydown={handleKeydown}
   class="outline-none"
 >
   {#if error}
-    <div class="badge-err mt-2 px-3 py-2 text-[11px]">{error}</div>
+    <div class="badge-err font-proto text-small mt-2 px-3 py-2">{error}</div>
   {/if}
 
   {#if showScanner}
@@ -346,7 +337,8 @@
           if (detail.text) {
             draft.notes =
               (draft.notes ? draft.notes + '\n\n' : '') +
-              '--- OCR Extracted Text ---\n' +
+              i18n.t.ocrExtractedHeader +
+              '\n' +
               detail.text.substring(0, 500);
           }
         }}
@@ -355,7 +347,7 @@
   {/if}
 
   {#if !tx && !expanded}
-    <div class="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px]">
+    <div class="font-proto text-smaller mt-2 flex items-center gap-1.5 overflow-x-auto pb-1">
       <span class="text-text-dim mr-1 shrink-0 tracking-wider uppercase"
         >{i18n.t.quickPresets}:</span
       >
@@ -400,7 +392,7 @@
       <input
         bind:value={draft.description}
         placeholder={i18n.t.txDescPlaceholder}
-        class="sharp-input mt-1 w-full px-2.5 py-1.5 text-[12px] font-mono"
+        class="sharp-input text-small mt-1 w-full px-2.5 py-1.5"
       />
     </div>
     <div>
@@ -408,7 +400,7 @@
       <input
         type="date"
         bind:value={draft.date}
-        class="sharp-input mt-1 w-full px-2.5 py-1.5 text-[12px]"
+        class="sharp-input text-small mt-1 w-full px-2.5 py-1.5"
       />
     </div>
   </div>
@@ -419,7 +411,7 @@
       <input
         bind:value={draft.num}
         placeholder={i18n.t.txRefPlaceholder}
-        class="sharp-input mt-1 w-full px-2.5 py-1.5 text-[12px]"
+        class="sharp-input text-small mt-1 w-full px-2.5 py-1.5"
       />
     </div>
     <div>
@@ -427,21 +419,21 @@
       <input
         type="date"
         bind:value={draft.dueDate}
-        class="sharp-input mt-1 w-full px-2.5 py-1.5 text-[12px]"
+        class="sharp-input text-small mt-1 w-full px-2.5 py-1.5"
       />
     </div>
     <div>
       <span class="label-xs">{i18n.t.currency}</span>
-      <select bind:value={draft.currency} class="sharp-input mt-1 w-full px-2.5 py-1.5 text-[12px]">
-        <option value="IDR">IDR — Rupiah</option>
-        <option value="USD">USD — Dollar</option>
+      <select bind:value={draft.currency} class="sharp-input text-small mt-1 w-full px-2.5 py-1.5">
+        <option value="IDR">{i18n.t.currencyIdrOpt}</option>
+        <option value="USD">{i18n.t.currencyUsdOpt}</option>
       </select>
     </div>
   </div>
 
   {#if draft.dueDate}
     <div class="mt-2 flex items-center gap-2">
-      <label class="text-text-base flex cursor-pointer items-center gap-2 text-[11px]">
+      <label class="text-text-base font-proto text-small flex cursor-pointer items-center gap-2">
         <input type="checkbox" bind:checked={draft.settled} class="accent-teal" />
         {i18n.t.txMarkSettled}
       </label>
@@ -460,7 +452,7 @@
             options={leafAccounts.map((a) => ({
               value: a.id,
               label: `${a.code} — ${a.name}`,
-              sublabel: `[${a.type}]`,
+              sublabel: `[${accountTypeLabel(a.type)}]`,
             }))}
             class="w-full"
             menuClass="w-full"
@@ -475,7 +467,7 @@
             options={leafAccounts.map((a) => ({
               value: a.id,
               label: `${a.code} — ${a.name}`,
-              sublabel: `[${a.type}]`,
+              sublabel: `[${accountTypeLabel(a.type)}]`,
             }))}
             class="w-full"
             menuClass="w-full"
@@ -485,7 +477,7 @@
           <span class="label-xs">{i18n.t.amount} ({draft.currency})</span>
           <input
             bind:value={standardAmount}
-            placeholder="50000"
+            placeholder={i18n.t.txAmountExample}
             type="text"
             inputmode="decimal"
             class="sharp-input mt-1 w-full px-2.5 py-1.5 text-right"
@@ -495,21 +487,27 @@
       {#if standardFrom && standardTo && parseStringAmountToMinor(standardAmount, draft.currency) > 0}
         {@const fromAcc = ledger.accountsById.get(standardFrom)}
         {@const toAcc = ledger.accountsById.get(standardTo)}
-        {@const amt = fromMinor(draft.currency, parseStringAmountToMinor(standardAmount, draft.currency)).toLocaleString(
-          'en-US',
-          { minimumFractionDigits: draft.currency === 'USD' ? 2 : 0 }
-        )}
-        <div class="border-line/60 bg-bg-card font-proto mt-2 border px-3 py-2 text-[10px]">
+        {@const amt = fromMinor(
+          draft.currency,
+          parseStringAmountToMinor(standardAmount, draft.currency)
+        ).toLocaleString('en-US', { minimumFractionDigits: draft.currency === 'USD' ? 2 : 0 })}
+        <div
+          class="border-line/60 bg-bg-card font-proto text-smaller mt-2 border px-3 py-2 tabular-nums"
+        >
           <p class="text-text-muted mb-1.5 tracking-wider">{i18n.t.previewJournal}</p>
           <div class="text-income flex justify-between">
             <span>{i18n.t.debit} &nbsp; {toAcc?.code} {toAcc?.name}</span><span>{amt}</span>
           </div>
           <div class="text-text-base flex justify-between">
-            <span>&nbsp;&nbsp;{i18n.t.credit} {fromAcc?.code} {fromAcc?.name}</span><span>{amt}</span>
+            <span>&nbsp;&nbsp;{i18n.t.credit} {fromAcc?.code} {fromAcc?.name}</span><span
+              >{amt}</span
+            >
           </div>
         </div>
       {:else if parseStringAmountToMinor(standardAmount, draft.currency) > 0 && (!standardFrom || !standardTo)}
-        <div class="border-line/60 bg-bg-card font-proto mt-2 border border-dashed px-3 py-2 text-[10px]">
+        <div
+          class="border-line/60 bg-bg-card font-proto text-smaller mt-2 border border-dashed px-3 py-2"
+        >
           <p class="text-warning">{i18n.t.selectSourceTarget}</p>
         </div>
       {/if}
@@ -526,9 +524,10 @@
       <div class="flex items-center justify-between pb-2">
         <div>
           <p class="label-xs">
-            {draft.splits.length} {i18n.t.splitsLabel}
+            {draft.splits.length}
+            {i18n.t.splitsLabel}
           </p>
-          <p class="text-text-muted font-proto mt-0.5 text-[9px]">
+          <p class="text-text-muted font-proto text-smaller mt-0.5">
             {i18n.t.debitCreditHelp}
           </p>
         </div>
@@ -552,16 +551,16 @@
       </div>
 
       <div class="border-line mt-2 overflow-x-auto border">
-        <table class="w-full font-mono text-[11px]">
+        <table class="font-proto text-small w-full tabular-nums">
           <thead class="bg-bg-app text-text-base">
             <tr>
               <th class="label-xs px-3 py-2 text-left font-normal"
                 >{i18n.t.code} &amp; {i18n.t.name}</th
               >
-              <th class="label-xs w-35 px-2 py-2 text-right font-normal"
+              <th class="label-xs w-36 px-2 py-2 text-right font-normal"
                 >{i18n.t.totalDebit} ({draft.currency})</th
               >
-              <th class="label-xs w-35 px-2 py-2 text-right font-normal"
+              <th class="label-xs w-36 px-2 py-2 text-right font-normal"
                 >{i18n.t.totalCredit} ({draft.currency})</th
               >
               <th class="label-xs px-3 py-2 text-left font-normal">{i18n.t.note}</th>
@@ -570,7 +569,7 @@
           </thead>
           <tbody class="divide-line/40 bg-bg-app divide-y">
             {#each draft.splits as sp (sp.id)}
-              <tr class="hover:bg-bg-row-active/30">
+              <tr class="hover:bg-bg-row-active">
                 <td class="px-2 py-1.5">
                   <SelectDropdown
                     bind:value={sp.accountId}
@@ -579,7 +578,7 @@
                     options={leafAccounts.map((a) => ({
                       value: a.id,
                       label: `${a.code} — ${a.name}`,
-                      sublabel: `[${a.type}]`,
+                      sublabel: `[${accountTypeLabel(a.type)}]`,
                     }))}
                     class="w-full"
                     menuClass="w-max"
@@ -589,7 +588,7 @@
                   <input
                     value={displayAmount(sp, 'debit')}
                     oninput={(e) => setAmount(sp, 'debit', (e.target as HTMLInputElement).value)}
-                    placeholder="0"
+                    placeholder={i18n.t.commonZeroPlaceholder}
                     class="sharp-input text-income w-full px-2 py-1.5 text-right"
                   />
                 </td>
@@ -597,14 +596,14 @@
                   <input
                     value={displayAmount(sp, 'credit')}
                     oninput={(e) => setAmount(sp, 'credit', (e.target as HTMLInputElement).value)}
-                    placeholder="0"
+                    placeholder={i18n.t.commonZeroPlaceholder}
                     class="sharp-input text-text-base w-full px-2 py-1.5 text-right"
                   />
                 </td>
                 <td class="px-2 py-1.5">
                   <input
                     bind:value={sp.memo}
-                    placeholder="memo"
+                    placeholder={i18n.t.txSplitMemoPlaceholder}
                     class="sharp-input w-full px-2 py-1.5"
                   />
                 </td>
@@ -613,8 +612,8 @@
                     variant="pager"
                     size="icon"
                     onclick={() => removeSplit(sp.id)}
-                    title="Delete split"
-                    ariaLabel="Delete split"><Icon name="close" size={12} /></Button
+                    title={i18n.t.txDeleteSplit}
+                    ariaLabel={i18n.t.txDeleteSplit}><Icon name="close" size={12} /></Button
                   >
                 </td>
               </tr>
@@ -622,16 +621,16 @@
           </tbody>
           <tfoot class="border-line bg-bg-app border-t">
             <tr>
-              <td class="label-xs px-3 py-2 text-right">TOTAL</td>
+              <td class="label-xs px-3 py-2 text-right">{i18n.t.totals}</td>
               <td
-                class="px-2 py-2 text-right text-[13px] font-bold {debitTotal
+                class="font-proto text-medium px-2 py-2 text-right font-bold tabular-nums {debitTotal
                   ? 'text-income'
                   : 'text-text-muted'}"
               >
                 {fromMinor(draft.currency, debitTotal).toLocaleString('en-US')}
               </td>
               <td
-                class="px-2 py-2 text-right text-[13px] font-bold {creditTotal
+                class="font-proto text-medium px-2 py-2 text-right font-bold tabular-nums {creditTotal
                   ? 'text-text-base'
                   : 'text-text-muted'}"
               >
@@ -639,7 +638,9 @@
               </td>
               <td
                 colspan="2"
-                class="px-3 py-2 text-[10px] {isBalanced ? 'text-income' : 'text-warning'}"
+                class="font-proto text-smaller px-3 py-2 {isBalanced
+                  ? 'text-income'
+                  : 'text-warning'}"
               >
                 {isBalanced
                   ? i18n.t.balanced
@@ -649,7 +650,7 @@
                     variant="tactical"
                     size="sm"
                     onclick={autoBalanceSplits}
-                    class="ml-2 inline-flex h-6 py-0.5 text-[9px]"
+                    class="text-smaller ml-2 inline-flex h-6 py-0.5"
                   >
                     {i18n.t.autoBalanceBtn}
                   </Button>
@@ -672,34 +673,29 @@
   </div>
 
   <div class="border-line mt-3 flex gap-2 border-t pt-3">
-    <button
-      type="button"
+    <Button
+      variant={showScanner ? 'primary' : 'tactical'}
+      pressed={showScanner}
       onclick={() => (showScanner = !showScanner)}
-      class="sharp-btn flex-1 border py-2 text-[12px] transition-colors {showScanner
-        ? 'bg-teal text-bg-app border-teal'
-        : 'bg-bg-card text-text-strong border-line hover:border-teal'}"
+      class="flex-1"
     >
-      <div class="flex items-center justify-center gap-2">
+      <span class="flex items-center justify-center gap-2">
         <Icon name="chart" size={12} />
-        <span>SCAN</span>
-      </div>
-    </button>
-    <button
-      type="button"
+        <span>{i18n.t.txScanBtn}</span>
+      </span>
+    </Button>
+    <Button
+      variant="primary"
       onclick={save}
       disabled={saving || (expanded ? !isBalanced : !simpleValid)}
-      class="sharp-btn btn-primary flex-1 py-2 text-[12px]"
+      class="flex-1"
     >
       {saving ? i18n.t.savingBtn : tx ? i18n.t.saveTransaction : i18n.t.createTransaction}
-    </button>
-    <button type="button" onclick={onCancel} class="sharp-btn btn-ghost px-5 py-2 text-[12px]"
-      >{i18n.t.cancelBtn}</button
-    >
+    </Button>
+    <Button variant="ghost" onclick={onCancel}>{i18n.t.cancelBtn}</Button>
     {#if tx && onDelete}
-      <button
-        type="button"
-        onclick={() => (confirmDeleteOpen = true)}
-        class="sharp-btn btn-danger px-4 py-2 text-[12px]">{i18n.t.deleteAccountBtn}</button
+      <Button variant="danger" onclick={() => (confirmDeleteOpen = true)}
+        >{i18n.t.deleteAccountBtn}</Button
       >
     {/if}
   </div>

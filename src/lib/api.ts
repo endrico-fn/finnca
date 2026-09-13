@@ -82,7 +82,11 @@ export function openVaultFolder() {
 }
 
 export function deleteVaultAndAccount(password: string) {
-  return withTimeout(invoke<AppStateView>('delete_vault_and_account', { password }), 30_000, 'delete_vault');
+  return withTimeout(
+    invoke<AppStateView>('delete_vault_and_account', { password }),
+    30_000,
+    'delete_vault'
+  );
 }
 
 export async function pickDirectory(): Promise<string | null> {

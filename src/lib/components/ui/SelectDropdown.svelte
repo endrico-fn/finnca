@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { i18n } from '$lib/i18n.svelte';
   import Icon from './Icon.svelte';
 
   export interface DropdownOption {
@@ -11,12 +12,14 @@
   let {
     options,
     value = $bindable(),
-    placeholder = 'Select...',
+    placeholder = '',
     onSelect,
     size = 'md',
     class: className = '',
     menuClass = '',
     disabled = false,
+    searchable = false,
+    searchPlaceholder,
   }: {
     options: DropdownOption[];
     value: string;
@@ -26,12 +29,29 @@
     class?: string;
     menuClass?: string;
     disabled?: boolean;
+    searchable?: boolean;
+    searchPlaceholder?: string;
   } = $props();
 
   let open = $state(false);
+  let query = $state('');
   let containerEl: HTMLElement | null = $state(null);
 
   const selectedOption = $derived(options.find((o) => o.value === value));
+
+  const visibleOptions = $derived(
+    !searchable || !query.trim()
+      ? options
+      : options.filter((o) =>
+          `${o.label} ${o.sublabel ?? ''}`.toLowerCase().includes(query.toLowerCase().trim())
+        )
+  );
+
+  function toggle() {
+    if (disabled) return;
+    query = '';
+    open = !open;
+  }
 
   function handleClickOutside(e: MouseEvent) {
     if (containerEl && !containerEl.contains(e.target as Node)) {
@@ -49,15 +69,19 @@
   <button
     type="button"
     {disabled}
-    onclick={() => !disabled && (open = !open)}
+    onclick={toggle}
     aria-haspopup="listbox"
     aria-expanded={open}
-    aria-label={placeholder}
-    class="sharp-btn btn-ghost {size === 'sm'
-      ? 'h-7 px-2 text-[10.5px]'
-      : 'h-8 px-2.5 text-[11px]'} font-proto border-line bg-bg-app hover:border-text-dim text-text-strong inline-flex w-full cursor-pointer items-center justify-between gap-2 border transition-colors select-none disabled:cursor-not-allowed disabled:opacity-40"
+    aria-label={placeholder || i18n.t.selectDefaultPlaceholder}
+    class="sharp-btn {size === 'sm'
+      ? 'text-smaller h-7 px-2'
+      : 'text-small h-8 px-2.5'} font-proto inline-flex w-full cursor-pointer items-center justify-between gap-2 border transition-colors select-none disabled:cursor-not-allowed disabled:opacity-40 {open
+      ? 'border-teal/60 bg-bg-row-active text-text-strong'
+      : 'border-line bg-bg-card text-text-strong hover:border-text-dim'}"
   >
-    <span class="truncate">{selectedOption?.label ?? placeholder}</span>
+    <span class="truncate"
+      >{selectedOption?.label ?? placeholder ?? i18n.t.selectDefaultPlaceholder}</span
+    >
     <span
       class="text-text-muted inline-flex shrink-0 transition-transform duration-150 {open
         ? 'text-teal rotate-180'
@@ -69,9 +93,27 @@
 
   {#if open}
     <div
-      class="border-line bg-bg-card absolute top-full left-0 z-50 mt-1 max-h-60 w-max max-w-xs min-w-full overflow-y-auto border py-1 font-mono text-[11px] select-none {menuClass}"
+      class="border-line bg-bg-card text-small font-proto absolute top-full left-0 z-50 mt-1 max-h-60 w-max max-w-xs min-w-full overflow-y-auto border py-1 select-none {menuClass}"
     >
-      {#each options as opt (opt.value)}
+      {#if searchable}
+        <div class="border-line/60 bg-bg-card sticky top-0 border-b px-2 py-1.5">
+          <div
+            class="border-line bg-bg-app focus-within:border-teal flex h-6 items-center gap-1.5 border px-2 transition-colors"
+          >
+            <span class="text-text-base inline-flex">
+              <Icon name="search" size={10} />
+            </span>
+            <input
+              type="text"
+              bind:value={query}
+              placeholder={searchPlaceholder ?? i18n.t.searchAllPlaceholder}
+              aria-label={searchPlaceholder ?? i18n.t.searchAllPlaceholder}
+              class="text-text-strong placeholder:text-text-muted text-small h-full w-full bg-transparent font-mono outline-none"
+            />
+          </div>
+        </div>
+      {/if}
+      {#each visibleOptions as opt (opt.value)}
         <button
           type="button"
           onclick={() => {
@@ -79,7 +121,7 @@
             onSelect?.(opt.value);
             open = false;
           }}
-          class="font-proto flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left text-[11px] transition-colors {opt.value ===
+          class="font-proto text-small flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left transition-colors {opt.value ===
           value
             ? 'bg-teal/10 text-teal font-semibold'
             : 'text-text-base hover:bg-line/40 hover:text-text-strong'}"
@@ -87,13 +129,17 @@
           <div class="flex min-w-0 flex-col pr-2">
             <span class="truncate">{opt.label}</span>
             {#if opt.sublabel}
-              <span class="text-text-muted truncate font-mono text-[9px]">{opt.sublabel}</span>
+              <span class="text-text-muted text-smaller font-proto truncate">{opt.sublabel}</span>
             {/if}
           </div>
           {#if opt.value === value}
-            <span class="text-teal shrink-0 text-[10px] font-bold">✓</span>
+            <span class="text-teal text-smaller shrink-0 font-bold">✓</span>
           {/if}
         </button>
+      {:else}
+        <p class="text-text-muted text-small font-proto px-3 py-2 text-center">
+          {i18n.t.selectNoOptions}
+        </p>
       {/each}
     </div>
   {/if}

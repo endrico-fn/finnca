@@ -6,77 +6,52 @@
   import Button from './Button.svelte';
 
   let {
-    from = $bindable(),
-    to = $bindable(),
+    value = $bindable(),
     onChange,
-    size = 'sm',
+    onSelect,
   } = $props<{
-    from: string;
-    to: string;
+    value: string;
     onChange?: () => void;
-    size?: 'sm' | 'md';
+    onSelect?: (v: string) => void;
   }>();
 
   let open = $state(false);
 
-  function setThisMonth() {
+  function setToday() {
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
-    const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
-    from = `${y}-${m}-01`;
-    to = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+    const d = String(now.getDate()).padStart(2, '0');
+    value = `${y}-${m}-${d}`;
     onChange?.();
+    onSelect?.(value);
   }
 
-  function setLastMonth() {
+  function setEndOfLastMonth() {
     const now = new Date();
-    const y = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const m = now.getMonth() === 0 ? 12 : now.getMonth();
-    const mStr = String(m).padStart(2, '0');
-    const lastDay = new Date(y, m, 0).getDate();
-    from = `${y}-${mStr}-01`;
-    to = `${y}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+    const y = lastDay.getFullYear();
+    const m = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const d = String(lastDay.getDate()).padStart(2, '0');
+    value = `${y}-${m}-${d}`;
     onChange?.();
+    onSelect?.(value);
   }
 
-  function setThisYear() {
-    const y = new Date().getFullYear();
-    from = `${y}-01-01`;
-    to = `${y}-12-31`;
+  function setEndOfLastYear() {
+    const y = new Date().getFullYear() - 1;
+    value = `${y}-12-31`;
     onChange?.();
+    onSelect?.(value);
   }
 
-  function last30Range(): [string, string] {
-    const end = new Date();
-    const start = new Date(Date.now() - 29 * 86400000);
-    const f = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return [f(start), f(end)];
-  }
-
-  function setLast30Days() {
-    const [s, e] = last30Range();
-    from = s;
-    to = e;
-    onChange?.();
-  }
-
-  function setAllTime() {
-    from = '';
-    to = '';
-    onChange?.();
-  }
-
-  let activeInput = $state<'from' | 'to'>('from');
   let viewYear = $state(new Date().getFullYear());
   let viewMonth = $state(new Date().getMonth());
 
   $effect(() => {
     if (open) {
-      const targetDate = activeInput === 'from' ? from : to;
-      if (targetDate) {
-        const parts = parseLocalDateParts(targetDate);
+      if (value) {
+        const parts = parseLocalDateParts(value);
         if (parts) {
           viewYear = parts.y;
           viewMonth = parts.m - 1;
@@ -117,46 +92,34 @@
   }
 
   function selectDate(dateStr: string) {
-    if (activeInput === 'from') {
-      from = dateStr;
-      if (to && from > to) to = from; // auto correct if from is after to
-      activeInput = 'to';
-    } else {
-      to = dateStr;
-      if (from && to < from) from = to; // auto correct if to is before from
-      open = false; // complete selection
-    }
+    value = dateStr;
+    open = false; // complete selection
     onChange?.();
+    onSelect?.(dateStr);
   }
 
   const displayLabel = $derived.by(() => {
-    if (!from && !to) return i18n.t.allTime;
+    if (!value) return i18n.t.asOfToday;
 
     const now = new Date();
     const y = now.getFullYear();
-    const m = now.getMonth() + 1;
-    const mStr = String(m).padStart(2, '0');
-    const thisMonthLast = String(new Date(y, m, 0).getDate()).padStart(2, '0');
-    if (from === `${y}-${mStr}-01` && to === `${y}-${mStr}-${thisMonthLast}`) {
-      return i18n.t.thisMonth;
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    if (value === `${y}-${m}-${d}`) {
+      return i18n.t.today || 'TODAY';
     }
 
-    const prevY = now.getMonth() === 0 ? y - 1 : y;
-    const prevM = now.getMonth() === 0 ? 12 : now.getMonth();
-    const prevMStr = String(prevM).padStart(2, '0');
-    const prevMonthLast = String(new Date(prevY, prevM, 0).getDate()).padStart(2, '0');
-    if (from === `${prevY}-${prevMStr}-01` && to === `${prevY}-${prevMStr}-${prevMonthLast}`) {
-      return i18n.t.lastMonth;
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+    const lmy = lastDay.getFullYear();
+    const lmm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const lmd = String(lastDay.getDate()).padStart(2, '0');
+    if (value === `${lmy}-${lmm}-${lmd}`) {
+      return i18n.t.endOfLastMonth;
     }
 
-    if (from === `${y}-01-01` && to === `${y}-12-31`) return i18n.t.thisYear;
+    if (value === `${y - 1}-12-31`) return i18n.t.endOfLastYear;
 
-    const [l30s, l30e] = last30Range();
-    if (from === l30s && to === l30e) return i18n.t.last30Days;
-
-    if (from && to) return `${from} → ${to}`;
-
-    return `${from || '...'} → ${to || '...'}`;
+    return value;
   });
 </script>
 
@@ -165,10 +128,7 @@
   <button
     type="button"
     onclick={() => (open = !open)}
-    class="sharp-btn font-proto text-smaller inline-flex cursor-pointer items-center gap-2 border px-2.5 transition-all select-none {size ===
-    'md'
-      ? 'h-7'
-      : 'h-6'} {open
+    class="sharp-btn font-proto text-smaller inline-flex h-6 cursor-pointer items-center gap-2 border px-2.5 transition-all select-none {open
       ? 'border-teal/60 bg-bg-row-active text-text-strong font-semibold'
       : 'border-line bg-bg-card text-text-strong hover:border-text-dim hover:text-text-white'}"
   >
@@ -199,91 +159,50 @@
         <button
           type="button"
           onclick={() => {
-            setAllTime();
+            setToday();
             open = false;
           }}
-          class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {!from &&
-          !to
+          class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
+          (i18n.t.today || 'TODAY')
             ? 'text-teal bg-teal/10 font-semibold'
             : 'text-text-muted hover:text-text-base'}"
         >
-          {i18n.t.allTime}
+          {i18n.t.today || 'TODAY'}
         </button>
         <button
           type="button"
           onclick={() => {
-            setThisMonth();
+            setEndOfLastMonth();
             open = false;
           }}
           class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
-          i18n.t.thisMonth
+          i18n.t.endOfLastMonth
             ? 'text-teal bg-teal/10 font-semibold'
             : 'text-text-muted hover:text-text-base'}"
         >
-          {i18n.t.thisMonth}
+          {i18n.t.endOfLastMonth}
         </button>
         <button
           type="button"
           onclick={() => {
-            setLastMonth();
+            setEndOfLastYear();
             open = false;
           }}
           class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
-          i18n.t.lastMonth
+          i18n.t.endOfLastYear
             ? 'text-teal bg-teal/10 font-semibold'
             : 'text-text-muted hover:text-text-base'}"
         >
-          {i18n.t.lastMonth}
-        </button>
-        <button
-          type="button"
-          onclick={() => {
-            setLast30Days();
-            open = false;
-          }}
-          class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
-          i18n.t.last30Days
-            ? 'text-teal bg-teal/10 font-semibold'
-            : 'text-text-muted hover:text-text-base'}"
-        >
-          {i18n.t.last30Days}
-        </button>
-        <button
-          type="button"
-          onclick={() => {
-            setThisYear();
-            open = false;
-          }}
-          class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
-          i18n.t.thisYear
-            ? 'text-teal bg-teal/10 font-semibold'
-            : 'text-text-muted hover:text-text-base'}"
-        >
-          {i18n.t.thisYear}
+          {i18n.t.endOfLastYear}
         </button>
       </div>
 
       <!-- Calendar Picker -->
       <div class="flex-1 p-2">
         <div class="mb-2 flex gap-1">
-          <button
-            type="button"
-            onclick={() => (activeInput = 'from')}
-            class="flex-1 border px-1.5 py-1 text-center transition-colors {activeInput === 'from'
-              ? 'border-teal/60 text-teal bg-teal/10'
-              : 'border-line text-text-muted hover:border-text-dim hover:bg-line/10'}"
-          >
-            {i18n.t.pickFrom}: {from || '--'}
-          </button>
-          <button
-            type="button"
-            onclick={() => (activeInput = 'to')}
-            class="flex-1 border px-1.5 py-1 text-center transition-colors {activeInput === 'to'
-              ? 'border-teal/60 text-teal bg-teal/10'
-              : 'border-line text-text-muted hover:border-text-dim hover:bg-line/10'}"
-          >
-            {i18n.t.pickTo}: {to || '--'}
-          </button>
+          <div class="border-teal/60 bg-teal/10 text-teal flex-1 border px-1.5 py-1 text-center">
+            {value || '--'}
+          </div>
         </div>
 
         <div class="mb-2 flex items-center justify-between px-1">
@@ -311,19 +230,16 @@
             </div>
           {/each}
           {#each calendarDays as day (day.dateStr || day)}
-            {@const isSelected = day.dateStr === from || day.dateStr === to}
-            {@const isInRange = from && to && day.dateStr > from && day.dateStr < to}
+            {@const isSelected = day.dateStr === value}
             <button
               type="button"
               onclick={() => selectDate(day.dateStr)}
               class="flex h-6 items-center justify-center transition-colors
                 {isSelected
                 ? 'bg-teal text-bg-app font-bold'
-                : isInRange
-                  ? 'bg-teal/15 text-teal'
-                  : !day.isCurrentMonth
-                    ? 'bg-bg-app text-text-dim/30'
-                    : 'bg-bg-card hover:bg-line/30 text-text-base'}"
+                : !day.isCurrentMonth
+                  ? 'bg-bg-app text-text-dim/30'
+                  : 'bg-bg-card hover:bg-line/30 text-text-base'}"
             >
               {day.dayNum}
             </button>

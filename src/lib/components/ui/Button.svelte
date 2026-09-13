@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { resolve } from '$app/paths';
 
   let {
     variant = 'primary',
@@ -9,17 +10,19 @@
     onclick,
     href,
     ariaLabel,
+    pressed,
     title,
     class: extraClass = '',
     children,
   }: {
     variant?: 'primary' | 'ghost' | 'danger' | 'pager' | 'tactical';
-    size?: 'sm' | 'md' | 'lg' | 'icon';
+    size?: 'sm' | 'md' | 'icon';
     disabled?: boolean;
     type?: 'button' | 'submit';
     onclick?: (e: MouseEvent) => void;
     href?: string;
     ariaLabel?: string;
+    pressed?: boolean;
     title?: string;
     class?: string;
     children: Snippet;
@@ -32,12 +35,10 @@
     }
     const sizing =
       size === 'sm'
-        ? 'h-7 px-2.5 text-[10px]'
-        : size === 'lg'
-          ? 'h-9.5 px-4 text-[12px]'
-          : size === 'icon'
-            ? 'w-7 h-7 p-0 shrink-0'
-            : 'h-8 px-3.5 text-[11px]';
+        ? 'h-7 px-2.5 text-smaller'
+        : size === 'icon'
+          ? 'w-7 h-7 p-0 shrink-0'
+          : 'h-8 px-3.5 text-small';
     const dim = disabled ? 'opacity-40 cursor-not-allowed' : '';
     return `sharp-btn btn-${variant} font-proto ${sizing} ${dim} ${extraClass}`
       .trim()
@@ -46,11 +47,25 @@
 </script>
 
 {#if href}
-  <a {href} class={cls} aria-disabled={disabled} aria-label={ariaLabel} {title}>
+  <a
+    href={resolve(href as '/app')}
+    class={cls}
+    aria-disabled={disabled}
+    aria-label={ariaLabel}
+    {title}
+  >
     {@render children()}
   </a>
 {:else}
-  <button {type} {disabled} {onclick} class={cls} aria-label={ariaLabel} {title}>
+  <button
+    {type}
+    {disabled}
+    {onclick}
+    class={cls}
+    aria-label={ariaLabel}
+    aria-pressed={pressed}
+    {title}
+  >
     {@render children()}
   </button>
 {/if}

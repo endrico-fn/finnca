@@ -320,7 +320,12 @@ pub fn open_vault_folder(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn export_text_file(path: String, contents: String) -> Result<(), String> {
+pub fn export_text_file(
+    state: State<'_, AppState>,
+    path: String,
+    contents: String,
+) -> Result<(), String> {
+    require_session(&state)?;
     if path.trim().is_empty() {
         return Err("path cannot be empty".into());
     }
@@ -366,11 +371,11 @@ pub fn set_active_vault(
     path: String,
 ) -> Result<AppStateView, String> {
     let mut config = config::load(&app)?;
-    // find vault in known_vaults
+    // find vault in known_vaults by path or legacy id
     let entry = config
         .known_vaults
         .iter()
-        .find(|v| v.path == path)
+        .find(|v| v.path == path || v.id == path)
         .ok_or("Vault not found in registry")?;
     config.vault = Some(config::VaultInfo {
         name: entry.name.clone(),
@@ -378,7 +383,14 @@ pub fn set_active_vault(
     });
     config.username = Some(entry.username.clone());
     config::save(&app, &config)?;
-    state.clear_session(); // clear session to lock vault when switching
+    let same_vault = state.session.lock().map_or(false, |guard| {
+        guard
+            .as_ref()
+            .is_some_and(|s| s.vault_path.to_string_lossy() == entry.path)
+    });
+    if !same_vault {
+        state.clear_session(); // clear session to lock vault when switching
+    }
     view(&app, &state)
 }
 
@@ -395,7 +407,7 @@ pub fn export_vault_backup_folder(
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or(std::time::Duration::default())
+        .unwrap_or_default()
         .as_secs();
     let backup_folder_name = format!(
         "finnca-{}-backup-{}",
@@ -437,10 +449,14 @@ pub(crate) fn validate_vault_dir(path: &Path) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn write_file_raw(path: String, contents: Vec<u8>) -> Result<(), String> {
-    use std::io::Write;
-    let mut file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
-    file.write_all(&contents).map_err(|e| e.to_string())?;
-    file.sync_all().map_err(|e| e.to_string())?;
-    Ok(())
+pub fn write_file_raw(
+    state: State<'_, AppState>,
+    path: String,
+    contents: Vec<u8>,
+) -> Result<(), String> {
+    require_session(&state)?;
+    if path.trim().is_empty() {
+        return Err("path cannot be empty".into());
+    }
+    crate::atomic_write(Path::new(&path), &contents).map_err(|e| e.to_string())
 }

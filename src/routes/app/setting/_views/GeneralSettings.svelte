@@ -3,8 +3,7 @@
   import { store } from '$lib/stores/app-store.svelte';
   import { i18n } from '$lib/i18n.svelte';
   import * as api from '$lib/api';
-  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-  import { Card } from '$lib/components/ui';
+  import { Card, Button } from '$lib/components/ui';
 
   let username = $state(store.appState?.username || '');
   let usernameError = $state('');
@@ -62,8 +61,8 @@
 
       usernameSuccess = i18n.t.settingsSavedOk;
       setTimeout(() => (usernameSuccess = ''), 3000);
-    } catch (e: any) {
-      usernameError = e.message;
+    } catch (e: unknown) {
+      usernameError = e instanceof Error ? e.message : String(e);
     } finally {
       usernameSaving = false;
     }
@@ -86,8 +85,8 @@
 
       vaultNameSuccess = i18n.t.vaultRenamedOk;
       setTimeout(() => (vaultNameSuccess = ''), 3000);
-    } catch (e: any) {
-      vaultNameError = e.message;
+    } catch (e: unknown) {
+      vaultNameError = e instanceof Error ? e.message : String(e);
     } finally {
       vaultNameSaving = false;
     }
@@ -96,7 +95,7 @@
   async function handleOpenVaultFolder() {
     try {
       await api.openVaultFolder();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
     }
   }
@@ -106,7 +105,7 @@
   <!-- ROW 1: USER PROFILE (LEFT) & VAULT IDENTITY (RIGHT) -->
   <div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
     <!-- 1. USER PROFILE CARD -->
-    <Card title={i18n.t.userProfile} badge="IDENTITY" class="justify-between">
+    <Card title={i18n.t.userProfile} badge={i18n.t.badgeIdentity} class="justify-between">
       <div class="flex flex-col gap-2.5">
         <!-- Username Input -->
         <div>
@@ -117,25 +116,23 @@
             <input
               id="username-input"
               type="text"
-              class="sharp-input font-mono flex-1 px-3 py-1.5 text-[13px]"
+              class="sharp-input text-medium flex-1 px-3 py-1.5 font-mono"
               bind:value={username}
               onkeydown={(e) => e.key === 'Enter' && handleSaveUsername()}
             />
-            <button
-              type="button"
-              class="sharp-btn btn-primary font-proto h-8 shrink-0 px-3 text-[10px] disabled:opacity-40"
+            <Button
+              variant="primary"
               disabled={usernameSaving || username === store.appState?.username}
               onclick={handleSaveUsername}
             >
-              {#if usernameSaving}<span class="spinner-sm"></span>{:else}{i18n.t
-                  .saveChanges}{/if}
-            </button>
+              {#if usernameSaving}<span class="spinner-sm"></span>{:else}{i18n.t.saveChanges}{/if}
+            </Button>
           </div>
           {#if usernameError}
-            <p class="text-expense font-proto mt-1 text-[9px]">{usernameError}</p>
+            <p class="text-expense font-proto text-smaller mt-1">{usernameError}</p>
           {/if}
           {#if usernameSuccess}
-            <p class="text-income font-proto mt-1 text-[9px]">{usernameSuccess}</p>
+            <p class="text-income font-proto text-smaller mt-1">{usernameSuccess}</p>
           {/if}
         </div>
 
@@ -146,28 +143,26 @@
           </span>
           <div class="flex items-center gap-2">
             <div
-              class="sharp-input text-text-muted bg-bg-app border-line flex-1 border px-2.5 py-1.5 font-mono text-[10px]"
+              class="sharp-input text-text-muted bg-bg-app border-line text-smaller flex-1 border px-2.5 py-1.5 font-mono"
             >
-              FINNCA_VAULT_OWNER [OFFLINE_ADMIN]
+              {i18n.t.roleOwner}
             </div>
             <span
-              class="border-income/40 text-income bg-income/10 font-proto border px-2 py-1 text-[9px] tracking-wider uppercase leading-none"
+              class="border-income/40 text-income bg-income/10 font-proto text-smaller border px-2 py-1 leading-none tracking-wider uppercase"
             >
-              ACTIVE
+              {i18n.t.activeStatusWord}
             </span>
           </div>
         </div>
       </div>
 
-      <p class="text-text-dim border-line/30 mt-auto border-t pt-2 font-mono text-[9px]">
-        {i18n.locale === 'id'
-          ? 'Identitas akun lokal, tersimpan offline di konfigurasi perangkat.'
-          : 'Local account identity, stored offline in local device configuration.'}
+      <p class="text-text-dim border-line/30 text-smaller mt-auto border-t pt-2 font-mono">
+        {i18n.t.accountIdentityNote}
       </p>
     </Card>
 
     <!-- 2. VAULT IDENTITY & STORAGE CARD -->
-    <Card title={i18n.t.vaultIdentity} badge="VAULT" class="justify-between">
+    <Card title={i18n.t.vaultIdentity} badge={i18n.t.badgeVault} class="justify-between">
       <div class="flex flex-col gap-2.5">
         <!-- Vault Name Field -->
         <div>
@@ -178,25 +173,23 @@
             <input
               id="vault-name-input"
               type="text"
-              class="sharp-input font-mono flex-1 px-3 py-1.5 text-[13px]"
+              class="sharp-input text-medium flex-1 px-3 py-1.5 font-mono"
               bind:value={vaultName}
               onkeydown={(e) => e.key === 'Enter' && handleSaveVaultName()}
             />
-            <button
-              type="button"
-              class="sharp-btn btn-primary font-proto h-8 shrink-0 px-3 text-[10px] disabled:opacity-40"
+            <Button
+              variant="primary"
               disabled={vaultNameSaving || vaultName === store.appState?.vault_name}
               onclick={handleSaveVaultName}
             >
-              {#if vaultNameSaving}<span class="spinner-sm"></span>{:else}{i18n.t
-                  .saveChanges}{/if}
-            </button>
+              {#if vaultNameSaving}<span class="spinner-sm"></span>{:else}{i18n.t.saveChanges}{/if}
+            </Button>
           </div>
           {#if vaultNameError}
-            <p class="text-expense font-proto mt-1 text-[9px]">{vaultNameError}</p>
+            <p class="text-expense font-proto text-smaller mt-1">{vaultNameError}</p>
           {/if}
           {#if vaultNameSuccess}
-            <p class="text-income font-proto mt-1 text-[9px]">{vaultNameSuccess}</p>
+            <p class="text-income font-proto text-smaller mt-1">{vaultNameSuccess}</p>
           {/if}
         </div>
 
@@ -207,33 +200,27 @@
           </p>
           <div class="flex items-center gap-2">
             <div
-              class="sharp-input text-text-muted bg-bg-app border-line flex-1 truncate border px-2.5 py-1.5 font-mono text-[10px]"
+              class="sharp-input text-text-muted bg-bg-app border-line text-smaller flex-1 truncate border px-2.5 py-1.5 font-mono"
             >
               {store.appState?.vault_name
                 ? `finnca-${store.appState.vault_name.toLowerCase().replace(/\s+/g, '-')}`
                 : 'finnca-vault'}
             </div>
-            <button
-              type="button"
-              class="sharp-btn btn-ghost font-proto border-line hover:border-text-dim h-8 shrink-0 px-3 text-[10px]"
-              onclick={handleOpenVaultFolder}
-            >
+            <Button variant="ghost" onclick={handleOpenVaultFolder}>
               {i18n.t.openFolderBtn}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      <p class="text-text-dim border-line/30 mt-auto border-t pt-2 font-mono text-[9px]">
-        {i18n.locale === 'id'
-          ? 'Direktori file lokal terenkripsi XChaCha20-Poly1305.'
-          : 'Local encrypted database directory with XChaCha20-Poly1305.'}
+      <p class="text-text-dim border-line/30 text-smaller mt-auto border-t pt-2 font-mono">
+        {i18n.t.vaultStorageNote}
       </p>
     </Card>
   </div>
 
   <!-- ROW 2: SYSTEM LANGUAGE & DISPLAY FORMATS -->
-  <Card title="{i18n.t.language} & {i18n.t.displayPreferences}" badge="LOCALIZATION">
+  <Card title="{i18n.t.language} & {i18n.t.displayPreferences}" badge={i18n.t.badgeLocalization}>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <!-- Language Buttons -->
       <div>
@@ -241,8 +228,8 @@
         <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
-            class="sharp-card border p-2.5 text-left transition-all {i18n.locale === 'en'
-              ? 'border-teal/60 bg-teal/5 ring-teal/30 ring-1'
+            class="sharp-card border p-2.5 text-left transition-colors {i18n.locale === 'en'
+              ? 'border-teal/60 bg-bg-row-active'
               : 'border-line hover:border-text-dim bg-bg-app'}"
             onclick={() => {
               i18n.locale = 'en';
@@ -251,20 +238,20 @@
           >
             <div class="mb-1 flex items-center justify-between">
               <span
-                class="font-proto border-line bg-bg-card text-text-muted border px-1.5 py-0.5 text-[9px] font-bold"
+                class="font-proto border-line bg-bg-card text-text-muted text-smaller border px-1.5 py-0.5 font-bold"
                 >EN</span
               >
               {#if i18n.locale === 'en'}<span class="bg-teal size-1.5 animate-pulse"></span>{/if}
             </div>
-            <div class="font-proto text-text-strong text-[11px] font-bold">
+            <div class="font-proto text-text-strong text-small font-bold">
               {i18n.t.langEnglish}
             </div>
           </button>
 
           <button
             type="button"
-            class="sharp-card border p-2.5 text-left transition-all {i18n.locale === 'id'
-              ? 'border-teal/60 bg-teal/5 ring-teal/30 ring-1'
+            class="sharp-card border p-2.5 text-left transition-colors {i18n.locale === 'id'
+              ? 'border-teal/60 bg-bg-row-active'
               : 'border-line hover:border-text-dim bg-bg-app'}"
             onclick={() => {
               i18n.locale = 'id';
@@ -273,12 +260,12 @@
           >
             <div class="mb-1 flex items-center justify-between">
               <span
-                class="font-proto border-line bg-bg-card text-text-muted border px-1.5 py-0.5 text-[9px] font-bold"
+                class="font-proto border-line bg-bg-card text-text-muted text-smaller border px-1.5 py-0.5 font-bold"
                 >ID</span
               >
               {#if i18n.locale === 'id'}<span class="bg-teal size-1.5 animate-pulse"></span>{/if}
             </div>
-            <div class="font-proto text-text-strong text-[11px] font-bold">
+            <div class="font-proto text-text-strong text-small font-bold">
               {i18n.t.langIndonesia}
             </div>
           </button>
@@ -295,9 +282,9 @@
             <button
               type="button"
               onclick={() => setNumberFormat('comma')}
-              class="sharp-card font-proto flex items-center justify-between border p-2 text-left text-[10px] {numberFormat ===
+              class="sharp-card font-proto text-smaller flex items-center justify-between border p-2 text-left {numberFormat ===
               'comma'
-                ? 'border-teal text-text-white bg-teal/5'
+                ? 'border-teal text-text-white bg-bg-row-active'
                 : 'border-line text-text-base hover:border-text-dim'}"
             >
               <span>1,234,567.89</span>
@@ -306,9 +293,9 @@
             <button
               type="button"
               onclick={() => setNumberFormat('dot')}
-              class="sharp-card font-proto flex items-center justify-between border p-2 text-left text-[10px] {numberFormat ===
+              class="sharp-card font-proto text-smaller flex items-center justify-between border p-2 text-left {numberFormat ===
               'dot'
-                ? 'border-teal text-text-white bg-teal/5'
+                ? 'border-teal text-text-white bg-bg-row-active'
                 : 'border-line text-text-base hover:border-text-dim'}"
             >
               <span>1.234.567,89</span>
@@ -325,9 +312,9 @@
             <button
               type="button"
               onclick={() => setDateFormat('iso')}
-              class="sharp-card font-proto flex items-center justify-between border p-2 text-left text-[10px] {dateFormat ===
+              class="sharp-card font-proto text-smaller flex items-center justify-between border p-2 text-left {dateFormat ===
               'iso'
-                ? 'border-teal text-text-white bg-teal/5'
+                ? 'border-teal text-text-white bg-bg-row-active'
                 : 'border-line text-text-base hover:border-text-dim'}"
             >
               <span>YYYY-MM-DD</span>
@@ -336,9 +323,9 @@
             <button
               type="button"
               onclick={() => setDateFormat('slash')}
-              class="sharp-card font-proto flex items-center justify-between border p-2 text-left text-[10px] {dateFormat ===
+              class="sharp-card font-proto text-smaller flex items-center justify-between border p-2 text-left {dateFormat ===
               'slash'
-                ? 'border-teal text-text-white bg-teal/5'
+                ? 'border-teal text-text-white bg-bg-row-active'
                 : 'border-line text-text-base hover:border-text-dim'}"
             >
               <span>DD/MM/YYYY</span>

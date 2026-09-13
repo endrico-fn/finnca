@@ -1,12 +1,23 @@
 export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'INCOME' | 'EXPENSE';
 
-export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = {
-  ASSET: 'Asset',
-  LIABILITY: 'Liability',
-  EQUITY: 'Equity',
-  INCOME: 'Income',
-  EXPENSE: 'Expense',
-};
+import { i18n } from '$lib/i18n.svelte';
+
+export const ACCOUNT_TYPES: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'];
+
+export function accountTypeLabel(t: AccountType): string {
+  switch (t) {
+    case 'ASSET':
+      return i18n.t.accTypeAsset;
+    case 'LIABILITY':
+      return i18n.t.accTypeLiability;
+    case 'EQUITY':
+      return i18n.t.accTypeEquity;
+    case 'INCOME':
+      return i18n.t.accTypeIncome;
+    case 'EXPENSE':
+      return i18n.t.accTypeExpense;
+  }
+}
 
 export const ACCOUNT_TYPE_COLOR: Record<AccountType, string> = {
   ASSET: 'var(--color-teal)',

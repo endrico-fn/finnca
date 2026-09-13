@@ -5,7 +5,7 @@
   import { i18n } from '$lib/i18n.svelte';
   import { DEFAULT_FX_RATE } from '$lib/accounting/types';
   import { formatIDR } from '$lib/accounting/finance';
-  import { Card } from '$lib/components/ui';
+  import { Card, Button } from '$lib/components/ui';
 
   let syncing = $state(false);
   let syncMsg = $state<{ text: string; type: 'ok' | 'err' } | null>(null);
@@ -61,8 +61,11 @@
       } else {
         syncMsg = { text: i18n.t.fxSyncFailed, type: 'err' };
       }
-    } catch (e: any) {
-      syncMsg = { text: e.message || i18n.t.fxSyncFailed, type: 'err' };
+    } catch (e: unknown) {
+      syncMsg = {
+        text: (e instanceof Error ? e.message : String(e)) || i18n.t.fxSyncFailed,
+        type: 'err',
+      };
     } finally {
       syncing = false;
       setTimeout(() => {
@@ -95,14 +98,17 @@
     <Card title={i18n.t.usdExchangeRateTitle} class="gap-2">
       {#snippet header()}
         <span
-          class="font-proto text-text-muted border-line bg-bg-app border px-1.5 py-0.5 text-[9px] tracking-widest uppercase leading-none"
+          class="font-proto text-text-muted border-line bg-bg-app text-smaller border px-1.5 py-0.5 leading-none tracking-widest uppercase"
         >
           {i18n.t.fxOneShotBadge}
         </span>
-        <div class="font-proto flex items-center gap-2 text-[11px] leading-none">
-          <span class="size-2 rounded-none {isOnline ? 'bg-income' : 'bg-warn'} animate-pulse"
-          ></span>
-          <span class="{isOnline ? 'text-income' : 'text-warn'} text-[10px] tracking-wider leading-none">
+        <div class="font-proto text-small flex items-center gap-2 leading-none">
+          <span class="size-2 {isOnline ? 'bg-income' : 'bg-warning'} animate-pulse"></span>
+          <span
+            class="{isOnline
+              ? 'text-income'
+              : 'text-warning'} text-smaller leading-none tracking-wider"
+          >
             {isOnline ? i18n.t.fxOnlineStatus : i18n.t.fxOfflineStatus}
           </span>
         </div>
@@ -110,16 +116,16 @@
 
       <div class="mt-1 flex items-start justify-between gap-4">
         <div>
-          <p class="font-proto text-text-dim mb-1 text-[10px] tracking-widest uppercase">
+          <p class="font-proto text-text-dim text-smaller mb-1 tracking-widest uppercase">
             {i18n.t.fxOneShotTitle}
           </p>
           <div class="flex flex-wrap items-baseline gap-2.5">
-            <span class="font-proto text-text-white text-xl font-bold tracking-tight">
-              1 USD = {formatIDR(currentVaultRate)}
+            <span class="font-proto text-text-white text-large font-bold tracking-tight">
+              {i18n.t.fxRateDisplay.replace('{rate}', formatIDR(currentVaultRate))}
             </span>
             {#if rateDiff !== 0}
               <span
-                class="font-proto border px-2 py-0.5 text-[11px] font-semibold {rateDiff > 0
+                class="font-proto text-small border px-2 py-0.5 font-semibold {rateDiff > 0
                   ? 'border-income/40 text-income bg-income/10'
                   : 'border-expense/40 text-expense bg-expense/10'}"
               >
@@ -131,37 +137,32 @@
           </div>
         </div>
 
-        <button
-          type="button"
-          onclick={handleOneShotSync}
-          disabled={syncing}
-          class="sharp-btn btn-primary font-proto inline-flex shrink-0 items-center gap-2 px-3.5 py-2 text-[10px] disabled:opacity-50"
-        >
+        <Button variant="primary" onclick={handleOneShotSync} disabled={syncing}>
           {#if syncing}
             <span class="spinner-sm"></span>
             <span>{i18n.t.processingBtn}</span>
           {:else}
-            <span class="text-[12px] leading-none">↻</span>
+            <span class="text-small leading-none">↻</span>
             <span>{i18n.t.syncNowBtn}</span>
           {/if}
-        </button>
+        </Button>
       </div>
 
       <!-- Metadata Row -->
       <div
-        class="border-line/40 font-proto text-text-muted mt-auto flex items-center justify-between border-t pt-2.5 text-[10px]"
+        class="border-line/40 font-proto text-text-muted text-smaller mt-auto flex items-center justify-between border-t pt-2.5"
       >
         <span>
           {i18n.t.fxLastSynced}: <strong class="text-text-base">{lastSyncStr}</strong>
         </span>
         <span class="text-text-dim">
-            {i18n.t.fxSyncFrequency}
-          </span>
+          {i18n.t.fxSyncFrequency}
+        </span>
       </div>
 
       {#if syncMsg}
         <div
-          class="font-proto border px-3 py-1.5 text-[11px] {syncMsg.type === 'ok'
+          class="font-proto text-small border px-3 py-1.5 {syncMsg.type === 'ok'
             ? 'border-income/50 text-income bg-income/10'
             : 'border-expense/50 text-expense bg-expense/10'}"
         >
@@ -171,39 +172,50 @@
     </Card>
 
     <!-- FX ALERTS & POLICY CARD -->
-    <Card title={i18n.t.notifFxAlertsLabel} badge="ACTIVE" badgeTone="ok" class="gap-2.5">
-      <p class="text-text-base font-mono mt-1 text-[11px] leading-relaxed">
+    <Card
+      title={i18n.t.notifFxAlertsLabel}
+      badge={i18n.t.activeStatusWord}
+      badgeTone="ok"
+      class="gap-2.5"
+    >
+      <p class="text-text-base text-small mt-1 font-mono leading-relaxed">
         {i18n.t.fxDailyNotificationInfo}
       </p>
 
-      <p class="text-text-muted border-line/30 border-t pt-2 font-mono text-[10px] leading-relaxed">
+      <p
+        class="text-text-muted border-line/30 text-smaller border-t pt-2 font-mono leading-relaxed"
+      >
         {i18n.t.fxOneShotDesc}
       </p>
     </Card>
   </div>
 
   <!-- RIGHT COLUMN: AUDIT LOG & RECENT MOVEMENTS -->
-  <Card title={i18n.t.fxHistoryTitle} badge="AUDIT LOG" class="justify-between">
+  <Card title={i18n.t.fxHistoryTitle} badge={i18n.t.fxAuditLogBadge} class="justify-between">
     <div>
       {#if recentHistory.length > 1}
-        <div class="font-proto flex flex-col gap-1.5 text-[11px]">
+        <div class="font-proto text-small flex flex-col gap-1.5">
           {#each recentHistory as item, idx (item.date)}
             {@const next = recentHistory[idx + 1]}
             {@const diff = next ? item.rate - next.rate : 0}
             <div
               class="border-line/30 bg-bg-app hover:border-line flex items-center justify-between border p-2.5 transition-colors"
             >
-              <span class="text-text-muted font-mono">{item.date}</span>
+              <span class="text-text-muted font-proto tabular-nums">{item.date}</span>
               <div class="flex items-center gap-2">
-                <span class="text-text-white font-bold">{formatIDR(item.rate)}</span>
+                <span class="text-text-white font-proto font-bold tabular-nums"
+                  >{formatIDR(item.rate)}</span
+                >
                 {#if diff !== 0}
                   <span
-                    class="text-[10px] {diff > 0 ? 'text-income' : 'text-expense'} w-24 text-right"
+                    class="text-smaller font-proto tabular-nums {diff > 0
+                      ? 'text-income'
+                      : 'text-expense'} w-24 text-right"
                   >
                     {diff > 0 ? '▲ +' : '▼ '}{formatIDR(Math.abs(diff))}
                   </span>
                 {:else}
-                  <span class="text-text-dim w-24 text-right text-[10px]">—</span>
+                  <span class="text-text-dim text-smaller font-proto w-24 text-right">—</span>
                 {/if}
               </div>
             </div>
@@ -213,17 +225,17 @@
         <div
           class="border-line/60 bg-bg-app flex flex-col items-center gap-2 border border-dashed p-6 text-center"
         >
-          <span class="font-proto text-text-dim text-[10px] tracking-wider uppercase">
+          <span class="font-proto text-text-dim text-smaller tracking-wider uppercase">
             {i18n.t.fxNoHistoryTitle}
           </span>
-          <p class="text-text-muted max-w-xs font-mono text-[10px]">
+          <p class="text-text-muted text-smaller max-w-xs font-mono">
             {i18n.t.fxNoHistoryDesc}
           </p>
         </div>
       {/if}
     </div>
 
-    <p class="text-text-dim border-line/30 mt-auto border-t pt-2 font-mono text-[9px]">
+    <p class="text-text-dim border-line/30 text-smaller mt-auto border-t pt-2 font-mono">
       {i18n.t.fxConversionNote}
     </p>
   </Card>

@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { Icon } from '$lib/components/ui';
+  import { Icon, type IconName } from '$lib/components/ui';
+  import Button from './Button.svelte';
 
   let {
     title,
     hint = '',
-    icon = '',
+    icon,
     actionLabel = '',
     actionHref = '',
     onAction,
@@ -13,7 +14,7 @@
   }: {
     title: string;
     hint?: string;
-    icon?: string;
+    icon?: IconName;
     actionLabel?: string;
     actionHref?: string;
     onAction?: () => void;
@@ -23,29 +24,22 @@
 
 <div class="flex h-full flex-col items-center justify-center gap-2 py-10 text-center">
   {#if icon}
-    <div class="text-text-dim mb-1"><Icon name={icon as any} size={24} /></div>
+    <div class="text-text-dim mb-1"><Icon name={icon} size={24} /></div>
   {/if}
-  <p class="text-text-muted font-proto text-[12px]">{title}</p>
+  <p class="text-text-muted font-proto text-small">{title}</p>
   {#if hint}
-    <p class="text-text-muted/80 max-w-sm text-[11px]">{hint}</p>
+    <p class="text-text-muted/80 text-small max-w-sm">{hint}</p>
   {/if}
   {#if children}
     {@render children()}
   {/if}
   {#if actionLabel && onAction}
-    <button
-      type="button"
-      onclick={onAction}
-      class="sharp-btn btn-ghost text-teal hover:border-teal mt-2 px-4 py-1.5 text-[11px]"
-    >
+    <Button variant="ghost" size="sm" onclick={onAction} class="mt-2">
       {actionLabel}
-    </button>
+    </Button>
   {:else if actionLabel && actionHref}
-    <a
-      href={actionHref}
-      class="sharp-btn btn-ghost text-teal hover:border-teal mt-2 px-4 py-1.5 text-[11px]"
-    >
+    <Button variant="ghost" size="sm" href={actionHref} class="mt-2">
       {actionLabel}
-    </a>
+    </Button>
   {/if}
 </div>

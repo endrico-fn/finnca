@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import * as api from '$lib/api';
   import { store } from '$lib/stores/app-store.svelte';
@@ -40,7 +41,9 @@
     knownVaults = await syncVaultsFromBackend();
     try {
       await store.refresh();
-    } catch {}
+    } catch (e) {
+      console.error('Failed to refresh app state:', e);
+    }
 
     // Auto-detect deleted vault: if appState is unconfigured, purge stale local vaults
     if (store.appState && !store.appState.configured) {
@@ -50,7 +53,7 @@
       }
       if (knownVaults.length === 0) {
         clearVaultRegistry();
-        goto('/setup', { replaceState: true });
+        goto(resolve('/setup'), { replaceState: true });
         return;
       }
     }
@@ -93,9 +96,8 @@
           path: store.appState.vault_path ?? activeVault?.path ?? '',
           username: store.appState.username ?? '',
         });
-        setActiveVault(id);
       }
-      goto('/app');
+      goto(resolve('/app'));
     } catch (e) {
       error = String(e).replace('Error: ', '');
       if (error.includes('START FROM SETUP') || error.includes('not found')) {
@@ -106,7 +108,7 @@
         knownVaults = getKnownVaults();
         if (knownVaults.length === 0) {
           clearVaultRegistry();
-          goto('/setup', { replaceState: true });
+          goto(resolve('/setup'), { replaceState: true });
         } else {
           selectedVaultId = knownVaults[0].id;
         }
@@ -144,10 +146,9 @@
           path: importPath,
           username: st.username ?? '',
         });
-        setActiveVault(`${name}@${importPath}`);
         knownVaults = getKnownVaults();
       }
-      goto('/app');
+      goto(resolve('/app'));
     } catch (e) {
       error = String(e).replace('Error: ', '');
     } finally {
@@ -165,39 +166,39 @@
             <div
               class="border-line bg-bg-card anim-pulse-soft grid size-10 place-items-center border"
             >
-              <span class="text-teal text-xl">◈</span>
+              <span class="text-teal text-large">◈</span>
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h1 class="text-text-strong text-[18px] font-medium tracking-[0.25em]">
+                <h1 class="text-text-strong text-large font-medium tracking-[0.25em]">
                   {APP_NAME}
                 </h1>
                 <span
-                  class="font-proto text-text-dim border-line bg-bg-card border px-1.5 py-0.5 text-[10px]"
+                  class="font-proto text-text-dim border-line bg-bg-card text-smaller border px-1.5 py-0.5"
                 >
                   v{version_app}
                 </span>
               </div>
-              <p class="text-text-dim mt-0.5 text-[10px] tracking-wider">
+              <p class="text-text-dim text-smaller mt-0.5 tracking-wider">
                 {i18n.t.loginTagline}
               </p>
             </div>
           </div>
 
-          <div class="border-line bg-bg-card/60 space-y-2.5 border p-4 text-[11px]">
+          <div class="border-line bg-bg-card/60 text-small space-y-2.5 border p-4">
             <div>
-              <span class="text-text-dim block text-[10px] tracking-wider uppercase"
+              <span class="text-text-dim text-smaller block tracking-wider uppercase"
                 >{i18n.t.vault}</span
               >
               <span class="text-income font-medium"
                 >{activeVault?.name ??
                   store.appState?.vault_name ??
-                  (knownVaults.length > 0 ? knownVaults[0].name : 'Personal Vault')}</span
+                  (knownVaults.length > 0 ? knownVaults[0].name : i18n.t.vaultDefaultName)}</span
               >
             </div>
             {#if activeVault?.username || store.appState?.username}
               <div>
-                <span class="text-text-dim block text-[10px] tracking-wider uppercase"
+                <span class="text-text-dim text-smaller block tracking-wider uppercase"
                   >{i18n.t.userAccount}</span
                 >
                 <span class="text-text-strong"
@@ -208,12 +209,14 @@
             {#if knownVaults.length > 0}
               <div class="border-line space-y-1.5 border-t pt-2">
                 <div class="flex items-center justify-between">
-                  <span class="text-text-dim font-proto block text-[10px] tracking-wider uppercase">
+                  <span
+                    class="text-text-dim font-proto text-smaller block tracking-wider uppercase"
+                  >
                     {i18n.t.savedVaultsLabel}
                   </span>
                   <a
-                    href="/setup?from=login"
-                    class="text-teal font-proto inline-flex items-center gap-1 text-[10px] hover:underline"
+                    href={resolve('/setup?from=login')}
+                    class="text-teal font-proto text-smaller inline-flex items-center gap-1 hover:underline"
                   >
                     <Icon name="plus" size={9} />
                     {i18n.t.addVaultBtn}
@@ -227,14 +230,14 @@
                         selectedVaultId = v.path;
                         setActiveVault(v.path);
                       }}
-                      class="font-proto flex w-full cursor-pointer items-center justify-between border px-2 py-1.5 text-left text-[11px] transition-colors {v.path ===
+                      class="font-proto text-small flex w-full cursor-pointer items-center justify-between border px-2 py-1.5 text-left transition-colors {v.path ===
                       (selectedVaultId ?? activeVault?.path)
                         ? 'border-teal/50 bg-bg-row-active text-income'
                         : 'border-line/60 bg-bg-card hover:border-line text-text-base'}"
                     >
                       <span class="truncate">{v.name} · {v.username}</span>
                       {#if v.path === (selectedVaultId ?? activeVault?.path)}
-                        <span class="text-income ml-1 text-[10px]">✓</span>
+                        <span class="text-income text-smaller ml-1">✓</span>
                       {/if}
                     </button>
                   {/each}
@@ -243,8 +246,8 @@
             {:else}
               <div class="border-line border-t pt-2">
                 <a
-                  href="/setup?from=login"
-                  class="text-teal font-proto inline-flex items-center gap-1 text-[10px] hover:underline"
+                  href={resolve('/setup?from=login')}
+                  class="text-teal font-proto text-smaller inline-flex items-center gap-1 hover:underline"
                 >
                   <Icon name="plus" size={10} />
                   {i18n.t.addVaultBtn}
@@ -252,16 +255,16 @@
               </div>
             {/if}
             <div class="border-line border-t pt-2">
-              <span class="text-text-dim block text-[10px] tracking-wider uppercase"
+              <span class="text-text-dim text-smaller font-proto block tracking-wider uppercase"
                 >{i18n.t.encryptionScheme}</span
               >
-              <span class="text-text-base text-[10px]">AGE • X25519</span>
+              <span class="text-text-base text-smaller font-proto">AGE • X25519</span>
             </div>
           </div>
         </div>
 
         <div class="pt-6">
-          <p class="text-text-muted border-line border-l-2 pl-3 text-[10px] leading-relaxed">
+          <p class="text-text-muted border-line text-smaller border-l pl-3 leading-relaxed">
             {i18n.t.offlineGuarantee}
           </p>
         </div>
@@ -272,13 +275,13 @@
           <div class="space-y-6">
             <div>
               <h2
-                class="text-text-strong font-proto text-[15px] font-medium tracking-wide uppercase"
+                class="text-text-strong font-proto text-medium font-medium tracking-wide uppercase"
               >
                 {i18n.t.unlockVaultTitle}: {activeVault?.name ??
                   store.appState?.vault_name ??
-                  'VAULT'}
+                  i18n.t.vault}
               </h2>
-              <p class="text-text-dim mt-1 text-[11px]">
+              <p class="text-text-dim text-small mt-1">
                 {i18n.t.unlockVaultDesc}
               </p>
             </div>
@@ -299,19 +302,19 @@
                   bind:value={password}
                   type="password"
                   autofocus
-                  class="sharp-input w-full px-3.5 py-2.5 text-[12px] tracking-widest placeholder:tracking-normal"
+                  class="sharp-input text-small w-full px-3.5 py-2.5 tracking-widest placeholder:tracking-normal"
                   placeholder={i18n.t.enterMasterPassword}
                 />
               </div>
 
               {#if error}
-                <div class="badge-err px-3 py-2 text-[11px] tracking-wide">
+                <div class="badge-err text-small px-3 py-2 tracking-wide">
                   {error}
                 </div>
               {/if}
 
               <Button type="submit" variant="primary" disabled={busy || !password}>
-                <span class="w-full text-[12px] font-medium tracking-wider">
+                <span class="text-small w-full font-medium tracking-wider">
                   {busy ? i18n.t.decryptingVault : i18n.t.unlockVaultBtn}
                 </span>
               </Button>
@@ -320,7 +323,7 @@
 
           <div class="border-line flex items-center justify-between border-t pt-6">
             <Button type="button" variant="ghost" href="/setup?from=login">
-              <span class="font-proto inline-flex items-center gap-1.5 text-[11px]">
+              <span class="font-proto text-small inline-flex items-center gap-1.5">
                 <Icon name="plus" size={11} />
                 {i18n.t.addVaultBtn}
               </span>
@@ -333,7 +336,7 @@
                 error = '';
               }}
             >
-              <span class="font-proto text-teal inline-flex items-center gap-1.5 text-[11px]">
+              <span class="font-proto text-teal text-small inline-flex items-center gap-1.5">
                 <Icon name="wallet" size={12} />
                 {i18n.t.importVault}
               </span>
@@ -343,7 +346,7 @@
           <div class="anim-enter space-y-4">
             <div class="border-line flex items-start justify-between border-b pb-2">
               <h2
-                class="text-text-strong font-proto text-[14px] font-medium tracking-wide uppercase"
+                class="text-text-strong font-proto text-medium font-medium tracking-wide uppercase"
               >
                 {i18n.t.importVaultTitle}
               </h2>
@@ -353,7 +356,7 @@
                   showImport = false;
                   error = '';
                 }}
-                class="text-text-icon hover:text-text-strong font-proto inline-flex cursor-pointer items-center gap-1 text-[10px]"
+                class="text-text-base hover:text-text-strong font-proto text-smaller inline-flex cursor-pointer items-center gap-1"
               >
                 <Icon name="close" size={11} />
                 {i18n.t.cancelBtn}
@@ -367,7 +370,7 @@
               <button
                 type="button"
                 onclick={pickImportFolder}
-                class="sharp-input hover:border-teal/40 flex w-full cursor-pointer items-center justify-between px-3.5 py-2.5 text-[12px]"
+                class="sharp-input hover:border-teal/40 text-small flex w-full cursor-pointer items-center justify-between px-3.5 py-2.5"
               >
                 <span class="truncate {importPath ? 'text-text-strong' : 'text-text-dim'}">
                   {importPath || i18n.t.chooseDirectory}
@@ -385,21 +388,21 @@
               <input
                 bind:value={importPass}
                 type="password"
-                class="sharp-input w-full px-3.5 py-2.5 text-[12px]"
+                class="sharp-input text-small w-full px-3.5 py-2.5"
                 placeholder={i18n.t.passwordMin8}
               />
-              <p class="text-text-muted font-proto mt-1 text-[10px] leading-relaxed">
+              <p class="text-text-muted font-proto text-smaller mt-1 leading-relaxed">
                 {i18n.t.legacyVaultPasswordHint}
               </p>
             </div>
 
             {#if error}
-              <div class="badge-err font-proto px-3 py-2 text-[11px] tracking-wide">
+              <div class="badge-err font-proto text-small px-3 py-2 tracking-wide">
                 {error}
               </div>
             {/if}
 
-            <p class="text-text-muted font-proto pt-2 text-center text-[10px]">
+            <p class="text-text-muted font-proto text-smaller pt-2 text-center">
               {i18n.t.folderMustContainVaultKey}
             </p>
           </div>
@@ -416,7 +419,7 @@
               <span class="font-proto">{i18n.t.cancelBtn}</span>
             </Button>
             <Button variant="primary" onclick={doImport} disabled={busy}>
-              <span class="font-proto text-[11px] font-bold tracking-wider">
+              <span class="font-proto text-small font-bold tracking-wider">
                 {busy ? i18n.t.importingBtn : i18n.t.importVaultBtn}
               </span>
             </Button>

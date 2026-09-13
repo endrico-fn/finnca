@@ -1,7 +1,8 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
   import {
-    ACCOUNT_TYPE_LABEL,
+    ACCOUNT_TYPES,
+    accountTypeLabel,
     ACCOUNT_TYPE_COLOR,
     type Account,
     type AccountType,
@@ -11,7 +12,6 @@
     uid,
     accountBalanceMinor,
     buildChildrenMap,
-    toMinor,
     parseStringAmountToMinor,
     formatIDR,
     formatUSD,
@@ -23,6 +23,7 @@
   import TransferModal from '$lib/components/TransferModal.svelte';
   import { getAccountPath } from '$lib/accounting/finance';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
   import {
     Splash,
@@ -31,9 +32,11 @@
     Card,
     Button,
     Icon,
-    Tabs,
     ModalShell,
     SearchBar,
+    FilterMenu,
+    FilterSection,
+    FilterOption,
   } from '$lib/components/ui';
 
   // ── Overlay ADD/EDIT ACCOUNT (single, center) ──
@@ -49,6 +52,8 @@
   let searchQuery = $state('');
   let selectedTypeFilter = $state<AccountType | 'ALL'>('ALL');
   let showHidden = $state(false);
+  let placeholderOnly = $state(false);
+  let filterOpen = $state(false);
   let confirmDeleteOpen = $state(false);
   let deleteTarget = $state<Account | null>(null);
   let transferOpen = $state(false);
@@ -71,6 +76,7 @@
     accountsWithPath
       .filter((acc) => {
         if (!showHidden && acc.hidden) return false;
+        if (placeholderOnly && !acc.placeholder) return false;
         if (selectedTypeFilter !== 'ALL' && acc.type !== selectedTypeFilter) return false;
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
@@ -84,6 +90,62 @@
       })
       .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
   );
+
+  const baseHiddenSearch = $derived(
+    accountsWithPath.filter((acc) => {
+      if (!showHidden && acc.hidden) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        return (
+          acc.code.toLowerCase().includes(q) ||
+          acc.fullPath.toLowerCase().includes(q) ||
+          (acc.note ?? '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    })
+  );
+
+  const baseForCounts = $derived(
+    baseHiddenSearch.filter((acc) => !placeholderOnly || acc.placeholder)
+  );
+
+  const typeCounts = $derived.by(() => {
+    const counts: Record<AccountType | 'ALL', number> = {
+      ALL: baseForCounts.length,
+      ASSET: 0,
+      LIABILITY: 0,
+      EQUITY: 0,
+      INCOME: 0,
+      EXPENSE: 0,
+    };
+    for (const acc of baseForCounts) counts[acc.type] += 1;
+    return counts;
+  });
+
+  const phCount = $derived(
+    baseHiddenSearch.filter(
+      (acc) => (selectedTypeFilter === 'ALL' || acc.type === selectedTypeFilter) && acc.placeholder
+    ).length
+  );
+
+  const isFilterActive = $derived(selectedTypeFilter !== 'ALL' || showHidden || placeholderOnly);
+
+  const activeFilterCount = $derived(
+    (selectedTypeFilter !== 'ALL' ? 1 : 0) + (showHidden ? 1 : 0) + (placeholderOnly ? 1 : 0)
+  );
+
+  const filterButtonLabel = $derived(
+    selectedTypeFilter === 'ALL'
+      ? i18n.t.filterBtn
+      : accountTypeLabel(selectedTypeFilter).toUpperCase()
+  );
+
+  function resetAccountFilter() {
+    selectedTypeFilter = 'ALL';
+    placeholderOnly = false;
+    showHidden = false;
+  }
 
   function openAdd(parentId: string | null = null) {
     const parent = parentId ? ledger.accountsById.get(parentId) : null;
@@ -189,9 +251,9 @@
             await ledger.upsertTransaction({
               id: uid(),
               date: openingBalanceDate || todayString(),
-              description: `Opening Balance: ${acc.name}`,
+              description: i18n.t.openingBalanceDesc.replace('{name}', acc.name),
               currency: acc.currency,
-              notes: 'Auto-generated opening balance entry (reconciled)',
+              notes: i18n.t.openingBalanceNotes,
               splits: [
                 {
                   id: uid(),
@@ -242,7 +304,7 @@
   }
   function handleRowDblClick(acc: (typeof filteredAccounts)[0]) {
     selectedId = acc.id;
-    if (!acc.placeholder) goto(`/app/accounts/${acc.code}`);
+    if (!acc.placeholder) goto(resolve('/app/accounts/[code]', { code: acc.code }));
     else openEdit(acc);
   }
 
@@ -287,49 +349,94 @@
   {:else}
     <Card
       title="{i18n.t.chartOfAccounts} ({filteredAccounts.length})"
-      class="flex-1 min-h-0"
+      class="min-h-0 flex-1"
       padding={false}
     >
       {#snippet header()}
-        <span class="font-mono text-text-muted text-[10px] leading-none tracking-widest uppercase">
+        <span
+          class="font-proto text-text-muted text-smaller leading-none tracking-widest uppercase"
+        >
           {i18n.t.pathHierarchy}
         </span>
       {/snippet}
 
-      <div class="border-line/40 bg-bg-app/20 flex flex-wrap items-center gap-2 border-y px-3 py-2.5">
+      <div class="border-line flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2.5">
         <SearchBar
           bind:value={searchQuery}
           placeholder={i18n.t.searchAccountPlaceholder}
-          class="max-w-none min-w-55 flex-1"
+          class="max-w-none min-w-40 flex-1"
         />
 
-        <div class="font-mono flex items-center gap-1 text-[10px]">
-          <Tabs
-            tabs={[
-              { id: 'ALL', label: i18n.t.filterAllLabel },
-              ...Object.entries(ACCOUNT_TYPE_LABEL).map(([k, v]) => ({
-                id: k,
-                label: String(v).toUpperCase(),
-              })),
-            ]}
-            active={selectedTypeFilter}
-            onSelect={(id) => (selectedTypeFilter = id as AccountType | 'ALL')}
-          />
-          <button
-            type="button"
-            onclick={() => (showHidden = !showHidden)}
-            class="border-line inline-flex min-h-7 items-center border-l px-1.5 py-0.5 transition-colors {showHidden
-              ? 'text-warning'
-              : 'text-text-muted hover:text-text-base'}"
-            title={i18n.t.toggleHiddenTitle}
-            aria-label={i18n.t.toggleHiddenTitle}
+        <FilterMenu
+          bind:open={filterOpen}
+          label={filterButtonLabel}
+          active={isFilterActive}
+          count={activeFilterCount}
+          onReset={resetAccountFilter}
+          resetLabel={i18n.t.reset}
+          resetDisabled={!isFilterActive}
+        >
+          <FilterSection title={i18n.t.filterTypeTitle}>
+            <FilterOption
+              label={i18n.t.filterAllLabel}
+              count={typeCounts.ALL}
+              selected={selectedTypeFilter === 'ALL'}
+              check={false}
+              onclick={() => {
+                selectedTypeFilter = 'ALL';
+                filterOpen = false;
+              }}
+            />
+            {#each ACCOUNT_TYPES as typeKey (typeKey)}
+              <FilterOption
+                label={accountTypeLabel(typeKey).toUpperCase()}
+                dot={ACCOUNT_TYPE_COLOR[typeKey]}
+                count={typeCounts[typeKey]}
+                selected={selectedTypeFilter === typeKey}
+                onclick={() => {
+                  selectedTypeFilter = typeKey;
+                  filterOpen = false;
+                }}
+              />
+            {/each}
+          </FilterSection>
+
+          <div class="border-line/60 border-t">
+            <FilterSection title={i18n.t.filterAttrTitle} layout="list">
+              <FilterOption
+                label={i18n.t.filterPhOnly}
+                count={phCount}
+                selected={placeholderOnly}
+                onclick={() => (placeholderOnly = !placeholderOnly)}
+              />
+              <FilterOption
+                label={showHidden ? i18n.t.toggleHiddenShow : i18n.t.toggleHiddenHide}
+                tone="warning"
+                selected={showHidden}
+                title={i18n.t.toggleHiddenTitle}
+                onclick={() => (showHidden = !showHidden)}
+              />
+            </FilterSection>
+          </div>
+        </FilterMenu>
+        <span class="text-text-dim font-proto text-smaller shrink-0 px-1">
+          {filteredAccounts.length}/{accountsWithPath.length}
+        </span>
+        {#if searchQuery || isFilterActive}
+          <Button
+            variant="ghost"
+            size="sm"
+            onclick={() => {
+              searchQuery = '';
+              resetAccountFilter();
+            }}
           >
-            {showHidden ? i18n.t.toggleHiddenShow : i18n.t.toggleHiddenHide}
-          </button>
-        </div>
+            {i18n.t.reset}
+          </Button>
+        {/if}
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto py-0 font-mono text-[12px]">
+      <div class="font-proto text-small min-h-0 flex-1 overflow-y-auto py-0">
         {#if filteredAccounts.length === 0}
           <div class="text-text-muted flex h-full items-center justify-center p-8 text-center">
             <p>{i18n.t.noAccountsMatch}</p>
@@ -337,7 +444,7 @@
         {:else}
           <table class="w-full border-collapse">
             <thead class="bg-bg-card sticky top-0 z-10">
-              <tr class="border-line text-text-base border-y">
+              <tr class="border-line text-text-base border-b">
                 <th class="label-xs w-16 py-2 pl-3 text-left font-normal">{i18n.t.colCode}</th>
                 <th class="label-xs px-3 py-2 text-left font-normal">{i18n.t.colHierarchyPath}</th>
                 <th class="label-xs w-36 px-3 py-2 text-right font-normal">{i18n.t.colBalance}</th>
@@ -350,14 +457,14 @@
                 <tr
                   class="cursor-pointer transition-colors {isSelected
                     ? 'bg-bg-row-active'
-                    : 'hover:bg-bg-row-active/30'} {acc.hidden ? 'opacity-40' : ''}"
+                    : 'hover:bg-bg-row-active'} {acc.hidden ? 'opacity-40' : ''}"
                   onclick={() => handleRowClick(acc)}
                   ondblclick={() => handleRowDblClick(acc)}
                   title={acc.placeholder
                     ? i18n.t.singleSelectDoubleEdit
                     : i18n.t.singleSelectDoubleLedger}
                 >
-                  <td class="text-text-muted font-mono py-2.5 pl-3 whitespace-nowrap text-[11px]">
+                  <td class="text-text-muted font-proto text-small py-2.5 pl-3 whitespace-nowrap">
                     {acc.code}
                   </td>
                   <td class="text-text-strong w-full max-w-0 truncate px-3 py-2.5">
@@ -366,20 +473,23 @@
                         class="size-1.5 shrink-0"
                         style="background:{ACCOUNT_TYPE_COLOR[acc.type]}"
                       ></span>
-                      <span class="truncate font-mono text-[11px]">{acc.fullPath}</span>
+                      <span class="font-proto text-small truncate">{acc.fullPath}</span>
                       {#if acc.placeholder}
                         <span
-                          class="bg-bg-app border-line text-text-muted shrink-0 border px-1 text-[9px] font-mono"
+                          class="bg-bg-app border-line text-text-muted font-proto text-smaller shrink-0 border px-1"
                           >{i18n.t.badgePh}</span
                         >
                       {/if}
                       {#if acc.hidden}
-                        <span class="bg-line text-text-muted shrink-0 px-1 text-[9px] font-mono">{i18n.t.badgeHidden}</span>
+                        <span class="bg-line text-text-muted font-proto text-smaller shrink-0 px-1"
+                          >{i18n.t.badgeHidden}</span
+                        >
                       {/if}
                     </div>
                   </td>
                   <td
-                    class="font-mono px-3 py-2.5 text-right whitespace-nowrap text-[11px] {acc.balance < 0
+                    class="font-proto text-small px-3 py-2.5 text-right whitespace-nowrap {acc.balance <
+                    0
                       ? 'text-expense'
                       : 'text-text-base'}"
                   >
@@ -394,7 +504,7 @@
                         onclick={(e) => toggleHide(acc, e)}
                         title={acc.hidden ? i18n.t.showAccount : i18n.t.hideAccount}
                         aria-label={acc.hidden ? i18n.t.showAccount : i18n.t.hideAccount}
-                        class="text-text-muted hover:text-text-base px-1.5 py-1 text-[10px] transition-colors"
+                        class="text-text-muted hover:text-text-base text-smaller px-1.5 py-1 transition-colors"
                       >
                         {acc.hidden ? '◉' : '◎'}
                       </button>
@@ -408,12 +518,12 @@
       </div>
 
       <div class="border-line bg-bg-card flex shrink-0 flex-wrap gap-1.5 border-t px-3 py-2.5">
-        {#each Object.entries(ACCOUNT_TYPE_LABEL) as [k, v] (k)}
+        {#each ACCOUNT_TYPES as k (k)}
           <span
-            class="bg-bg-app border-line font-mono text-text-muted inline-flex items-center gap-1.5 border px-2 py-1 text-[10px] leading-none"
+            class="bg-bg-app border-line text-text-muted font-proto text-smaller inline-flex items-center gap-1.5 border px-2 py-1 leading-none"
           >
-            <span class="size-1.5 shrink-0" style="background:{ACCOUNT_TYPE_COLOR[k as AccountType]}"></span>
-            {v}
+            <span class="size-1.5 shrink-0" style="background:{ACCOUNT_TYPE_COLOR[k]}"></span>
+            {accountTypeLabel(k)}
           </span>
         {/each}
       </div>

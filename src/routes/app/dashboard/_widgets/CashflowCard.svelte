@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ledger } from '$lib/accounting/store.svelte';
-  import { incomeStatement, fromMinor } from '$lib/accounting/finance';
+  import { incomeStatement, formatIDR } from '$lib/accounting/finance';
   import { i18n } from '$lib/i18n.svelte';
   import { Tabs, Card } from '$lib/components/ui';
 
@@ -48,13 +48,12 @@
       expH: Math.max(2, Math.round((m.expense / maxVal) * 28)),
     }));
   });
-
-  const fmt = (n: number) => n.toLocaleString('en-US');
 </script>
 
-<Card title="PROFIT & LOSS">
+<Card title={i18n.t.pnlTitle}>
   {#snippet header()}
     <Tabs
+      variant="outline"
       tabs={[
         { id: 'month', label: i18n.t.thisMonth },
         { id: 'all', label: i18n.t.allTime },
@@ -67,47 +66,47 @@
   <div class="mt-1 flex w-full items-center justify-between">
     <div class="flex flex-1 items-center justify-between pr-8">
       <div>
-        <p class="text-text-icon font-proto text-[10px] tracking-widest uppercase">
+        <p class="text-text-base font-proto text-smaller tracking-widest uppercase">
           {i18n.t.income}
         </p>
-        <p class="text-income font-proto mt-1 text-base font-bold tabular-nums">
-          Rp {fmt(fromMinor('IDR', activePnl.income))}
+        <p class="text-income font-proto text-medium mt-1 font-bold tabular-nums">
+          {formatIDR(activePnl.income)}
         </p>
       </div>
       <div>
-        <p class="text-text-icon font-proto text-[10px] tracking-widest uppercase">
+        <p class="text-text-base font-proto text-smaller tracking-widest uppercase">
           {i18n.t.expense}
         </p>
-        <p class="text-expense font-proto mt-1 text-base font-bold tabular-nums">
-          Rp {fmt(fromMinor('IDR', activePnl.expense))}
+        <p class="text-expense font-proto text-medium mt-1 font-bold tabular-nums">
+          {formatIDR(activePnl.expense)}
         </p>
       </div>
       <div>
-        <p class="text-text-icon font-proto text-[10px] tracking-widest uppercase">
+        <p class="text-text-base font-proto text-smaller tracking-widest uppercase">
           {i18n.t.net}
         </p>
         <p
           class="{activePnl.net >= 0
             ? 'text-income'
-            : 'text-expense'} font-proto mt-1 text-base font-bold tabular-nums"
+            : 'text-expense'} font-proto text-medium mt-1 font-bold tabular-nums"
         >
-          Rp {fmt(fromMinor('IDR', activePnl.net))}
+          {formatIDR(activePnl.net)}
         </p>
       </div>
       <div>
-        <p class="text-text-icon font-proto text-[10px] tracking-widest uppercase">
+        <p class="text-text-base font-proto text-smaller tracking-widest uppercase">
           {i18n.t.savingsRate}
         </p>
-        <p class="text-teal font-proto mt-1 text-base font-bold tabular-nums">{savingsRate}%</p>
+        <p class="text-teal font-proto text-medium mt-1 font-bold tabular-nums">{savingsRate}%</p>
       </div>
     </div>
 
-    <div class="border-line/40 flex h-10.5 w-64 shrink-0 items-end justify-between border-l pl-6">
+    <div class="border-line/40 flex h-10 w-64 shrink-0 items-end justify-between border-l pl-6">
       {#each last6Months as m (m.label)}
         <div
           class="group flex cursor-crosshair flex-col items-center gap-0.5"
-          title="{m.label}: In Rp {fmt(fromMinor('IDR', m.income))} / Out Rp {fmt(
-            fromMinor('IDR', m.expense)
+          title="{m.label}: {i18n.t.flowIn} {formatIDR(m.income)} / {i18n.t.flowOut} {formatIDR(
+            m.expense
           )}"
         >
           <div class="flex h-7 items-end gap-[1px]">
@@ -120,7 +119,7 @@
               style="height: {m.expH}px"
             ></div>
           </div>
-          <span class="font-proto text-text-dim group-hover:text-text-strong text-[9px]"
+          <span class="font-proto text-text-dim group-hover:text-text-strong text-smaller"
             >{m.label}</span
           >
         </div>

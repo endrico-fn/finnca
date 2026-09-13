@@ -9,3 +9,4 @@ export * from './features/budgeting';
 export * from './features/fx';
 export * from './features/reconcile';
 export * from './reports/export';
+export { isDebitNormal } from './types';

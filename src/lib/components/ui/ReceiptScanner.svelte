@@ -11,9 +11,21 @@
 
   let {
     onScanComplete,
+    pendingFile = $bindable<File | null>(null),
+    compact = false,
   }: {
     onScanComplete?: (data: { text: string; amount: number | null }) => void;
+    pendingFile?: File | null;
+    compact?: boolean;
   } = $props();
+
+  $effect(() => {
+    if (pendingFile) {
+      const file = pendingFile;
+      pendingFile = null;
+      scanReceipt(file);
+    }
+  });
 
   async function handleFileSelect(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -79,49 +91,51 @@
   }
 </script>
 
-<div
-  class="border-line bg-bg-app hover:border-teal/50 hover:bg-teal/5 relative flex flex-col items-center justify-center border-2 border-dashed p-6 text-center transition-colors"
->
-  <input
-    type="file"
-    accept="image/*"
-    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-    onchange={handleFileSelect}
-    disabled={isScanning}
-  />
+{#if !compact}
+  <div
+    class="border-line bg-bg-app hover:border-teal/50 hover:bg-teal/5 relative flex flex-col items-center justify-center border border-dashed p-6 text-center transition-colors"
+  >
+    <input
+      type="file"
+      accept="image/*"
+      class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      onchange={handleFileSelect}
+      disabled={isScanning}
+    />
 
-  {#if isScanning}
-    <div class="flex flex-col items-center gap-3">
-      <div class="text-teal animate-spin">
-        <Icon name="refresh" size={24} />
+    {#if isScanning}
+      <div class="flex flex-col items-center gap-3">
+        <div class="text-teal animate-spin">
+          <Icon name="refresh" size={24} />
+        </div>
+        <span class="font-proto text-teal text-smaller font-bold tracking-widest uppercase">
+          {i18n.t.receiptScanning.replace('{percent}', String(progress))}
+        </span>
+        <div class="bg-bg-card border-line h-1 w-48 border">
+          <div class="bg-teal h-full transition-all" style="width: {progress}%"></div>
+        </div>
       </div>
-      <span class="font-proto text-teal text-[10px] font-bold tracking-widest uppercase">
-        {i18n.t.receiptScanning.replace('{percent}', String(progress))}
-      </span>
-      <div class="bg-bg-card border-line h-1 w-48 border">
-        <div class="bg-teal h-full transition-all" style="width: {progress}%"></div>
-      </div>
-    </div>
-  {:else}
-    <div class="text-text-muted mb-2"><Icon name="chart" size={24} /></div>
-    <h3 class="font-proto text-text-strong mb-1 text-xs font-bold tracking-widest uppercase">
-      {i18n.t.receiptScannerTitle}
-    </h3>
-    <p class="font-proto text-text-dim max-w-xs text-[10px]">
-      {i18n.t.receiptScannerDesc}
-    </p>
-  {/if}
-</div>
+    {:else}
+      <div class="text-text-muted mb-2"><Icon name="chart" size={24} /></div>
+      <h3 class="font-proto text-text-strong text-medium mb-1 font-bold tracking-widest uppercase">
+        {i18n.t.receiptScannerTitle}
+      </h3>
+      <p class="font-proto text-text-dim text-smaller max-w-xs">
+        {i18n.t.receiptScannerDesc}
+      </p>
+    {/if}
+  </div>
+{/if}
 
 {#if scanResultText && !isScanning}
   <div class="border-line bg-bg-card mt-4 border p-3">
     <div class="mb-2 flex items-center justify-between">
-      <span class="font-proto text-text-muted text-[9px] tracking-widest uppercase"
+      <span class="font-proto text-text-muted text-smaller tracking-widest uppercase"
         >{i18n.t.receiptExtractedData}</span
       >
       {#if detectedAmount}
         <span
-          class="font-proto text-teal bg-teal/10 border-teal/20 border px-2 py-0.5 text-[11px] font-bold tabular-nums"
+          class="font-proto text-teal bg-teal/10 border-teal/20 text-small border px-2 py-0.5 font-bold tabular-nums"
         >
           {i18n.t.receiptTotalDetected.replace(
             '{amount}',
@@ -132,7 +146,7 @@
     </div>
 
     <div
-      class="text-text-dim bg-bg-app border-line max-h-32 overflow-y-auto border p-2 font-mono text-[9px] whitespace-pre-wrap"
+      class="text-text-dim bg-bg-app border-line text-smaller max-h-32 overflow-y-auto border p-2 font-mono whitespace-pre-wrap"
     >
       {scanResultText}
     </div>

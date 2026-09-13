@@ -5,7 +5,7 @@
   import {
     buildCalendarDays,
     buildEventsByDate,
-    formatIDR,
+    formatMoney,
     calculatePlanProgress,
     isPlanPostedOnDate as checkPlanPosted,
     todayString,
@@ -13,7 +13,7 @@
   } from '$lib/accounting/finance';
   import type { PaymentPlan, Transaction } from '$lib/accounting/types';
   import TransactionEditor from '$lib/components/TransactionEditor.svelte';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import {
     Splash,
     ErrorState,
@@ -61,9 +61,9 @@
   }
 
   const monthName = $derived(
-    `${String(currentMonth + 1).padStart(2, '0')} ${new Date(currentYear, currentMonth, 1)
+    new Date(currentYear, currentMonth, 1)
       .toLocaleDateString(i18n.locale === 'id' ? 'id-ID' : 'en-US', { month: 'long' })
-      .toUpperCase()}`
+      .toUpperCase()
   );
   const dayHeaders = $derived(i18n.t.dayHeaders);
 
@@ -92,6 +92,9 @@
     return i18n.t.planDaysAgo.replace('{days}', String(Math.abs(diff)));
   });
 
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- plain Set is intentional here: reactive SvelteSet would retrigger the notifying $effect below
+  const notifiedPlans = new Set<string>();
+
   $effect(() => {
     if (!ledger.data || ledger.plans.length === 0) return;
     const today = todayString();
@@ -106,31 +109,53 @@
 
       let isDueToday = false;
       if (p.frequency === 'DAILY') isDueToday = true;
-      else if (p.frequency === 'MONTHLY' && p.dayOfMonth === new Date().getDate())
+      else if (p.frequency === 'WEEKLY') {
+        const [tY, tM, tD] = today.split('-').map(Number);
+        const todayDay = new Date(tY, tM - 1, tD).getDay();
+        const [sY, sM, sD] = (p.startDate || today).split('-').map(Number);
+        const startDay = new Date(sY, sM - 1, sD).getDay();
+        if (todayDay === startDay) isDueToday = true;
+      } else if (p.frequency === 'MONTHLY' && p.dayOfMonth === new Date().getDate()) {
         isDueToday = true;
-      else if (p.dueDate === today) isDueToday = true;
+      } else if (p.dueDate === today) {
+        isDueToday = true;
+      }
 
-      if (isDueToday && !isPostedToday) {
-        notifStore.addNotification({
-          type: 'DUE_DATE',
-          priority: 'high',
-          title: i18n.t.planDueAlertTitle,
-          message: i18n.t.planDueAlertMsg
-            .replace('{title}', p.title)
-            .replace('{amount}', formatIDR(p.installmentAmount)),
-          actionHref: '/app/plan',
-          actionLabel: i18n.t.plan,
+      if (isDueToday && !isPostedToday && !notifiedPlans.has(`due-${p.id}`)) {
+        const planCurr =
+          ledger.accountsById.get(p.fromAccountId)?.currency ||
+          ledger.accountsById.get(p.toAccountId)?.currency ||
+          'IDR';
+        untrack(() => {
+          notifStore.addNotification({
+            type: 'DUE_DATE',
+            priority: 'high',
+            title: i18n.t.planDueAlertTitle,
+            message: i18n.t.planDueAlertMsg
+              .replace('{title}', p.title)
+              .replace('{amount}', formatMoney(p.installmentAmount, planCurr)),
+            actionHref: '/app/plan',
+            actionLabel: i18n.t.plan,
+          });
+          notifiedPlans.add(`due-${p.id}`);
         });
       }
 
-      if (prog.progressPercent >= 90 && prog.progressPercent < 100) {
-        notifStore.addNotification({
-          type: 'DUE_DATE',
-          priority: 'low',
-          title: i18n.t.planNearCompleteTitle,
-          message: i18n.t.planNearCompleteMsg
-            .replace('{title}', p.title)
-            .replace('{percent}', String(prog.progressPercent)),
+      if (
+        prog.progressPercent >= 90 &&
+        prog.progressPercent < 100 &&
+        !notifiedPlans.has(`prog-${p.id}`)
+      ) {
+        untrack(() => {
+          notifStore.addNotification({
+            type: 'DUE_DATE',
+            priority: 'low',
+            title: i18n.t.planNearCompleteTitle,
+            message: i18n.t.planNearCompleteMsg
+              .replace('{title}', p.title)
+              .replace('{percent}', String(prog.progressPercent)),
+          });
+          notifiedPlans.add(`prog-${p.id}`);
         });
       }
     }
@@ -222,7 +247,7 @@
         }
       }
       title={i18n.t.planTransactionPosted}
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-5xl"
     >
       <TransactionEditor
         tx={quickTxDraft}
