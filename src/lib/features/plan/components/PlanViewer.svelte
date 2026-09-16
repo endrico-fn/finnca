@@ -11,10 +11,9 @@
   import { notificationState } from '$lib/core/state/notification.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { buildCalendarDays, todayString, diffCalendarDays } from '$lib/core/format/date';
-  import { formatMinorToDisplay } from '$lib/core/format/currency';
   import type { Transaction } from '$lib/core/types';
   import JournalEntryForm from '$lib/features/journal/components/JournalEntryForm.svelte';
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import {
     Splash,
     ErrorState,
@@ -31,7 +30,6 @@
   import {
     planState,
     buildEventsByDate,
-    isPlanPostedOnDate,
     type PaymentPlan,
   } from '../state/plan.svelte';
 
@@ -115,76 +113,6 @@
     if (diff === -1) return i18n.t.planYesterday;
     if (diff > 1) return i18n.t.planDaysAhead.replace('{days}', String(diff));
     return i18n.t.planDaysAgo.replace('{days}', String(Math.abs(diff)));
-  });
-
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity
-  const notifiedPlans = new Set<string>();
-
-  $effect(() => {
-    if (planState.plans.length === 0) return;
-    const today = todayString();
-
-    for (const p of planState.plans) {
-      if (p.status === 'ARCHIVED' || p.status === 'COMPLETED') continue;
-
-      const prog = planState.getProgress(p.id);
-      if (prog?.isSettled) continue;
-
-      const isPostedToday = isPlanPostedOnDate(p, today, recentEntries);
-
-      let isDueToday = false;
-      if (p.frequency === 'DAILY') isDueToday = true;
-      else if (p.frequency === 'WEEKLY') {
-        const [tY, tM, tD] = today.split('-').map(Number);
-        const todayDay = new Date(tY, tM - 1, tD).getDay();
-        const [sY, sM, sD] = (p.startDate || today).split('-').map(Number);
-        const startDay = new Date(sY, sM - 1, sD).getDay();
-        if (todayDay === startDay) isDueToday = true;
-      } else if (p.frequency === 'MONTHLY' && p.dayOfMonth === new Date().getDate()) {
-        isDueToday = true;
-      } else if (p.dueDate === today) {
-        isDueToday = true;
-      }
-
-      if (isDueToday && !isPostedToday && !notifiedPlans.has(`due-${p.id}`)) {
-        const planCurr =
-          accountsById.get(p.fromAccountId)?.currency ||
-          accountsById.get(p.toAccountId)?.currency ||
-          'IDR';
-        untrack(() => {
-          notificationState.addNotification({
-            type: 'DUE_DATE',
-            priority: 'high',
-            title: i18n.t.planDueAlertTitle,
-            message: i18n.t.planDueAlertMsg
-              .replace('{title}', p.title)
-              .replace('{amount}', formatMinorToDisplay(p.installmentAmount, planCurr)),
-            actionHref: '/app/plan',
-            actionLabel: i18n.t.plan,
-          });
-          notifiedPlans.add(`due-${p.id}`);
-        });
-      }
-
-      if (
-        prog &&
-        prog.progressPercent >= 90 &&
-        prog.progressPercent < 100 &&
-        !notifiedPlans.has(`prog-${p.id}`)
-      ) {
-        untrack(() => {
-          notificationState.addNotification({
-            type: 'DUE_DATE',
-            priority: 'low',
-            title: i18n.t.planNearCompleteTitle,
-            message: i18n.t.planNearCompleteMsg
-              .replace('{title}', p.title)
-              .replace('{percent}', String(prog.progressPercent)),
-          });
-          notifiedPlans.add(`prog-${p.id}`);
-        });
-      }
-    }
   });
 
   async function postInstallment(p: PaymentPlan) {

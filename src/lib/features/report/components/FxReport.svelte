@@ -3,13 +3,14 @@
   import { reportState } from '$lib/features/report/state/report.svelte';
   import { formatIDR, formatUSD } from '$lib/core/format/currency';
   import { EmptyState, KpiCard } from '$lib/components/ui';
+  import { fxState } from '$lib/features/settings/state/settings.svelte';
 
   const fxReport = $derived(reportState.fxRevaluation);
   const items = $derived(fxReport?.items ?? []);
   const totalCurrentVal = $derived(fxReport?.total_current_value_idr ?? 0);
   const totalCostBasis = $derived(fxReport?.total_cost_basis_idr ?? 0);
   const totalUnrealizedGain = $derived(fxReport?.total_unrealized_gain_idr ?? 0);
-  const currentRate = $derived(fxReport?.current_fx_rate ?? 16000);
+  const currentRate = $derived(fxReport?.current_fx_rate || fxState.rate || 16000);
   const hasData = $derived(items.length > 0);
 </script>
 

@@ -17,6 +17,7 @@
   } from '../state/trendsChartUtils';
   import ReportTabBar, { type ReportTab } from './ReportTabBar.svelte';
 
+  import { eventBus } from '$lib/core/events/eventBus.svelte';
   import TrialBalance from './TrialBalance.svelte';
   import DebtReport from './DebtReport.svelte';
   import Trends from './Trends.svelte';
@@ -53,14 +54,21 @@
 
   const trendsDateRange = $derived(computeTrendsDateRange(trendsPeriod));
 
-  onMount(async () => {
-    await Promise.all([
-      reportState.loadBalanceSheet(),
-      reportState.loadProfitLoss(),
-      reportState.loadTrialBalance(),
-      reportState.loadHistoricalTrends(trendsDateRange.startStr, trendsDateRange.endStr),
-      reportState.loadFxRevaluation(),
-    ]);
+  onMount(() => {
+    reportState.loadBalanceSheet();
+    reportState.loadProfitLoss();
+    reportState.loadTrialBalance();
+    reportState.loadHistoricalTrends(trendsDateRange.startStr, trendsDateRange.endStr);
+    reportState.loadFxRevaluation();
+
+    const unlistenFx = eventBus.on('fx:rate_changed', ({ rate }) => {
+      reportState.loadFxRevaluation(undefined, rate);
+      reportState.loadHistoricalTrends(trendsDateRange.startStr, trendsDateRange.endStr, rate);
+    });
+
+    return () => {
+      unlistenFx();
+    };
   });
 
   $effect(() => {

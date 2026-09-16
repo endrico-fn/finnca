@@ -1,4 +1,5 @@
 import { invokeIpc } from '$lib/core/ipc/client';
+import { getPref } from '$lib/core/state/prefs';
 import {
   getFxRevaluationReportCmd,
   getHistoricalTrendsReportCmd,
@@ -175,9 +176,10 @@ class ReportState {
     this.loading = true;
     this.error = null;
     try {
+      const activeRate = fxRate ?? getPref('finnca_fx_rate', 16000);
       this.fxRevaluation = await getFxRevaluationReportCmd(
         asOfDate ?? (this.asOfDate || null),
-        fxRate ?? null
+        activeRate
       );
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
@@ -194,10 +196,11 @@ class ReportState {
     this.loading = true;
     this.error = null;
     try {
+      const activeRate = fxRate ?? getPref('finnca_fx_rate', 16000);
       this.historicalTrends = await getHistoricalTrendsReportCmd(
         fromDate ?? this.startDate,
         toDate ?? this.endDate,
-        fxRate ?? null
+        activeRate
       );
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);

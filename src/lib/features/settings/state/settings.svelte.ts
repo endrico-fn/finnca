@@ -1,4 +1,9 @@
 import { getPref, setPref } from '$lib/core/state/prefs';
+import { eventBus } from '$lib/core/events/eventBus.svelte';
+import { session } from '$lib/core/state/session.svelte';
+import { renameUser, renameVault } from '$lib/core/ipc/bindings';
+import { i18n } from '$lib/core/i18n.svelte';
+import { notificationState } from '$lib/core/state/notification.svelte';
 
 export type SettingsTab = 'general' | 'finance' | 'security' | 'data';
 
@@ -27,16 +32,11 @@ class FxStore {
     const filtered = this.history.filter((h) => h.date !== today);
     this.history = [...filtered, { date: today, rate: newRate }];
     setPref('finnca_fx_history', this.history);
+    eventBus.emit('fx:rate_changed', { rate: newRate });
   }
 }
 
 export const fxState = new FxStore();
-
-import { session } from '$lib/core/state/session.svelte';
-import { renameUser, renameVault } from '$lib/core/ipc/bindings';
-import { eventBus } from '$lib/core/events/eventBus.svelte';
-import { i18n } from '$lib/core/i18n.svelte';
-import { notificationState } from '$lib/core/state/notification.svelte';
 
 class GeneralSettingsState {
   username = $state('');

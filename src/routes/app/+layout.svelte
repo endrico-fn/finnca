@@ -9,8 +9,11 @@
   import NotificationToast from '$lib/components/feedback/NotificationToast.svelte';
   import NotificationDrawer from '$lib/components/feedback/NotificationDrawer.svelte';
   import { APP_NAME } from '$lib/core/types';
+  import { i18n } from '$lib/core/i18n.svelte';
   import { lockPolicy } from '$lib/features/security/state/lockPolicy.svelte';
   import { modalState } from '$lib/core/state/modal.svelte';
+  import { evaluateSmartNotifications } from '$lib/core/notification/smartEvaluator';
+  import { runDailyFxSync } from '$lib/features/settings/fxSync';
 
   import TopBar from '$lib/components/layout/TopBar.svelte';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
@@ -62,7 +65,11 @@
         const isBootMatch = await lockPolicy.checkBootIdFastUnlock(session.settings?.boot_id);
         if (!isBootMatch) {
           await doLock();
+          return;
         }
+
+        evaluateSmartNotifications(i18n.t);
+        runDailyFxSync(i18n.t);
       }
     })();
 
@@ -78,11 +85,17 @@
       }
     };
 
+    const handleOnline = () => {
+      runDailyFxSync(i18n.t);
+    };
+
     window.addEventListener('keydown', handleGlobalKey);
+    window.addEventListener('online', handleOnline);
 
     return () => {
       cleanupWatcher();
       window.removeEventListener('keydown', handleGlobalKey);
+      window.removeEventListener('online', handleOnline);
     };
   });
 </script>

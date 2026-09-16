@@ -9,6 +9,7 @@ export type AppEventPayloads = {
   'accounts:changed': void;
   'activity:touched': void;
   'modal:open': { modalId: string };
+  'fx:rate_changed': { rate: number };
 };
 
 export type AppEventName = keyof AppEventPayloads;
