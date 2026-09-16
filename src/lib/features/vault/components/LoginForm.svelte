@@ -3,6 +3,7 @@
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { unlockVault, importVault } from '$lib/core/ipc/bindings';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { session } from '$lib/core/state/session.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { setPref } from '$lib/core/state/prefs';
@@ -107,6 +108,10 @@
 
   async function submit() {
     if (!password) return;
+    if (password.length < 8) {
+      error = i18n.t.passwordTooShort;
+      return;
+    }
     error = '';
     busy = true;
     try {
@@ -130,7 +135,12 @@
         goto(resolve('/app'));
       }
     } catch (e) {
-      error = String(e).replace('Error: ', '');
+      const msg = extractErrorMessage(e);
+      if (msg.toLowerCase().includes('at least 8 characters')) {
+        error = i18n.t.passwordTooShort;
+      } else {
+        error = msg;
+      }
       if (error.includes('START FROM SETUP') || error.includes('not found')) {
         await session.refresh();
         if (selectedVaultId) {

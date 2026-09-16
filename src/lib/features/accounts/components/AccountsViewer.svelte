@@ -6,6 +6,7 @@
   } from '$lib/features/accounts/state/accountFilters';
   import type { Account, AccountType } from '$lib/core/ipc/bindings';
   import { i18n } from '$lib/core/i18n.svelte';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { notificationState } from '$lib/core/state/notification.svelte';
   import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
   import AccountTable, {
@@ -98,7 +99,7 @@
         selectedId = null;
       }
     } catch (e) {
-      const msg = String(e).replace('Error: ', '');
+      const msg = extractErrorMessage(e);
       deleteError = msg;
       notificationState.addNotification({
         type: 'LEDGER_INTEGRITY',
@@ -115,7 +116,7 @@
     try {
       await accountsState.update(acc.id, { hidden: !acc.hidden });
     } catch (err) {
-      const msg = String(err).replace('Error: ', '');
+      const msg = extractErrorMessage(err);
       deleteError = msg;
       notificationState.addNotification({
         type: 'LEDGER_INTEGRITY',

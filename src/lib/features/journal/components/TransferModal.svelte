@@ -1,5 +1,6 @@
 <script lang="ts">
   import { listAccountsCmd, type Account } from '$lib/core/ipc/bindings';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { journalState } from '$lib/features/journal/state/journalDraft.svelte';
   import {
     parseStringAmountToMinor,
@@ -150,7 +151,7 @@
       transferError = '';
       onSuccess?.();
     } catch (e) {
-      transferError = String(e).replace('Error: ', '');
+      transferError = extractErrorMessage(e);
     } finally {
       transferBusy = false;
     }

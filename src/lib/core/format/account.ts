@@ -11,6 +11,23 @@ export const ACCOUNT_TYPE_COLOR: Record<AccountType, string> = {
   EXPENSE: 'var(--color-expense, #d5305f)',
 };
 
+export const ACCOUNT_TYPE_BG: Record<AccountType, string> = {
+  ASSET: 'bg-asset',
+  LIABILITY: 'bg-liability',
+  EQUITY: 'bg-equity',
+  INCOME: 'bg-income',
+  EXPENSE: 'bg-expense',
+};
+
+export const ACCOUNT_TYPE_TEXT: Record<AccountType, string> = {
+  ASSET: 'text-asset',
+  LIABILITY: 'text-liability',
+  EQUITY: 'text-equity',
+  INCOME: 'text-income',
+  EXPENSE: 'text-expense',
+};
+
+
 export function accountTypeLabel(type: AccountType): string {
   switch (type) {
     case 'ASSET':

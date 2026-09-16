@@ -5,6 +5,7 @@
   import { APP_NAME } from '$lib/core/types';
   import { session } from '$lib/core/state/session.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { Splash } from '$lib/components/ui';
 
   let bootError = $state('');
@@ -13,7 +14,7 @@
     try {
       await session.refresh();
     } catch (e) {
-      bootError = String(e).replace('Error: ', '');
+      bootError = extractErrorMessage(e);
       return;
     }
     if (!session.isConfigured) {

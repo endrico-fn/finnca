@@ -13,7 +13,13 @@ import {
 import { AppError } from '$lib/core/ipc/errors';
 import { eventBus } from '$lib/core/events/eventBus.svelte';
 
-export { ACCOUNT_TYPES, ACCOUNT_TYPE_COLOR, accountTypeLabel } from '$lib/core/format/account';
+export {
+  ACCOUNT_TYPES,
+  ACCOUNT_TYPE_COLOR,
+  ACCOUNT_TYPE_BG,
+  ACCOUNT_TYPE_TEXT,
+  accountTypeLabel,
+} from '$lib/core/format/account';
 
 export function getAccountPath(acc: Account, byId: Map<string, Account>): string {
   const parts: string[] = [acc.name];

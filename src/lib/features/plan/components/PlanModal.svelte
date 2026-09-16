@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Account } from '$lib/core/ipc/bindings';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import {
     fromMinor,
     parseStringAmountToMinor,
@@ -133,7 +134,7 @@
       });
       open = false;
     } catch (e) {
-      planError = String(e).replace('Error: ', '');
+      planError = extractErrorMessage(e);
     } finally {
       planBusy = false;
     }

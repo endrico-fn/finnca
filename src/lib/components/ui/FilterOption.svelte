@@ -38,7 +38,10 @@
     : 'border-line text-text-muted hover:border-text-base hover:text-text-base hover:bg-bg-card/40'}"
 >
   {#if dot}
-    <span class="size-1.5 shrink-0" style="background:{dot}"></span>
+    <span
+      class="size-1.5 shrink-0 {dot.startsWith('bg-') ? dot : ''}"
+      style={dot.startsWith('bg-') ? undefined : `background:${dot}`}
+    ></span>
   {/if}
   <span class="truncate">{label}</span>
   {#if count != null}

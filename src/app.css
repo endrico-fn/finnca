@@ -607,3 +607,8 @@ h6 {
 .sharp-table tr:hover td {
   background: var(--color-bg-row-active);
 }
+.sharp-table tr.selected td,
+.sharp-table tr[aria-selected="true"] td {
+  background: var(--color-bg-row-active);
+}
+

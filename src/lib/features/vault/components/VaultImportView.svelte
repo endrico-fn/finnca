@@ -6,6 +6,7 @@
     inspectVaultFolder,
     type VaultInspectionResult,
   } from '$lib/core/ipc/bindings';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { pickDirectory } from '$lib/core/dialog';
   import { i18n } from '$lib/core/i18n.svelte';
   import { Button, Icon } from '$lib/components/ui';
@@ -73,7 +74,7 @@
         goto(resolve('/app'));
       }
     } catch (e) {
-      error = String(e).replace('Error: ', '');
+      error = extractErrorMessage(e);
     } finally {
       busy = false;
     }

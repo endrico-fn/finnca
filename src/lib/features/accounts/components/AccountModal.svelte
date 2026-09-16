@@ -6,6 +6,7 @@
     openingSplitAmounts,
   } from '$lib/features/accounts/state/openingBalance';
   import { postJournalEntryCmd, type Account, type AccountType } from '$lib/core/ipc/bindings';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { todayString } from '$lib/core/format/date';
   import { parseStringAmountToMinor } from '$lib/core/format/currency';
@@ -237,7 +238,7 @@
       onSaved?.();
       handleClose();
     } catch (e) {
-      error = String(e).replace('Error: ', '');
+      error = extractErrorMessage(e);
     } finally {
       saving = false;
     }

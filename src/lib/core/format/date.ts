@@ -77,7 +77,7 @@ export function buildCalendarDays(year: number, month: number): CalendarDay[] {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     days.push({ dayNum: d, dateStr, isCurrentMonth: true });
   }
-  const totalDays = Math.max(35, Math.ceil(days.length / 7) * 7);
+  const totalDays = Math.max(42, Math.ceil(days.length / 7) * 7);
   const remaining = totalDays - days.length;
   for (let d = 1; d <= remaining; d++) {
     const nextDate = new Date(year, month + 1, d);

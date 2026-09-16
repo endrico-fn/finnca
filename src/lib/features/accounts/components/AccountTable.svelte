@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Account } from '$lib/core/ipc/bindings';
-  import { ACCOUNT_TYPE_COLOR } from '../state/accounts.svelte';
+  import { ACCOUNT_TYPE_BG } from '../state/accounts.svelte';
   import { formatMinorToDisplay } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { Badge } from '$lib/components/ui';
@@ -25,42 +25,47 @@
   } = $props();
 </script>
 
-<table class="w-full border-collapse">
-  <thead class="bg-bg-card sticky top-0 z-10">
-    <tr class="border-line text-text-base border-b">
-      <th class="label-xs w-16 py-1.5 pl-3 text-left font-normal whitespace-nowrap">
-        {i18n.t.colCode}
-      </th>
-      <th class="label-xs px-3 py-1.5 text-left font-normal">
-        {i18n.t.colHierarchyPath}
-      </th>
-      <th class="label-xs w-28 px-3 py-1.5 text-right font-normal whitespace-nowrap">
-        {i18n.t.colBalance}
-      </th>
-      <th class="label-xs w-20 py-1.5 pr-3 text-right font-normal"></th>
+<table class="sharp-table">
+  <thead class="sticky top-0 z-10">
+    <tr>
+      <th class="w-20 pl-3">{i18n.t.colCode}</th>
+      <th class="px-3">{i18n.t.colHierarchyPath}</th>
+      <th class="numeric w-32 px-3">{i18n.t.colBalance}</th>
+      <th class="center w-12 pr-3"></th>
     </tr>
   </thead>
-  <tbody class="divide-line/40 divide-y">
+  <tbody>
     {#each accounts as acc (acc.id)}
       {@const isSelected = selectedId === acc.id}
+      {@const segments = acc.fullPath.split(' > ')}
       <tr
         class="cursor-pointer transition-colors {isSelected
-          ? 'bg-bg-row-active'
-          : 'hover:bg-bg-row-active'} {acc.hidden ? 'opacity-40' : ''}"
+          ? 'selected border-l-2 border-teal'
+          : ''} {acc.hidden ? 'opacity-40' : ''}"
+        aria-selected={isSelected}
         onclick={() => onSelect?.(acc)}
         ondblclick={() => onDblClick?.(acc)}
         title={acc.placeholder ? i18n.t.singleSelectDoubleEdit : i18n.t.singleSelectDoubleLedger}
       >
-        <td class="text-text-muted font-proto text-smaller py-1 pl-3 whitespace-nowrap">
+        <td class="text-text-muted font-proto text-smaller w-20 pl-3 whitespace-nowrap">
           {acc.code}
         </td>
-        <td class="text-text-strong w-full max-w-0 truncate px-3 py-1">
-          <div class="flex items-center gap-2 truncate">
+        <td class="max-w-0 px-3">
+          <div class="flex items-center gap-2 min-w-0">
             <span
-              class="size-1.5 shrink-0"
-              style="background:{ACCOUNT_TYPE_COLOR[acc.account_type]}"
+              class="size-1.5 shrink-0 {ACCOUNT_TYPE_BG[acc.account_type]}"
             ></span>
-            <span class="font-proto text-smaller truncate">{acc.fullPath}</span>
+            <div class="flex items-center gap-1 min-w-0 truncate">
+              {#if segments.length > 1}
+                <span class="text-text-dim font-aux text-smaller truncate shrink min-w-0">
+                  {segments.slice(0, -1).join(' > ')}
+                  <span class="text-text-muted/50 font-proto mx-0.5 text-smaller select-none">&gt;</span>
+                </span>
+              {/if}
+              <span class="text-text-white font-proto font-medium text-smaller truncate">
+                {segments[segments.length - 1]}
+              </span>
+            </div>
             {#if acc.placeholder}
               <Badge size="s" tone="neutral" class="shrink-0">{i18n.t.badgePh}</Badge>
             {/if}
@@ -70,25 +75,23 @@
           </div>
         </td>
         <td
-          class="font-proto text-smaller px-3 py-1 text-right whitespace-nowrap tabular-nums {acc.balance <
+          class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums {acc.balance <
           0
             ? 'text-expense'
             : 'text-text-base'}"
         >
           {formatMinorToDisplay(Math.abs(acc.balance), acc.currency)}
         </td>
-        <td class="py-1 pr-3 text-right whitespace-nowrap">
-          <div class="flex items-center justify-end">
-            <button
-              type="button"
-              onclick={(e) => onToggleHide?.(acc, e)}
-              title={acc.hidden ? i18n.t.showAccount : i18n.t.hideAccount}
-              aria-label={acc.hidden ? i18n.t.showAccount : i18n.t.hideAccount}
-              class="text-text-muted hover:text-text-base text-smaller px-1 py-0.5 transition-colors"
-            >
-              {acc.hidden ? '◉' : '◎'}
-            </button>
-          </div>
+        <td class="center w-12 pr-3 whitespace-nowrap">
+          <button
+            type="button"
+            onclick={(e) => onToggleHide?.(acc, e)}
+            title={acc.hidden ? i18n.t.showAccount : i18n.t.hideAccount}
+            aria-label={acc.hidden ? i18n.t.showAccount : i18n.t.hideAccount}
+            class="text-text-muted hover:text-text-base text-smaller px-1 py-0.5 transition-colors"
+          >
+            {acc.hidden ? '◉' : '◎'}
+          </button>
         </td>
       </tr>
     {/each}

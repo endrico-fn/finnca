@@ -3,6 +3,7 @@
   import type { Component } from 'svelte';
   import type { Transaction, Split } from '$lib/core/types';
   import { listAccountsCmd, type Account } from '$lib/core/ipc/bindings';
+  import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { toMinor, parseStringAmountToMinor } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
@@ -301,7 +302,7 @@
     try {
       await onSave(draft);
     } catch (e) {
-      error = String(e).replace('Error: ', '');
+      error = extractErrorMessage(e);
     } finally {
       saving = false;
     }

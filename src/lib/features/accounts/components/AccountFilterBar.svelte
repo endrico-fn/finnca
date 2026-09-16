@@ -3,7 +3,7 @@
   import {
     ACCOUNT_TYPES,
     accountTypeLabel,
-    ACCOUNT_TYPE_COLOR,
+    ACCOUNT_TYPE_BG,
   } from '../state/accounts.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import {
@@ -77,7 +77,7 @@
       {#each ACCOUNT_TYPES as typeKey (typeKey)}
         <FilterOption
           label={accountTypeLabel(typeKey).toUpperCase()}
-          dot={ACCOUNT_TYPE_COLOR[typeKey]}
+          dot={ACCOUNT_TYPE_BG[typeKey]}
           count={typeCounts[typeKey]}
           selected={selectedType === typeKey}
           onclick={() => {

@@ -23,6 +23,10 @@ export class AppError extends Error {
     this.code = code;
   }
 
+  override toString(): string {
+    return this.message;
+  }
+
   static fromUnknown(err: unknown, defaultMessage = 'An unexpected error occurred'): AppError {
     if (err instanceof AppError) {
       return err;
@@ -39,4 +43,22 @@ export class AppError extends Error {
     }
     return new AppError('ERR_UNKNOWN', defaultMessage);
   }
+}
+
+export function extractErrorMessage(err: unknown, defaultMessage = ''): string {
+  if (err instanceof Error) {
+    return err.message.replace(/^(\w*Error:\s*)+/i, '');
+  }
+  if (typeof err === 'string') {
+    return err.replace(/^(\w*Error:\s*)+/i, '');
+  }
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'message' in err &&
+    typeof (err as { message: unknown }).message === 'string'
+  ) {
+    return (err as { message: string }).message.replace(/^(\w*Error:\s*)+/i, '');
+  }
+  return String(err ?? defaultMessage).replace(/^(\w*Error:\s*)+/i, '');
 }
