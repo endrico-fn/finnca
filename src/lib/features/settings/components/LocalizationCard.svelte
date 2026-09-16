@@ -82,7 +82,7 @@
               ? 'border-teal text-text-white bg-bg-row-active'
               : 'border-line text-text-base hover:border-text-dim'}"
           >
-            <span>1,234,567.89</span>
+            <span>1,234,567.89 <span class="text-text-muted font-proto text-smaller ml-1">[COMMA]</span></span>
             {#if numberFormat === 'comma'}<span class="text-teal font-bold">✓</span>{/if}
           </button>
           <button
@@ -93,7 +93,7 @@
               ? 'border-teal text-text-white bg-bg-row-active'
               : 'border-line text-text-base hover:border-text-dim'}"
           >
-            <span>1.234.567,89</span>
+            <span>1.234.567,89 <span class="text-text-muted font-proto text-smaller ml-1">[DOT]</span></span>
             {#if numberFormat === 'dot'}<span class="text-teal font-bold">✓</span>{/if}
           </button>
         </div>
@@ -112,7 +112,7 @@
               ? 'border-teal text-text-white bg-bg-row-active'
               : 'border-line text-text-base hover:border-text-dim'}"
           >
-            <span>YYYY-MM-DD</span>
+            <span>YYYY-MM-DD <span class="text-text-muted font-proto text-smaller ml-1">[ISO]</span></span>
             {#if dateFormat === 'iso'}<span class="text-teal font-bold">✓</span>{/if}
           </button>
           <button
@@ -123,7 +123,7 @@
               ? 'border-teal text-text-white bg-bg-row-active'
               : 'border-line text-text-base hover:border-text-dim'}"
           >
-            <span>DD/MM/YYYY</span>
+            <span>DD/MM/YYYY <span class="text-text-muted font-proto text-smaller ml-1">[SLASH]</span></span>
             {#if dateFormat === 'slash'}<span class="text-teal font-bold">✓</span>{/if}
           </button>
         </div>

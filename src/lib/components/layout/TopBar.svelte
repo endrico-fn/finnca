@@ -2,7 +2,6 @@
   import { resolve } from '$app/paths';
   import { session } from '$lib/core/state/session.svelte';
   import { notificationState } from '$lib/core/state/notification.svelte';
-  import { modalState } from '$lib/core/state/modal.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { Badge, Icon } from '$lib/components/ui';
   import { formatIDR } from '$lib/core/format/currency';
@@ -67,18 +66,6 @@
       </button>
     {/if}
   </div>
-
-  <!-- Command Palette Quick Trigger -->
-  <button
-    type="button"
-    onclick={() => modalState.toggleCommandPalette()}
-    class="border-line bg-bg-btn hover:border-text-dim text-text-dim hover:text-text-strong font-proto text-smaller hidden md:flex h-6.5 items-center gap-2 border px-2.5 uppercase transition-colors cursor-pointer focus-visible:outline-teal outline-offset-1"
-    title="Command Palette (Ctrl+K)"
-  >
-    <Icon name="search" size={12} />
-    <span class="tracking-wider">COMMAND PALETTE</span>
-    <span class="border-line bg-bg-card text-text-muted border px-1 text-[9px] font-bold">CTRL+K</span>
-  </button>
 
   <div class="flex items-center gap-3">
     <button

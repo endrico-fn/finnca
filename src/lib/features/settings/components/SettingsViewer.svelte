@@ -2,8 +2,9 @@
   import { session } from '$lib/core/state/session.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { APP_NAME } from '$lib/core/types';
-  import { Splash, ErrorState, PageLayout, Tabs } from '$lib/components/ui';
+  import { Splash, ErrorState, PageLayout, Tabs, Button } from '$lib/components/ui';
   import { createTabRouter } from '$lib/core/router/tabRouter.svelte';
+  import { generalSettingsState } from '../state/settings.svelte';
 
   import GeneralSettings from './GeneralSettings.svelte';
   import FinanceSettings from './FinanceSettings.svelte';
@@ -37,6 +38,19 @@
   <ErrorState message={i18n.t.notConfiguredError} />
 {:else}
   <PageLayout crumb={i18n.t.settings} crumbHref="/app/setting" title={currentTabLabel}>
+    {#snippet actions()}
+      {#if tabRouter.current === 'general'}
+        <Button
+          variant="primary"
+          class="font-proto text-small h-8 px-3 font-bold uppercase tracking-wider"
+          disabled={!generalSettingsState.canSave}
+          onclick={() => generalSettingsState.save()}
+        >
+          {generalSettingsState.saving ? i18n.t.savingBtn : i18n.t.saveChanges}
+        </Button>
+      {/if}
+    {/snippet}
+
     <div class="border-line mb-2 flex shrink-0 items-center justify-between gap-2 border-b pb-2">
       <div class="flex min-w-0 items-center gap-1">
         <Tabs
