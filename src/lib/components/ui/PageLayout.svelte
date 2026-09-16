@@ -24,7 +24,7 @@
     <PageHeader {title} {crumb} {crumbHref} {actions} />
   {/if}
 
-  <div class="flex min-h-0 flex-1 flex-col {title ? 'pt-0.5' : ''}">
+  <div class="flex min-h-0 flex-1 flex-col">
     {@render children()}
   </div>
 </div>

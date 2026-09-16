@@ -22,7 +22,9 @@
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
     <script>
-      document.addEventListener('contextmenu', (e) => e.preventDefault());
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+      }
       document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '0')) e.preventDefault();
       });

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { i18n } from '$lib/i18n.svelte';
-  import Spinner from './Spinner.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
+  import LoadingSpinner from '$lib/components/feedback/LoadingSpinner.svelte';
   import Button from './Button.svelte';
 
   let {
@@ -22,9 +22,9 @@
     : 'flex flex-1 items-center justify-center py-16'}
 >
   <div class="flex flex-col items-center gap-4">
-    <Spinner />
+    <LoadingSpinner />
     {#if label}
-      <p class="font-proto text-text-base text-small tracking-[0.16em] uppercase">
+      <p class="font-proto text-text-base text-small tracking-[0.08em] uppercase">
         {label}
       </p>
     {/if}

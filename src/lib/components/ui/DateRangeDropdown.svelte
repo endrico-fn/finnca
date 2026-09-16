@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { i18n } from '$lib/i18n.svelte';
-  import { buildCalendarDays } from '$lib/accounting/finance';
-  import { parseLocalDateParts } from '$lib/accounting/core/date';
+  import { i18n } from '$lib/core/i18n.svelte';
   import Icon from './Icon.svelte';
-  import Button from './Button.svelte';
+  import DateRangeCalendarPicker from './DateRangeCalendarPicker.svelte';
+  import {
+    formatRangeDisplayLabel,
+    getThisMonthRange,
+    getLastMonthRange,
+    getThisYearRange,
+    getLast30DaysRange,
+  } from './dateRangePresets';
 
   let {
     from = $bindable(),
@@ -19,145 +24,22 @@
 
   let open = $state(false);
 
-  function setThisMonth() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
-    from = `${y}-${m}-01`;
-    to = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
-    onChange?.();
-  }
-
-  function setLastMonth() {
-    const now = new Date();
-    const y = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const m = now.getMonth() === 0 ? 12 : now.getMonth();
-    const mStr = String(m).padStart(2, '0');
-    const lastDay = new Date(y, m, 0).getDate();
-    from = `${y}-${mStr}-01`;
-    to = `${y}-${mStr}-${String(lastDay).padStart(2, '0')}`;
-    onChange?.();
-  }
-
-  function setThisYear() {
-    const y = new Date().getFullYear();
-    from = `${y}-01-01`;
-    to = `${y}-12-31`;
-    onChange?.();
-  }
-
-  function last30Range(): [string, string] {
-    const end = new Date();
-    const start = new Date(Date.now() - 29 * 86400000);
-    const f = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return [f(start), f(end)];
-  }
-
-  function setLast30Days() {
-    const [s, e] = last30Range();
+  function applyPreset(presetFn: () => [string, string]) {
+    const [s, e] = presetFn();
     from = s;
     to = e;
+    open = false;
     onChange?.();
   }
 
   function setAllTime() {
     from = '';
     to = '';
+    open = false;
     onChange?.();
   }
 
-  let activeInput = $state<'from' | 'to'>('from');
-  let viewYear = $state(new Date().getFullYear());
-  let viewMonth = $state(new Date().getMonth());
-
-  $effect(() => {
-    if (open) {
-      const targetDate = activeInput === 'from' ? from : to;
-      if (targetDate) {
-        const parts = parseLocalDateParts(targetDate);
-        if (parts) {
-          viewYear = parts.y;
-          viewMonth = parts.m - 1;
-        }
-      } else {
-        viewYear = new Date().getFullYear();
-        viewMonth = new Date().getMonth();
-      }
-    }
-  });
-
-  const calendarDays = $derived(buildCalendarDays(viewYear, viewMonth));
-  const monthName = $derived(
-    new Date(viewYear, viewMonth, 1)
-      .toLocaleDateString(i18n.locale === 'id' ? 'id-ID' : 'en-US', {
-        month: 'short',
-        year: 'numeric',
-      })
-      .toUpperCase()
-  );
-
-  function prevMonth() {
-    if (viewMonth === 0) {
-      viewMonth = 11;
-      viewYear--;
-    } else {
-      viewMonth--;
-    }
-  }
-
-  function nextMonth() {
-    if (viewMonth === 11) {
-      viewMonth = 0;
-      viewYear++;
-    } else {
-      viewMonth++;
-    }
-  }
-
-  function selectDate(dateStr: string) {
-    if (activeInput === 'from') {
-      from = dateStr;
-      if (to && from > to) to = from; // auto correct if from is after to
-      activeInput = 'to';
-    } else {
-      to = dateStr;
-      if (from && to < from) from = to; // auto correct if to is before from
-      open = false; // complete selection
-    }
-    onChange?.();
-  }
-
-  const displayLabel = $derived.by(() => {
-    if (!from && !to) return i18n.t.allTime;
-
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth() + 1;
-    const mStr = String(m).padStart(2, '0');
-    const thisMonthLast = String(new Date(y, m, 0).getDate()).padStart(2, '0');
-    if (from === `${y}-${mStr}-01` && to === `${y}-${mStr}-${thisMonthLast}`) {
-      return i18n.t.thisMonth;
-    }
-
-    const prevY = now.getMonth() === 0 ? y - 1 : y;
-    const prevM = now.getMonth() === 0 ? 12 : now.getMonth();
-    const prevMStr = String(prevM).padStart(2, '0');
-    const prevMonthLast = String(new Date(prevY, prevM, 0).getDate()).padStart(2, '0');
-    if (from === `${prevY}-${prevMStr}-01` && to === `${prevY}-${prevMStr}-${prevMonthLast}`) {
-      return i18n.t.lastMonth;
-    }
-
-    if (from === `${y}-01-01` && to === `${y}-12-31`) return i18n.t.thisYear;
-
-    const [l30s, l30e] = last30Range();
-    if (from === l30s && to === l30e) return i18n.t.last30Days;
-
-    if (from && to) return `${from} → ${to}`;
-
-    return `${from || '...'} → ${to || '...'}`;
-  });
+  const displayLabel = $derived(formatRangeDisplayLabel(from, to, i18n.t));
 </script>
 
 <div class="relative inline-block text-left">
@@ -186,7 +68,6 @@
   </button>
 
   {#if open}
-    <!-- Invisible overlay to close on outside click -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="fixed inset-0 z-40" onclick={() => (open = false)}></div>
@@ -198,10 +79,7 @@
       <div class="border-line bg-bg-app flex w-24 shrink-0 flex-col border-r">
         <button
           type="button"
-          onclick={() => {
-            setAllTime();
-            open = false;
-          }}
+          onclick={setAllTime}
           class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {!from &&
           !to
             ? 'text-teal bg-teal/10 font-semibold'
@@ -211,10 +89,7 @@
         </button>
         <button
           type="button"
-          onclick={() => {
-            setThisMonth();
-            open = false;
-          }}
+          onclick={() => applyPreset(getThisMonthRange)}
           class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
           i18n.t.thisMonth
             ? 'text-teal bg-teal/10 font-semibold'
@@ -224,10 +99,7 @@
         </button>
         <button
           type="button"
-          onclick={() => {
-            setLastMonth();
-            open = false;
-          }}
+          onclick={() => applyPreset(getLastMonthRange)}
           class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
           i18n.t.lastMonth
             ? 'text-teal bg-teal/10 font-semibold'
@@ -237,10 +109,7 @@
         </button>
         <button
           type="button"
-          onclick={() => {
-            setLast30Days();
-            open = false;
-          }}
+          onclick={() => applyPreset(getLast30DaysRange)}
           class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
           i18n.t.last30Days
             ? 'text-teal bg-teal/10 font-semibold'
@@ -250,10 +119,7 @@
         </button>
         <button
           type="button"
-          onclick={() => {
-            setThisYear();
-            open = false;
-          }}
+          onclick={() => applyPreset(getThisYearRange)}
           class="border-line/50 hover:bg-line/20 border-b px-2.5 py-2 text-left transition-colors {displayLabel ===
           i18n.t.thisYear
             ? 'text-teal bg-teal/10 font-semibold'
@@ -264,72 +130,13 @@
       </div>
 
       <!-- Calendar Picker -->
-      <div class="flex-1 p-2">
-        <div class="mb-2 flex gap-1">
-          <button
-            type="button"
-            onclick={() => (activeInput = 'from')}
-            class="flex-1 border px-1.5 py-1 text-center transition-colors {activeInput === 'from'
-              ? 'border-teal/60 text-teal bg-teal/10'
-              : 'border-line text-text-muted hover:border-text-dim hover:bg-line/10'}"
-          >
-            {i18n.t.pickFrom}: {from || '--'}
-          </button>
-          <button
-            type="button"
-            onclick={() => (activeInput = 'to')}
-            class="flex-1 border px-1.5 py-1 text-center transition-colors {activeInput === 'to'
-              ? 'border-teal/60 text-teal bg-teal/10'
-              : 'border-line text-text-muted hover:border-text-dim hover:bg-line/10'}"
-          >
-            {i18n.t.pickTo}: {to || '--'}
-          </button>
-        </div>
-
-        <div class="mb-2 flex items-center justify-between px-1">
-          <Button
-            variant="pager"
-            size="icon"
-            onclick={prevMonth}
-            ariaLabel={i18n.t.prevMonth}
-            title={i18n.t.prevMonth}><Icon name="chev-left" size={14} /></Button
-          >
-          <span class="text-text-strong tracking-widest">{monthName}</span>
-          <Button
-            variant="pager"
-            size="icon"
-            onclick={nextMonth}
-            ariaLabel={i18n.t.nextMonth}
-            title={i18n.t.nextMonth}><Icon name="chev-right" size={14} /></Button
-          >
-        </div>
-
-        <div class="bg-line border-line grid grid-cols-7 gap-px border">
-          {#each i18n.t.calendarDayInitials as dh (dh)}
-            <div class="bg-bg-app text-text-dim text-smaller shrink-0 py-1 text-center">
-              {dh}
-            </div>
-          {/each}
-          {#each calendarDays as day (day.dateStr || day)}
-            {@const isSelected = day.dateStr === from || day.dateStr === to}
-            {@const isInRange = from && to && day.dateStr > from && day.dateStr < to}
-            <button
-              type="button"
-              onclick={() => selectDate(day.dateStr)}
-              class="flex h-6 items-center justify-center transition-colors
-                {isSelected
-                ? 'bg-teal text-bg-app font-bold'
-                : isInRange
-                  ? 'bg-teal/15 text-teal'
-                  : !day.isCurrentMonth
-                    ? 'bg-bg-app text-text-dim/30'
-                    : 'bg-bg-card hover:bg-line/30 text-text-base'}"
-            >
-              {day.dayNum}
-            </button>
-          {/each}
-        </div>
-      </div>
+      <DateRangeCalendarPicker
+        bind:from
+        bind:to
+        {open}
+        onComplete={() => (open = false)}
+        {onChange}
+      />
     </div>
   {/if}
 </div>

@@ -1,0 +1,358 @@
+{
+  "scenarioName": "Full Month Statement Simulation",
+  "generatedAt": "2026-09-13T19:32:09.044Z",
+  "engine": "TypeScript Reference Oracle v1",
+  "inputVault": {
+    "version": 2,
+    "fxRate": 16000,
+    "updatedAt": "2026-09-14T00:00:00Z",
+    "accounts": [
+      {
+        "id": "acc-asset-parent",
+        "code": "1000",
+        "name": "Assets",
+        "type": "ASSET",
+        "currency": "IDR",
+        "placeholder": true
+      },
+      {
+        "id": "acc-bca",
+        "code": "1010",
+        "name": "BCA Main",
+        "type": "ASSET",
+        "parentId": "acc-asset-parent",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-cash",
+        "code": "1020",
+        "name": "Cash",
+        "type": "ASSET",
+        "parentId": "acc-asset-parent",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-cc",
+        "code": "2010",
+        "name": "Credit Card",
+        "type": "LIABILITY",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-equity",
+        "code": "3000",
+        "name": "Initial Equity",
+        "type": "EQUITY",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-rev",
+        "code": "4000",
+        "name": "Salary",
+        "type": "INCOME",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-exp-rent",
+        "code": "5010",
+        "name": "Apartment Rent",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-exp-utilities",
+        "code": "5020",
+        "name": "Electricity & Water",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-exp-food",
+        "code": "5030",
+        "name": "Food",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      }
+    ],
+    "transactions": [
+      {
+        "id": "tx-m-01",
+        "date": "2026-09-01",
+        "description": "Opening balances",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-m01-1",
+            "accountId": "acc-bca",
+            "amount": 30000000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-m01-2",
+            "accountId": "acc-equity",
+            "amount": -30000000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-m-02",
+        "date": "2026-09-02",
+        "description": "Pay monthly apartment rent",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-m02-1",
+            "accountId": "acc-exp-rent",
+            "amount": 6000000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-m02-2",
+            "accountId": "acc-bca",
+            "amount": -6000000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-m-03",
+        "date": "2026-09-05",
+        "description": "Electricity bill payment",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-m03-1",
+            "accountId": "acc-exp-utilities",
+            "amount": 850000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-m03-2",
+            "accountId": "acc-bca",
+            "amount": -850000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-m-04",
+        "date": "2026-09-10",
+        "description": "Groceries paid via Credit Card",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-m04-1",
+            "accountId": "acc-exp-food",
+            "amount": 1200000,
+            "reconcile": "n"
+          },
+          {
+            "id": "sp-m04-2",
+            "accountId": "acc-cc",
+            "amount": -1200000,
+            "reconcile": "n"
+          }
+        ]
+      },
+      {
+        "id": "tx-m-05",
+        "date": "2026-09-25",
+        "description": "Credit Card Bill settlement from BCA",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-m05-1",
+            "accountId": "acc-cc",
+            "amount": 1200000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-m05-2",
+            "accountId": "acc-bca",
+            "amount": -1200000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-m-06",
+        "date": "2026-09-28",
+        "description": "Monthly Salary received",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-m06-1",
+            "accountId": "acc-bca",
+            "amount": 20000000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-m06-2",
+            "accountId": "acc-rev",
+            "amount": -20000000,
+            "reconcile": "y"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedOutput": {
+    "accountBalances": {
+      "acc-asset-parent": 41950000,
+      "acc-bca": 41950000,
+      "acc-cash": 0,
+      "acc-cc": 0,
+      "acc-equity": -30000000,
+      "acc-rev": -20000000,
+      "acc-exp-rent": 6000000,
+      "acc-exp-utilities": 850000,
+      "acc-exp-food": 1200000
+    },
+    "accountLedgers": {
+      "acc-bca": [
+        {
+          "txId": "tx-m-01",
+          "date": "2026-09-01",
+          "amount": 30000000,
+          "running": 30000000
+        },
+        {
+          "txId": "tx-m-02",
+          "date": "2026-09-02",
+          "amount": -6000000,
+          "running": 24000000
+        },
+        {
+          "txId": "tx-m-03",
+          "date": "2026-09-05",
+          "amount": -850000,
+          "running": 23150000
+        },
+        {
+          "txId": "tx-m-05",
+          "date": "2026-09-25",
+          "amount": -1200000,
+          "running": 21950000
+        },
+        {
+          "txId": "tx-m-06",
+          "date": "2026-09-28",
+          "amount": 20000000,
+          "running": 41950000
+        }
+      ],
+      "acc-cash": [],
+      "acc-cc": [
+        {
+          "txId": "tx-m-04",
+          "date": "2026-09-10",
+          "amount": -1200000,
+          "running": -1200000
+        },
+        {
+          "txId": "tx-m-05",
+          "date": "2026-09-25",
+          "amount": 1200000,
+          "running": 0
+        }
+      ],
+      "acc-equity": [
+        {
+          "txId": "tx-m-01",
+          "date": "2026-09-01",
+          "amount": -30000000,
+          "running": -30000000
+        }
+      ],
+      "acc-rev": [
+        {
+          "txId": "tx-m-06",
+          "date": "2026-09-28",
+          "amount": -20000000,
+          "running": -20000000
+        }
+      ],
+      "acc-exp-rent": [
+        {
+          "txId": "tx-m-02",
+          "date": "2026-09-02",
+          "amount": 6000000,
+          "running": 6000000
+        }
+      ],
+      "acc-exp-utilities": [
+        {
+          "txId": "tx-m-03",
+          "date": "2026-09-05",
+          "amount": 850000,
+          "running": 850000
+        }
+      ],
+      "acc-exp-food": [
+        {
+          "txId": "tx-m-04",
+          "date": "2026-09-10",
+          "amount": 1200000,
+          "running": 1200000
+        }
+      ]
+    },
+    "totals": {
+      "totalAssets": 41950000,
+      "totalLiabilities": 0,
+      "totalEquity": 30000000,
+      "totalIncome": 20000000,
+      "totalExpenses": 8050000,
+      "netIncome": 11950000,
+      "balanceSheetDiscrepancy": 0,
+      "isBalanceSheetAligned": true
+    },
+    "invariants": {
+      "totalDebits": 59250000,
+      "totalCredits": 59250000,
+      "isZeroSum": true,
+      "allTransactionsBalanced": true,
+      "transactionChecks": [
+        {
+          "id": "tx-m-01",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-m-02",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-m-03",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-m-04",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-m-05",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-m-06",
+          "balanced": true,
+          "imbalance": 0
+        }
+      ]
+    }
+  }
+}

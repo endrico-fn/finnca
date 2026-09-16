@@ -1,0 +1,171 @@
+{
+  "scenarioName": "Reconciled & Uncleared Balances",
+  "generatedAt": "2026-09-13T19:32:09.043Z",
+  "engine": "TypeScript Reference Oracle v1",
+  "inputVault": {
+    "version": 2,
+    "fxRate": 16000,
+    "updatedAt": "2026-09-14T00:00:00Z",
+    "accounts": [
+      {
+        "id": "acc-checking",
+        "code": "1010",
+        "name": "Checking Account",
+        "type": "ASSET",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-dining",
+        "code": "5020",
+        "name": "Dining Out",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      }
+    ],
+    "transactions": [
+      {
+        "id": "tx-reconciled",
+        "date": "2026-09-01",
+        "description": "Lunch cleared on statement",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-rec-1",
+            "accountId": "acc-dining",
+            "amount": 120000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-rec-2",
+            "accountId": "acc-checking",
+            "amount": -120000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-cleared-pending",
+        "date": "2026-09-08",
+        "description": "Dinner cleared online pending statement",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-cl-1",
+            "accountId": "acc-dining",
+            "amount": 250000,
+            "reconcile": "c"
+          },
+          {
+            "id": "sp-cl-2",
+            "accountId": "acc-checking",
+            "amount": -250000,
+            "reconcile": "c"
+          }
+        ]
+      },
+      {
+        "id": "tx-uncleared",
+        "date": "2026-09-12",
+        "description": "Unpresented check for catering",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-un-1",
+            "accountId": "acc-dining",
+            "amount": 1000000,
+            "reconcile": "n"
+          },
+          {
+            "id": "sp-un-2",
+            "accountId": "acc-checking",
+            "amount": -1000000,
+            "reconcile": "n"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedOutput": {
+    "accountBalances": {
+      "acc-checking": -1370000,
+      "acc-dining": 1370000
+    },
+    "accountLedgers": {
+      "acc-checking": [
+        {
+          "txId": "tx-reconciled",
+          "date": "2026-09-01",
+          "amount": -120000,
+          "running": -120000
+        },
+        {
+          "txId": "tx-cleared-pending",
+          "date": "2026-09-08",
+          "amount": -250000,
+          "running": -370000
+        },
+        {
+          "txId": "tx-uncleared",
+          "date": "2026-09-12",
+          "amount": -1000000,
+          "running": -1370000
+        }
+      ],
+      "acc-dining": [
+        {
+          "txId": "tx-reconciled",
+          "date": "2026-09-01",
+          "amount": 120000,
+          "running": 120000
+        },
+        {
+          "txId": "tx-cleared-pending",
+          "date": "2026-09-08",
+          "amount": 250000,
+          "running": 370000
+        },
+        {
+          "txId": "tx-uncleared",
+          "date": "2026-09-12",
+          "amount": 1000000,
+          "running": 1370000
+        }
+      ]
+    },
+    "totals": {
+      "totalAssets": -1370000,
+      "totalLiabilities": 0,
+      "totalEquity": 0,
+      "totalIncome": 0,
+      "totalExpenses": 1370000,
+      "netIncome": -1370000,
+      "balanceSheetDiscrepancy": 0,
+      "isBalanceSheetAligned": true
+    },
+    "invariants": {
+      "totalDebits": 1370000,
+      "totalCredits": 1370000,
+      "isZeroSum": true,
+      "allTransactionsBalanced": true,
+      "transactionChecks": [
+        {
+          "id": "tx-reconciled",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-cleared-pending",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-uncleared",
+          "balanced": true,
+          "imbalance": 0
+        }
+      ]
+    }
+  }
+}

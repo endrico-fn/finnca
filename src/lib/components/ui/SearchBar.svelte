@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { i18n } from '$lib/i18n.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
   import Icon from './Icon.svelte';
 
   let {
@@ -101,7 +101,7 @@
     {oninput}
     placeholder={placeholder || i18n.t.searchAllPlaceholder}
     aria-label={placeholder || i18n.t.searchAriaFallback}
-    class="text-text-strong placeholder:text-text-muted text-small h-full w-full bg-transparent px-2 font-mono outline-none"
+    class="text-text-strong placeholder:text-text-muted text-small font-aux h-full w-full bg-transparent px-2 outline-none"
   />
   {#if value}
     <button

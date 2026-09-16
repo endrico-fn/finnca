@@ -33,15 +33,15 @@
     onclick={() => (open = !open)}
     aria-haspopup="listbox"
     aria-expanded={open}
-    class="font-proto inline-flex h-7 cursor-pointer items-center gap-2 border px-2.5 text-smaller uppercase transition-colors select-none {open ||
+    class="font-proto text-smaller inline-flex h-7 cursor-pointer items-center gap-2 border px-2.5 uppercase transition-colors select-none {open ||
     active
       ? 'border-teal/60 bg-bg-row-active text-text-strong'
       : 'border-line bg-bg-card text-text-strong hover:border-text-dim hover:text-text-white'}"
   >
     {#if active}
-      <span class="size-1.5 shrink-0 bg-teal"></span>
+      <span class="bg-teal size-1.5 shrink-0"></span>
     {/if}
-    <span class="font-semibold tracking-wider max-w-48 truncate">{label}</span>
+    <span class="max-w-48 truncate font-semibold tracking-wider">{label}</span>
     {#if count > 0}
       <span class="tabular-nums opacity-60">({count})</span>
     {/if}
@@ -64,7 +64,7 @@
             type="button"
             onclick={onReset}
             disabled={resetDisabled}
-            class="font-proto text-text-muted hover:text-text-base px-1 py-0.5 text-smaller uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            class="font-proto text-text-muted hover:text-text-base text-smaller px-1 py-0.5 uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40"
           >
             {resetLabel}
           </button>

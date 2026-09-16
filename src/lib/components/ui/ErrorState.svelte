@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { i18n } from '$lib/i18n.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
   import Button from './Button.svelte';
 
   let {

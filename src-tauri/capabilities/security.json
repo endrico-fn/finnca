@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "security-capability",
+  "description": "Capability for security policies, auto-lock timeouts, and activity tracking",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

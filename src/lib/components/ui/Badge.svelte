@@ -1,27 +1,23 @@
 <script lang="ts">
+  import { BADGE_TONES, BADGE_SIZES, type BadgeTone, type BadgeSize } from './badgeTone';
+
   let {
     tone = 'ok',
+    size = 'm',
     class: extraClass = '',
     children,
   }: {
-    tone?: 'ok' | 'warn' | 'err' | 'neutral';
+    tone?: BadgeTone;
+    size?: BadgeSize;
     class?: string;
     children: import('svelte').Snippet;
   } = $props();
-
-  const cls = $derived(
-    tone === 'ok'
-      ? 'badge-ok'
-      : tone === 'warn'
-        ? 'badge-warn'
-        : tone === 'err'
-          ? 'badge-err'
-          : 'border-line bg-bg-app text-text-muted'
-  );
 </script>
 
 <span
-  class="{cls} font-proto text-smaller inline-flex items-center gap-1 px-2 py-0.5 tracking-wider uppercase {extraClass}"
+  class="{BADGE_TONES[
+    tone
+  ]} font-proto inline-flex items-center gap-1 border uppercase {BADGE_SIZES[size]} {extraClass}"
 >
   {@render children()}
 </span>

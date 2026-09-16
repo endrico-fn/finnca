@@ -1,26 +1,6 @@
-<script lang="ts" module>
-  export type IconName =
-    | 'lock'
-    | 'bell'
-    | 'gear'
-    | 'search'
-    | 'close'
-    | 'chev-down'
-    | 'chev-left'
-    | 'chev-right'
-    | 'transfer'
-    | 'plus'
-    | 'check'
-    | 'alert'
-    | 'calendar'
-    | 'chart'
-    | 'wallet'
-    | 'clock'
-    | 'refresh'
-    | 'export';
-</script>
-
 <script lang="ts">
+  import type { IconName } from './icons';
+
   let {
     name,
     size = 18,
@@ -46,6 +26,8 @@
     chart: 'M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z',
     wallet:
       'M21 7H5a1 1 0 0 1 0-2h14V3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zm-4 7a1.5 1.5 0 1 1 1.5-1.5A1.5 1.5 0 0 1 17 14z',
+    folder:
+      'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z',
     transfer: 'M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z',
     plus: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z',
     check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',

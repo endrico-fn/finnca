@@ -1,8 +1,8 @@
 <script lang="ts">
   import Tesseract from 'tesseract.js';
   import { Icon } from '$lib/components/ui';
-  import { i18n } from '$lib/i18n.svelte';
-  import { notifStore } from '$lib/notifications/store.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
+  import { notificationState } from '$lib/core/state/notification.svelte';
 
   let isScanning = $state(false);
   let progress = $state(0);
@@ -79,7 +79,7 @@
         amount: detectedAmount,
       });
     } catch {
-      notifStore.addNotification({
+      notificationState.addNotification({
         type: 'LEDGER_INTEGRITY',
         priority: 'high',
         title: i18n.t.receiptScannerTitle,

@@ -15,8 +15,8 @@
     class: extraClass = '',
     children,
   }: {
-    variant?: 'primary' | 'ghost' | 'danger' | 'pager' | 'tactical';
-    size?: 'sm' | 'md' | 'icon';
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'pager' | 'tactical';
+    size?: 'sm' | 'md' | 'lg' | 'icon';
     disabled?: boolean;
     type?: 'button' | 'submit';
     onclick?: (e: MouseEvent) => void;
@@ -36,9 +36,11 @@
     const sizing =
       size === 'sm'
         ? 'h-7 px-2.5 text-smaller'
-        : size === 'icon'
-          ? 'w-7 h-7 p-0 shrink-0'
-          : 'h-8 px-3.5 text-small';
+        : size === 'lg'
+          ? 'h-9 px-4 text-small'
+          : size === 'icon'
+            ? 'w-7 h-7 p-0 shrink-0'
+            : 'h-8 px-3.5 text-small';
     const dim = disabled ? 'opacity-40 cursor-not-allowed' : '';
     return `sharp-btn btn-${variant} font-proto ${sizing} ${dim} ${extraClass}`
       .trim()

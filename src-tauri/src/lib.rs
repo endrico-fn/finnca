@@ -1,38 +1,30 @@
-use crate::config::KEY_FILE;
 use tauri::AppHandle;
-pub mod cmds;
-mod config;
+pub mod accounts;
+pub mod app_config;
+pub mod app_state;
+pub mod audit;
+pub mod auth;
+pub mod budget;
 mod crypto;
-mod state;
+pub mod db;
+pub mod ledger;
+pub mod plan;
+pub mod reconcile;
+pub mod report;
+pub mod security;
+pub mod shared;
+pub mod vault;
+
+pub use app_config as config;
+pub use app_state as state;
 
 use std::fs;
 use std::path::Path;
 
-use age::secrecy::ExposeSecret;
+use app_state::{AppState, Session};
 use serde::Serialize;
-use state::{AppState, Session};
 
-const MAX_VAULT_READ_BYTES: u64 = 15 * 1024 * 1024;
-const MAX_KEY_READ_BYTES: u64 = 1024 * 1024;
 pub(crate) const MAX_PLAINTEXT_BYTES: usize = 11 * 1024 * 1024;
-
-pub(crate) fn read_bounded(path: &Path, max: u64, label: &str) -> Result<Vec<u8>, String> {
-    let meta = fs::metadata(path).map_err(|e| format!("failed to read {label}: {e}"))?;
-    if meta.len() > max {
-        return Err(format!(
-            "{label} too large ({:.1}MB max)",
-            max as f64 / 1048576.0
-        ));
-    }
-    let bytes = fs::read(path).map_err(|e| format!("failed to read {label}: {e}"))?;
-    if bytes.len() as u64 > max {
-        return Err(format!(
-            "{label} too large ({:.1}MB max)",
-            max as f64 / 1048576.0
-        ));
-    }
-    Ok(bytes)
-}
 
 pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let tmp = path.with_extension(format!(
@@ -44,51 +36,9 @@ pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
             .map(|d| d.as_nanos())
             .unwrap_or(0)
     ));
-    {
-        use std::io::Write;
-        let mut file =
-            fs::File::create(&tmp).map_err(|e| format!("failed to create temp file: {e}"))?;
-        file.write_all(bytes)
-            .map_err(|e| format!("failed to write temp file: {e}"))?;
-        file.sync_all()
-            .map_err(|e| format!("failed to sync temp file: {e}"))?;
-    }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(&tmp, fs::Permissions::from_mode(0o600));
-    }
-    fs::rename(&tmp, path).map_err(|e| {
-        let _ = fs::remove_file(&tmp);
-        format!("failed to write file: {e}")
-    })?;
-
-    #[cfg(unix)]
-    if let Some(parent) = path.parent() {
-        if let Ok(dir) = fs::File::open(parent) {
-            let _ = dir.sync_all();
-        }
-    }
-
+    fs::write(&tmp, bytes).map_err(|e| format!("failed to write temp file: {e}"))?;
+    fs::rename(&tmp, path).map_err(|e| format!("failed to commit file: {e}"))?;
     Ok(())
-}
-
-pub(crate) async fn scrypt_encrypt_blocking(
-    password: String,
-    plaintext: Vec<u8>,
-) -> Result<Vec<u8>, String> {
-    tauri::async_runtime::spawn_blocking(move || crypto::scrypt_encrypt(&password, &plaintext))
-        .await
-        .map_err(|e| format!("encryption task failed: {e}"))?
-}
-
-pub(crate) async fn scrypt_decrypt_blocking(
-    password: String,
-    ciphertext: Vec<u8>,
-) -> Result<Vec<u8>, String> {
-    tauri::async_runtime::spawn_blocking(move || crypto::scrypt_decrypt(&password, &ciphertext))
-        .await
-        .map_err(|e| format!("decryption task failed: {e}"))?
 }
 
 pub(crate) fn lock_session(
@@ -105,30 +55,17 @@ pub(crate) fn lock_session(
 
 #[derive(Serialize)]
 pub struct AppStateView {
-    configured: bool,
-    unlocked: bool,
-    username: Option<String>,
-    vault_name: Option<String>,
-    vault_path: Option<String>,
-    settings: config::Settings,
+    pub configured: bool,
+    pub unlocked: bool,
+    pub username: Option<String>,
+    pub vault_name: Option<String>,
+    pub vault_path: Option<String>,
+    pub settings: config::Settings,
 }
 
 pub(crate) fn view(app: &AppHandle, state: &AppState) -> Result<AppStateView, String> {
-    let mut config = config::load(app)?;
-    let mut configured = config.vault.is_some() && config.username.is_some();
-
-    // Auto-detect if user deleted the vault folder manually on disk
-    if let Some(vault) = &config.vault {
-        let key_path = Path::new(&vault.path).join(KEY_FILE);
-        if !key_path.exists() {
-            configured = false;
-            config.vault = None;
-            config.username = None;
-            let _ = config::save(app, &config);
-            state.clear_session();
-        }
-    }
-
+    let config = config::load(app)?;
+    let configured = config.vault.is_some() && config.username.is_some();
     let unlocked = lock_session(state)?.is_some();
     Ok(AppStateView {
         configured,
@@ -148,28 +85,64 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
-            cmds::auth::get_app_state,
-            cmds::auth::unlock,
-            cmds::auth::lock,
-            cmds::auth::get_boot_id,
-            cmds::auth::set_auto_lock_mode,
-            cmds::auth::change_password,
-            cmds::vault::create_vault,
-            cmds::vault::create_account,
-            cmds::vault::import_vault,
-            cmds::vault::read_vault_data,
-            cmds::vault::write_vault_data,
-            cmds::vault::delete_vault_and_account,
-            cmds::vault::open_vault_folder,
-            cmds::vault::export_text_file,
-            cmds::vault::get_known_vaults_cmd,
-            cmds::vault::remember_known_vault_cmd,
-            cmds::vault::forget_known_vault_cmd,
-            cmds::vault::set_active_vault,
-            cmds::vault::export_vault_backup_folder,
-            cmds::user::rename_user,
-            cmds::user::rename_vault,
-            cmds::vault::write_file_raw
+            auth::commands::get_app_state,
+            auth::commands::unlock,
+            auth::commands::lock,
+            auth::commands::change_password,
+            security::commands::get_boot_id,
+            security::commands::set_auto_lock_mode,
+            vault::commands::create_vault,
+            vault::commands::create_account,
+            vault::commands::import_vault,
+            vault::commands::inspect_vault_folder,
+            vault::commands::delete_vault_and_account,
+            vault::commands::open_vault_folder,
+            vault::commands::export_text_file,
+            vault::commands::get_known_vaults_cmd,
+            vault::commands::remember_known_vault_cmd,
+            vault::commands::forget_known_vault_cmd,
+            vault::commands::set_active_vault,
+            vault::commands::export_vault_backup_folder,
+            vault::commands::rename_user,
+            vault::commands::rename_vault,
+            vault::commands::write_file_raw,
+            accounts::commands::create_account_cmd,
+            accounts::commands::update_account_cmd,
+            accounts::commands::delete_account_cmd,
+            accounts::commands::get_account_cmd,
+            accounts::commands::list_accounts_cmd,
+            accounts::commands::seed_root_accounts_cmd,
+            accounts::commands::seed_starter_accounts_cmd,
+            ledger::commands::post_journal_entry_cmd,
+            ledger::commands::update_journal_entry_cmd,
+            ledger::commands::delete_journal_entry_cmd,
+            ledger::commands::get_journal_entry_cmd,
+            ledger::commands::list_journal_entries_cmd,
+            ledger::commands::get_account_ledger_cmd,
+            ledger::commands::get_ledger_totals_cmd,
+            budget::commands::upsert_budget_cmd,
+            budget::commands::delete_budget_cmd,
+            budget::commands::get_budget_summary_cmd,
+            audit::commands::get_audit_log_cmd,
+            audit::commands::get_entity_audit_log_cmd,
+            plan::commands::create_plan_cmd,
+            plan::commands::update_plan_cmd,
+            plan::commands::delete_plan_cmd,
+            plan::commands::get_plan_cmd,
+            plan::commands::list_plans_cmd,
+            plan::commands::list_plans_with_progress_cmd,
+            reconcile::commands::get_reconciliation_status_cmd,
+            reconcile::commands::set_posting_reconciled_cmd,
+            reconcile::commands::bulk_set_postings_reconciled_cmd,
+            reconcile::commands::finish_reconciliation_cmd,
+            reconcile::commands::match_statement_cmd,
+            reconcile::commands::read_statement_file_cmd,
+            report::commands::get_profit_loss_report_cmd,
+            report::commands::get_balance_sheet_report_cmd,
+            report::commands::get_cash_flow_report_cmd,
+            report::commands::get_trial_balance_report_cmd,
+            report::commands::get_fx_revaluation_report_cmd,
+            report::commands::get_historical_trends_report_cmd
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -15,7 +15,6 @@
     "format:fix": "prettier --write .",
     "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
     "check:all": "pnpm check && pnpm lint && pnpm format && pnpm check:rust",
-    "test:e2e": "node tests/runner.mjs",
     "tauri": "tauri"
   },
   "license": "MIT",

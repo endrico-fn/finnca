@@ -1,6 +1,6 @@
 <script lang="ts">
   import '../app.css';
-  import { APP_NAME } from '$lib/types';
+  import { APP_NAME } from '$lib/core/types';
   import { onMount } from 'svelte';
 
   let { children } = $props();

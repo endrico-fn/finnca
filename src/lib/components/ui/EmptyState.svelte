@@ -28,7 +28,7 @@
   {/if}
   <p class="text-text-muted font-proto text-small">{title}</p>
   {#if hint}
-    <p class="text-text-muted/80 text-small max-w-sm">{hint}</p>
+    <p class="text-text-muted/80 text-smaller max-w-sm">{hint}</p>
   {/if}
   {#if children}
     {@render children()}

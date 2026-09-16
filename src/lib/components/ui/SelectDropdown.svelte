@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { i18n } from '$lib/i18n.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
   import Icon from './Icon.svelte';
 
   export interface DropdownOption {
@@ -15,6 +15,7 @@
     placeholder = '',
     onSelect,
     size = 'md',
+    placement = 'auto',
     class: className = '',
     menuClass = '',
     disabled = false,
@@ -26,6 +27,7 @@
     placeholder?: string;
     onSelect?: (val: string) => void;
     size?: 'sm' | 'md';
+    placement?: 'auto' | 'top' | 'bottom';
     class?: string;
     menuClass?: string;
     disabled?: boolean;
@@ -34,6 +36,7 @@
   } = $props();
 
   let open = $state(false);
+  let openUpward = $state(false);
   let query = $state('');
   let containerEl: HTMLElement | null = $state(null);
 
@@ -49,6 +52,18 @@
 
   function toggle() {
     if (disabled) return;
+    if (!open && containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      if (placement === 'top') {
+        openUpward = true;
+      } else if (placement === 'bottom') {
+        openUpward = false;
+      } else {
+        openUpward = spaceBelow < 220 && spaceAbove > spaceBelow;
+      }
+    }
     query = '';
     open = !open;
   }
@@ -93,7 +108,9 @@
 
   {#if open}
     <div
-      class="border-line bg-bg-card text-small font-proto absolute top-full left-0 z-50 mt-1 max-h-60 w-max max-w-xs min-w-full overflow-y-auto border py-1 select-none {menuClass}"
+      class="border-line bg-bg-card text-small font-proto absolute {openUpward
+        ? 'bottom-full mb-1'
+        : 'top-full mt-1'} left-0 z-50 max-h-60 w-max max-w-xs min-w-full overflow-y-auto border py-1 select-none {menuClass}"
     >
       {#if searchable}
         <div class="border-line/60 bg-bg-card sticky top-0 border-b px-2 py-1.5">
@@ -108,7 +125,7 @@
               bind:value={query}
               placeholder={searchPlaceholder ?? i18n.t.searchAllPlaceholder}
               aria-label={searchPlaceholder ?? i18n.t.searchAllPlaceholder}
-              class="text-text-strong placeholder:text-text-muted text-small h-full w-full bg-transparent font-mono outline-none"
+              class="text-text-strong placeholder:text-text-muted text-small font-aux h-full w-full bg-transparent outline-none"
             />
           </div>
         </div>
