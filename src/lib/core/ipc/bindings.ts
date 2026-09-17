@@ -487,6 +487,115 @@ export interface HistoricalTrendsReport {
   points: DailyTrendPoint[];
 }
 
+export interface AccountReportRow {
+  account_id: string;
+  code: string;
+  name: string;
+  currency: string;
+  amount: number;
+}
+
+export interface ProfitLossReport {
+  from_date: string | null;
+  to_date: string | null;
+  income_rows: AccountReportRow[];
+  expense_rows: AccountReportRow[];
+  total_income: number;
+  total_expenses: number;
+  net_income: number;
+}
+
+export interface BalanceSheetReport {
+  as_of_date: string | null;
+  asset_rows: AccountReportRow[];
+  liability_rows: AccountReportRow[];
+  equity_rows: AccountReportRow[];
+  total_assets: number;
+  total_liabilities: number;
+  total_equity: number;
+  net_income: number;
+  discrepancy: number;
+  is_balanced: boolean;
+}
+
+export interface CashFlowActivityRow {
+  category: string;
+  description: string;
+  amount: number;
+}
+
+export interface CashFlowReport {
+  from_date: string | null;
+  to_date: string | null;
+  starting_cash: number;
+  operating_cash_flow: number;
+  investing_cash_flow: number;
+  financing_cash_flow: number;
+  net_cash_change: number;
+  ending_cash: number;
+  operating_rows: CashFlowActivityRow[];
+}
+
+export interface TrialBalanceRow {
+  account_id: string;
+  code: string;
+  name: string;
+  account_type: string;
+  currency: string;
+  debit: number;
+  credit: number;
+}
+
+export interface TrialBalanceReport {
+  as_of_date: string | null;
+  rows: TrialBalanceRow[];
+  total_debit: number;
+  total_credit: number;
+  is_balanced: boolean;
+}
+
+export function getProfitLossReportCmd(
+  fromDate?: string | null,
+  toDate?: string | null
+): Promise<ProfitLossReport> {
+  return invokeIpc<ProfitLossReport>(
+    'get_profit_loss_report_cmd',
+    { fromDate: fromDate || null, toDate: toDate || null },
+    { label: 'get_profit_loss_report_cmd' }
+  );
+}
+
+export function getBalanceSheetReportCmd(
+  asOfDate?: string | null
+): Promise<BalanceSheetReport> {
+  return invokeIpc<BalanceSheetReport>(
+    'get_balance_sheet_report_cmd',
+    { asOfDate: asOfDate || null },
+    { label: 'get_balance_sheet_report_cmd' }
+  );
+}
+
+export function getCashFlowReportCmd(
+  fromDate?: string | null,
+  toDate?: string | null
+): Promise<CashFlowReport> {
+  return invokeIpc<CashFlowReport>(
+    'get_cash_flow_report_cmd',
+    { fromDate: fromDate || null, toDate: toDate || null },
+    { label: 'get_cash_flow_report_cmd' }
+  );
+}
+
+export function getTrialBalanceReportCmd(
+  asOfDate?: string | null
+): Promise<TrialBalanceReport> {
+  return invokeIpc<TrialBalanceReport>(
+    'get_trial_balance_report_cmd',
+    { asOfDate: asOfDate || null },
+    { label: 'get_trial_balance_report_cmd' }
+  );
+}
+
 export function getFxRevaluationReportCmd(
   asOfDate?: string | null,
   fxRate?: number | null
@@ -509,4 +618,31 @@ export function getHistoricalTrendsReportCmd(
     { label: 'get_historical_trends_report_cmd' }
   );
 }
+
+export interface EnvelopeView {
+  account_id: string;
+  account_code: string;
+  account_name: string;
+  assigned: number;
+  activity: number;
+  available: number;
+}
+
+export interface BudgetMonthSummary {
+  month: string;
+  envelopes: EnvelopeView[];
+  total_assigned: number;
+  total_activity: number;
+  to_be_budgeted: number;
+}
+
+export function getBudgetSummaryCmd(month: string): Promise<BudgetMonthSummary> {
+  return invokeIpc<BudgetMonthSummary>(
+    'get_budget_summary_cmd',
+    { month },
+    { label: 'get_budget_summary_cmd' }
+  );
+}
+
+
 

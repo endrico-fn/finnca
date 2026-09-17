@@ -15,7 +15,9 @@
     "format:fix": "prettier --write .",
     "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
     "check:all": "pnpm check && pnpm lint && pnpm format && pnpm check:rust",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "license": "MIT",
   "dependencies": {

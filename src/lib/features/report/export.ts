@@ -287,9 +287,11 @@ export async function exportAccountStatementCSV(
 export async function exportReportCSV(
   tab: string,
   historicalPoints: Array<{ date: string; netWorth: number; assets: number; liabilities: number; liquidCash: number }>,
-  trialBalance: TrialBalanceReport | null | undefined,
-  defaultFilename: string,
-  csvFilterLabel: string
+  trialBalance?: TrialBalanceReport | null,
+  defaultFilename: string = 'report.csv',
+  csvFilterLabel: string = 'CSV Document',
+  balanceSheet?: BalanceSheetReport | null,
+  profitLoss?: ProfitLossReport | null
 ): Promise<string | null> {
   const csvRows: string[] = [];
 
@@ -298,6 +300,33 @@ export async function exportReportCSV(
     for (const pt of historicalPoints) {
       csvRows.push(`${pt.date},${pt.netWorth},${pt.assets},${pt.liabilities},${pt.liquidCash}`);
     }
+  } else if (tab === 'bs' && balanceSheet) {
+    csvRows.push('SECTION,CODE,ACCOUNT_NAME,AMOUNT_IDR');
+    for (const r of balanceSheet.asset_rows) {
+      csvRows.push(`"ASSET","${r.code}","${r.name}",${r.amount}`);
+    }
+    for (const r of balanceSheet.liability_rows) {
+      csvRows.push(`"LIABILITY","${r.code}","${r.name}",${r.amount}`);
+    }
+    for (const r of balanceSheet.equity_rows) {
+      csvRows.push(`"EQUITY","${r.code}","${r.name}",${r.amount}`);
+    }
+    csvRows.push(`"TOTAL_ASSETS","","TOTAL ASSETS",${balanceSheet.total_assets}`);
+    csvRows.push(`"TOTAL_LIABILITIES","","TOTAL LIABILITIES",${balanceSheet.total_liabilities}`);
+    csvRows.push(`"TOTAL_EQUITY","","TOTAL EQUITY",${balanceSheet.total_equity}`);
+    csvRows.push(`"NET_INCOME","","NET INCOME",${balanceSheet.net_income}`);
+    csvRows.push(`"DISCREPANCY","","DISCREPANCY",${balanceSheet.discrepancy}`);
+  } else if (tab === 'pnl' && profitLoss) {
+    csvRows.push('SECTION,CODE,ACCOUNT_NAME,AMOUNT_IDR');
+    for (const r of profitLoss.income_rows) {
+      csvRows.push(`"REVENUE","${r.code}","${r.name}",${r.amount}`);
+    }
+    for (const r of profitLoss.expense_rows) {
+      csvRows.push(`"EXPENSE","${r.code}","${r.name}",${r.amount}`);
+    }
+    csvRows.push(`"TOTAL_REVENUES","","TOTAL REVENUES",${profitLoss.total_income}`);
+    csvRows.push(`"TOTAL_EXPENSES","","TOTAL EXPENSES",${profitLoss.total_expenses}`);
+    csvRows.push(`"NET_INCOME","","NET INCOME",${profitLoss.net_income}`);
   } else {
     csvRows.push('CODE,ACCOUNT_NAME,TYPE,DEBIT_IDR,CREDIT_IDR');
     const rows = trialBalance?.rows ?? [];

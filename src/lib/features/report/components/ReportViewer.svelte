@@ -3,7 +3,7 @@
   import { todayString } from '$lib/core/format/date';
   import { notificationState } from '$lib/core/state/notification.svelte';
   import { session } from '$lib/core/state/session.svelte';
-  import { reportState } from '$lib/features/report/state/report.svelte';
+  import { reportState, type ReportTab } from '$lib/features/report/state/report.svelte';
   import { onMount, untrack } from 'svelte';
   import { PageLayout, Button, Icon } from '$lib/components/ui';
   import { createTabRouter } from '$lib/core/router/tabRouter.svelte';
@@ -15,18 +15,30 @@
     type TrendsPeriod,
     type TrendsMetric,
   } from '../state/trendsChartUtils';
-  import ReportTabBar, { type ReportTab } from './ReportTabBar.svelte';
+  import ReportTabBar from './ReportTabBar.svelte';
 
   import { eventBus } from '$lib/core/events/eventBus.svelte';
+  import BalanceSheet from './BalanceSheet.svelte';
+  import ProfitLoss from './ProfitLoss.svelte';
+  import BudgetVsActual from './BudgetVsActual.svelte';
   import TrialBalance from './TrialBalance.svelte';
   import DebtReport from './DebtReport.svelte';
   import Trends from './Trends.svelte';
   import Cashflow from './Cashflow.svelte';
   import FxReport from './FxReport.svelte';
 
-  const validTabs = ['tb', 'trends', 'debt', 'cashflow', 'fx'] as const;
+  const validTabs = [
+    'bs',
+    'pnl',
+    'cashflow',
+    'tb',
+    'budget-actual',
+    'debt',
+    'trends',
+    'fx',
+  ] as const;
 
-  const tabRouter = createTabRouter<ReportTab>('tb', validTabs, 'tab');
+  const tabRouter = createTabRouter<ReportTab>('bs', validTabs, 'tab');
 
   let from = $state('');
   let to = $state('');
@@ -34,14 +46,20 @@
 
   const currentTabLabel = $derived.by(() => {
     switch (tabRouter.current) {
-      case 'tb':
-        return i18n.t.trialBalanceTitle;
-      case 'trends':
-        return i18n.t.trendsTitle;
-      case 'debt':
-        return i18n.t.debtReportTitle;
+      case 'bs':
+        return i18n.t.balanceSheetTitle;
+      case 'pnl':
+        return i18n.t.pnlTitle;
       case 'cashflow':
         return i18n.t.cashflowTab;
+      case 'tb':
+        return i18n.t.trialBalanceTitle;
+      case 'budget-actual':
+        return i18n.t.budgetVsActualTitle;
+      case 'debt':
+        return i18n.t.debtReportTitle;
+      case 'trends':
+        return i18n.t.trendsTitle;
       case 'fx':
         return i18n.t.fxRevalTab;
       default:
@@ -100,7 +118,9 @@
       historicalPoints,
       reportState.trialBalance,
       defaultFilename,
-      i18n.t.dialogCsvFilter
+      i18n.t.dialogCsvFilter,
+      reportState.balanceSheet,
+      reportState.profitLoss
     );
 
     if (savedPath) {
@@ -165,9 +185,29 @@
   />
 
   <div class="-mr-3 flex min-h-0 flex-1 overflow-hidden">
-    {#if tabRouter.current === 'tb'}
+    {#if tabRouter.current === 'bs'}
+      <div class="flex min-h-0 flex-1 pr-3">
+        <BalanceSheet asOf={to} />
+      </div>
+    {:else if tabRouter.current === 'pnl'}
+      <div class="flex min-h-0 flex-1 pr-3">
+        <ProfitLoss {from} {to} />
+      </div>
+    {:else if tabRouter.current === 'cashflow'}
+      <div class="flex min-h-0 flex-1 pr-3">
+        <Cashflow {from} {to} />
+      </div>
+    {:else if tabRouter.current === 'tb'}
       <div class="flex min-h-0 flex-1 pr-3">
         <TrialBalance asOf={to} />
+      </div>
+    {:else if tabRouter.current === 'budget-actual'}
+      <div class="flex min-h-0 flex-1 pr-3">
+        <BudgetVsActual />
+      </div>
+    {:else if tabRouter.current === 'debt'}
+      <div class="flex min-h-0 flex-1 pr-3">
+        <DebtReport asOf={to} />
       </div>
     {:else if tabRouter.current === 'trends'}
       <Trends
@@ -178,14 +218,6 @@
         {trendsDateRange}
         {historicalPoints}
       />
-    {:else if tabRouter.current === 'debt'}
-      <div class="flex min-h-0 flex-1 pr-3">
-        <DebtReport asOf={to} />
-      </div>
-    {:else if tabRouter.current === 'cashflow'}
-      <div class="flex min-h-0 flex-1 pr-3">
-        <Cashflow {from} {to} />
-      </div>
     {:else if tabRouter.current === 'fx'}
       <div class="flex min-h-0 flex-1 pr-3">
         <FxReport />

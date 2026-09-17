@@ -1,83 +1,52 @@
-import { invokeIpc } from '$lib/core/ipc/client';
 import { getPref } from '$lib/core/state/prefs';
 import {
   getFxRevaluationReportCmd,
   getHistoricalTrendsReportCmd,
+  getProfitLossReportCmd,
+  getBalanceSheetReportCmd,
+  getCashFlowReportCmd,
+  getTrialBalanceReportCmd,
+  getBudgetSummaryCmd,
   type FxRevaluationItem,
   type FxRevaluationReport,
   type DailyTrendPoint,
   type HistoricalTrendsReport,
+  type AccountReportRow,
+  type ProfitLossReport,
+  type BalanceSheetReport,
+  type CashFlowActivityRow,
+  type CashFlowReport,
+  type TrialBalanceRow,
+  type TrialBalanceReport,
+  type BudgetMonthSummary,
 } from '$lib/core/ipc/bindings';
 
-export type { FxRevaluationItem, FxRevaluationReport, DailyTrendPoint, HistoricalTrendsReport };
-export type ReportTab = 'tb' | 'trends' | 'debt' | 'cashflow' | 'fx';
+export type {
+  FxRevaluationItem,
+  FxRevaluationReport,
+  DailyTrendPoint,
+  HistoricalTrendsReport,
+  AccountReportRow,
+  ProfitLossReport,
+  BalanceSheetReport,
+  CashFlowActivityRow,
+  CashFlowReport,
+  TrialBalanceRow,
+  TrialBalanceReport,
+  BudgetMonthSummary,
+};
 
-export interface AccountReportRow {
-  account_id: string;
-  code: string;
-  name: string;
-  currency: string;
-  amount: number;
-}
+export type ReportTab =
+  | 'bs'
+  | 'pnl'
+  | 'cashflow'
+  | 'tb'
+  | 'budget-actual'
+  | 'debt'
+  | 'trends'
+  | 'fx';
 
-export interface ProfitLossReport {
-  from_date: string | null;
-  to_date: string | null;
-  income_rows: AccountReportRow[];
-  expense_rows: AccountReportRow[];
-  total_income: number;
-  total_expenses: number;
-  net_income: number;
-}
-
-export interface BalanceSheetReport {
-  as_of_date: string | null;
-  asset_rows: AccountReportRow[];
-  liability_rows: AccountReportRow[];
-  equity_rows: AccountReportRow[];
-  total_assets: number;
-  total_liabilities: number;
-  total_equity: number;
-  net_income: number;
-  discrepancy: number;
-  is_balanced: boolean;
-}
-
-export interface CashFlowActivityRow {
-  category: string;
-  description: string;
-  amount: number;
-}
-
-export interface CashFlowReport {
-  from_date: string | null;
-  to_date: string | null;
-  starting_cash: number;
-  operating_cash_flow: number;
-  investing_cash_flow: number;
-  financing_cash_flow: number;
-  net_cash_change: number;
-  ending_cash: number;
-  operating_rows: CashFlowActivityRow[];
-}
-
-export interface TrialBalanceRow {
-  account_id: string;
-  code: string;
-  name: string;
-  account_type: string;
-  currency: string;
-  debit: number;
-  credit: number;
-}
-
-export interface TrialBalanceReport {
-  as_of_date: string | null;
-  rows: TrialBalanceRow[];
-  total_debit: number;
-  total_credit: number;
-  is_balanced: boolean;
-}
+export type ReportGroup = 'statements' | 'budget-debt' | 'analysis';
 
 export interface DailyDataPoint {
   date: string;
@@ -88,7 +57,8 @@ export interface DailyDataPoint {
 }
 
 class ReportState {
-  activeTab = $state<ReportTab>('tb');
+  activeTab = $state<ReportTab>('bs');
+  activeGroup = $state<ReportGroup>('statements');
   startDate = $state('');
   endDate = $state('');
   asOfDate = $state('');
@@ -101,6 +71,7 @@ class ReportState {
   cashFlow = $state<CashFlowReport | null>(null);
   fxRevaluation = $state<FxRevaluationReport | null>(null);
   historicalTrends = $state<HistoricalTrendsReport | null>(null);
+  budgetSummary = $state<BudgetMonthSummary | null>(null);
 
   historicalPoints = $derived<DailyDataPoint[]>(
     (this.historicalTrends?.points ?? []).map((p) => ({
@@ -117,9 +88,7 @@ class ReportState {
     this.error = null;
     try {
       const date = asOfDate ?? this.asOfDate;
-      this.trialBalance = await invokeIpc<TrialBalanceReport>('get_trial_balance_report_cmd', {
-        asOfDate: date || null,
-      });
+      this.trialBalance = await getTrialBalanceReportCmd(date || null);
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -131,10 +100,10 @@ class ReportState {
     this.loading = true;
     this.error = null;
     try {
-      this.profitLoss = await invokeIpc<ProfitLossReport>('get_profit_loss_report_cmd', {
-        fromDate: fromDate ?? (this.startDate || null),
-        toDate: toDate ?? (this.endDate || null),
-      });
+      this.profitLoss = await getProfitLossReportCmd(
+        fromDate ?? (this.startDate || null),
+        toDate ?? (this.endDate || null)
+      );
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -147,9 +116,7 @@ class ReportState {
     this.error = null;
     try {
       const date = asOfDate ?? this.asOfDate;
-      this.balanceSheet = await invokeIpc<BalanceSheetReport>('get_balance_sheet_report_cmd', {
-        asOfDate: date || null,
-      });
+      this.balanceSheet = await getBalanceSheetReportCmd(date || null);
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -161,10 +128,23 @@ class ReportState {
     this.loading = true;
     this.error = null;
     try {
-      this.cashFlow = await invokeIpc<CashFlowReport>('get_cash_flow_report_cmd', {
-        fromDate: fromDate ?? (this.startDate || null),
-        toDate: toDate ?? (this.endDate || null),
-      });
+      this.cashFlow = await getCashFlowReportCmd(
+        fromDate ?? (this.startDate || null),
+        toDate ?? (this.endDate || null)
+      );
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  async loadBudgetSummary(month?: string): Promise<void> {
+    this.loading = true;
+    this.error = null;
+    try {
+      const targetMonth = month || new Date().toISOString().slice(0, 7);
+      this.budgetSummary = await getBudgetSummaryCmd(targetMonth);
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
