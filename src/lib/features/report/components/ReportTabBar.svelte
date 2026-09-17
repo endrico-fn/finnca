@@ -67,17 +67,17 @@
   }
 </script>
 
-<div class="border-line mb-3 flex flex-col gap-2 border-b pb-2.5">
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <div class="border-line bg-bg-card/40 flex items-center gap-1 border p-0.5">
+<div class="border-line mb-3 flex flex-col gap-2 border-b pb-2">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
       {#each groups as g (g.id)}
         {@const isGroupActive = activeGroup === g.id}
         <button
           type="button"
           onclick={() => onSelectGroup(g.id)}
-          class="font-proto text-smaller px-3 py-1 tracking-wider uppercase transition-colors {isGroupActive
-            ? 'bg-bg-card text-teal font-bold shadow-xs'
-            : 'text-text-dim hover:text-text-base'}"
+          class="font-proto text-smaller px-2.5 py-1 tracking-wider uppercase transition-colors {isGroupActive
+            ? 'border-b-2 border-teal text-teal font-bold'
+            : 'text-text-muted hover:text-text-base'}"
         >
           {g.label}
         </button>
@@ -106,7 +106,7 @@
     {/if}
   </div>
 
-  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+  <div class="border-line/40 flex flex-wrap items-center gap-1 border-t pt-1.5">
     <Tabs
       tabs={currentGroupTabs}
       active={currentTab}

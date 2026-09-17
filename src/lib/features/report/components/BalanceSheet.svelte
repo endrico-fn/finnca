@@ -31,7 +31,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.totalAssetsLabel}
       </div>
-      <div class="font-proto text-asset text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {fmt(totalAssets)}
       </div>
     </Card>
@@ -40,7 +40,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.totalLiabilitiesLabel}
       </div>
-      <div class="font-proto text-liability text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {fmt(totalLiabilities)}
       </div>
     </Card>
@@ -49,21 +49,21 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.totalEquityLabel}
       </div>
-      <div class="font-proto text-equity text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {fmt(totalEquity)}
       </div>
     </Card>
 
     <Card class="p-3">
-      <div class="flex items-center justify-between">
-        <span class="font-proto text-text-dim text-smaller uppercase tracking-wider">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-proto text-text-dim text-smaller uppercase tracking-wider truncate">
           {i18n.t.discrepancyLabel}
         </span>
-        <Badge size="s" tone={isBalanced ? 'ok' : 'err'}>
+        <Badge size="s" tone={isBalanced ? 'ok' : 'err'} class="shrink-0">
           {isBalanced ? i18n.t.auditBalanced : i18n.t.auditUnbalanced}
         </Badge>
       </div>
-      <div class="font-proto text-lg font-bold tabular-nums {isBalanced ? 'text-text-base' : 'text-expense'}">
+      <div class="font-proto text-lg font-bold tabular-nums {isBalanced ? 'text-text-white' : 'text-expense'}">
         {fmt(discrepancy)}
       </div>
     </Card>
@@ -72,7 +72,7 @@
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
     <Card divided title={i18n.t.assetsTitle}>
       {#snippet header()}
-        <span class="font-proto text-asset text-small font-bold tabular-nums">
+        <span class="font-proto text-text-white text-small font-bold tabular-nums">
           {fmt(totalAssets)}
         </span>
       {/snippet}
@@ -115,7 +115,7 @@
     <div class="space-y-4">
       <Card divided title={i18n.t.liabilitiesTitle}>
         {#snippet header()}
-          <span class="font-proto text-liability text-small font-bold tabular-nums">
+          <span class="font-proto text-text-white text-small font-bold tabular-nums">
             {fmt(totalLiabilities)}
           </span>
         {/snippet}
@@ -157,7 +157,7 @@
 
       <Card divided title={i18n.t.equityTitle}>
         {#snippet header()}
-          <span class="font-proto text-equity text-small font-bold tabular-nums">
+          <span class="font-proto text-text-white text-small font-bold tabular-nums">
             {fmt(totalEquity + netIncome)}
           </span>
         {/snippet}
@@ -199,7 +199,7 @@
                 <td class="font-proto text-text-white text-small px-3 font-medium">
                   {i18n.t.netIncomeLoss}
                 </td>
-                <td class="numeric font-proto text-smaller w-36 pr-3 whitespace-nowrap tabular-nums {netIncome < 0 ? 'text-expense' : 'text-income'}">
+                <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums font-bold">
                   {fmt(netIncome)}
                 </td>
               </tr>

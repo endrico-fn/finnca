@@ -54,7 +54,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.colAssigned}
       </div>
-      <div class="font-proto text-teal text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {fmt(totalAssigned)}
       </div>
     </Card>
@@ -63,7 +63,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.colActivity}
       </div>
-      <div class="font-proto text-expense text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {fmt(totalActivity)}
       </div>
     </Card>
@@ -72,7 +72,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.colAvailable}
       </div>
-      <div class="font-proto text-lg font-bold tabular-nums {totalAvailable < 0 ? 'text-expense' : 'text-income'}">
+      <div class="font-proto text-lg font-bold tabular-nums {totalAvailable < 0 ? 'text-expense' : 'text-text-white'}">
         {fmt(totalAvailable)}
       </div>
     </Card>
@@ -126,10 +126,10 @@
               <td class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums">
                 {fmt(env.assigned)}
               </td>
-              <td class="numeric font-proto text-expense text-smaller w-32 px-3 whitespace-nowrap tabular-nums">
+              <td class="numeric font-proto text-text-white text-smaller w-32 px-3 whitespace-nowrap tabular-nums">
                 {fmt(env.activity)}
               </td>
-              <td class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums {env.available < 0 ? 'text-expense font-bold' : 'text-income'}">
+              <td class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums {env.available < 0 ? 'text-expense font-bold' : 'text-text-white'}">
                 {fmt(env.available)}
               </td>
               <td class="numeric font-proto text-smaller w-28 pr-3 whitespace-nowrap tabular-nums">

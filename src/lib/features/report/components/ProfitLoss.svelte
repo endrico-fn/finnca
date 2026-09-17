@@ -34,7 +34,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.revenues}
       </div>
-      <div class="font-proto text-income text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {fmt(totalIncome)}
       </div>
     </Card>
@@ -43,7 +43,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.operationalExpenses}
       </div>
-      <div class="font-proto text-expense text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {fmt(totalExpenses)}
       </div>
     </Card>
@@ -52,7 +52,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.netIncome}
       </div>
-      <div class="font-proto text-lg font-bold tabular-nums {netIncome >= 0 ? 'text-income' : 'text-expense'}">
+      <div class="font-proto text-lg font-bold tabular-nums {netIncome < 0 ? 'text-expense' : 'text-text-white'}">
         {fmt(netIncome)}
       </div>
     </Card>
@@ -61,7 +61,7 @@
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.financialEfficiency}
       </div>
-      <div class="font-proto text-text-base text-lg font-bold tabular-nums">
+      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
         {profitMargin}% <span class="text-text-dim text-smaller font-normal">({i18n.t.profitMargin})</span>
       </div>
     </Card>
@@ -70,7 +70,7 @@
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
     <Card divided title={i18n.t.revenues}>
       {#snippet header()}
-        <span class="font-proto text-income text-small font-bold tabular-nums">
+        <span class="font-proto text-text-white text-small font-bold tabular-nums">
           {fmt(totalIncome)}
         </span>
       {/snippet}
@@ -100,7 +100,7 @@
                     <span class="truncate">{row.name}</span>
                   </div>
                 </td>
-                <td class="numeric font-proto text-income text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
+                <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
                   {fmt(row.amount)}
                 </td>
               </tr>
@@ -112,7 +112,7 @@
 
     <Card divided title={i18n.t.operationalExpenses}>
       {#snippet header()}
-        <span class="font-proto text-expense text-small font-bold tabular-nums">
+        <span class="font-proto text-text-white text-small font-bold tabular-nums">
           {fmt(totalExpenses)}
         </span>
       {/snippet}
@@ -142,7 +142,7 @@
                     <span class="truncate">{row.name}</span>
                   </div>
                 </td>
-                <td class="numeric font-proto text-expense text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
+                <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
                   {fmt(row.amount)}
                 </td>
               </tr>
@@ -158,13 +158,13 @@
       <div class="font-proto text-smaller text-text-dim flex items-center gap-2">
         <span class="text-text-base font-bold">{i18n.t.netIncome}:</span>
         <span>{fmt(totalIncome)} - {fmt(totalExpenses)} = </span>
-        <strong class="font-bold {netIncome >= 0 ? 'text-income' : 'text-expense'}">
+        <strong class="font-bold {netIncome < 0 ? 'text-expense' : 'text-text-white'}">
           {fmt(netIncome)}
         </strong>
       </div>
       <div class="font-proto text-smaller text-text-dim flex items-center gap-4">
-        <span>{i18n.t.expenseRatio}: <strong class="text-text-base">{expenseRatio}%</strong></span>
-        <span>{i18n.t.profitMargin}: <strong class="text-text-base">{profitMargin}%</strong></span>
+        <span>{i18n.t.expenseRatio}: <strong class="text-text-white">{expenseRatio}%</strong></span>
+        <span>{i18n.t.profitMargin}: <strong class="text-text-white">{profitMargin}%</strong></span>
       </div>
     </div>
   </Card>
