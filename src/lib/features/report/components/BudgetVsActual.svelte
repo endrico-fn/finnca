@@ -34,8 +34,8 @@
   }
 </script>
 
-<div class="space-y-4">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<div class="flex flex-1 flex-col gap-3 w-full min-h-0">
+  <div class="flex flex-wrap items-center justify-between gap-3 shrink-0">
     <div class="flex items-center gap-2">
       <Button variant="ghost" size="sm" onclick={prevMonth}>◀</Button>
       <span class="font-proto text-text-white text-small px-2 font-bold tracking-wider">
@@ -45,11 +45,11 @@
     </div>
 
     <div class="font-proto text-smaller text-text-dim flex items-center gap-4">
-      <span>{i18n.t.colUsagePercent}: <strong class="{usagePercent > 100 ? 'text-expense' : 'text-income'} font-bold">{usagePercent}%</strong></span>
+      <span>{i18n.t.colUsagePercent}: <strong class="{usagePercent > 100 ? 'text-expense' : 'text-text-white'} font-bold">{usagePercent}%</strong></span>
     </div>
   </div>
 
-  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+  <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 shrink-0">
     <Card class="p-3">
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.colAssigned}
@@ -95,52 +95,54 @@
     </Card>
   </div>
 
-  <Card divided title={i18n.t.budgetVsActualTitle}>
+  <Card divided title={i18n.t.budgetVsActualTitle} class="flex flex-col flex-1 min-h-0">
     {#if envelopes.length === 0}
-      <div class="text-text-dim font-aux py-8 text-center text-small">
+      <div class="text-text-dim font-aux flex flex-1 items-center justify-center py-8 text-center text-small">
         {i18n.t.noTbRecords}
       </div>
     {:else}
-      <table class="sharp-table">
-        <thead>
-          <tr>
-            <th class="w-24 pl-3">{i18n.t.colCode}</th>
-            <th class="px-3">{i18n.t.name}</th>
-            <th class="numeric w-32 px-3">{i18n.t.colAssigned}</th>
-            <th class="numeric w-32 px-3">{i18n.t.colActivity}</th>
-            <th class="numeric w-32 px-3">{i18n.t.colAvailable}</th>
-            <th class="numeric w-28 pr-3">{i18n.t.colUsagePercent}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each envelopes as env (env.account_id)}
-            {@const pct = env.assigned > 0 ? Math.round((env.activity / env.assigned) * 100) : 0}
-            {@const isOver = env.activity > env.assigned && env.assigned > 0}
+      <div class="flex-1 overflow-y-auto">
+        <table class="sharp-table w-full">
+          <thead>
             <tr>
-              <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
-                {env.account_code}
-              </td>
-              <td class="font-aux text-text-white text-small px-3">
-                <span class="truncate">{env.account_name}</span>
-              </td>
-              <td class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums">
-                {fmt(env.assigned)}
-              </td>
-              <td class="numeric font-proto text-text-white text-smaller w-32 px-3 whitespace-nowrap tabular-nums">
-                {fmt(env.activity)}
-              </td>
-              <td class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums {env.available < 0 ? 'text-expense font-bold' : 'text-text-white'}">
-                {fmt(env.available)}
-              </td>
-              <td class="numeric font-proto text-smaller w-28 pr-3 whitespace-nowrap tabular-nums">
-                <span class="{isOver ? 'text-expense font-bold' : pct >= 85 ? 'text-warning' : 'text-text-dim'}">
-                  {pct}%
-                </span>
-              </td>
+              <th class="w-24 pl-3">{i18n.t.colCode}</th>
+              <th class="px-3">{i18n.t.name}</th>
+              <th class="numeric w-32 px-3">{i18n.t.colAssigned}</th>
+              <th class="numeric w-32 px-3">{i18n.t.colActivity}</th>
+              <th class="numeric w-32 px-3">{i18n.t.colAvailable}</th>
+              <th class="numeric w-28 pr-3">{i18n.t.colUsagePercent}</th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {#each envelopes as env (env.account_id)}
+              {@const pct = env.assigned > 0 ? Math.round((env.activity / env.assigned) * 100) : 0}
+              {@const isOver = env.activity > env.assigned && env.assigned > 0}
+              <tr>
+                <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
+                  {env.account_code}
+                </td>
+                <td class="font-aux text-text-white text-small px-3">
+                  <span class="truncate">{env.account_name}</span>
+                </td>
+                <td class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums">
+                  {fmt(env.assigned)}
+                </td>
+                <td class="numeric font-proto text-text-white text-smaller w-32 px-3 whitespace-nowrap tabular-nums">
+                  {fmt(env.activity)}
+                </td>
+                <td class="numeric font-proto text-smaller w-32 px-3 whitespace-nowrap tabular-nums {env.available < 0 ? 'text-expense font-bold' : 'text-text-white'}">
+                  {fmt(env.available)}
+                </td>
+                <td class="numeric font-proto text-smaller w-28 pr-3 whitespace-nowrap tabular-nums">
+                  <span class="{isOver ? 'text-expense font-bold' : pct >= 85 ? 'text-warning' : 'text-text-dim'}">
+                    {pct}%
+                  </span>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
     {/if}
   </Card>
 </div>

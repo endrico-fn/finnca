@@ -28,8 +28,8 @@
   );
 </script>
 
-<div class="space-y-4">
-  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+<div class="flex flex-1 flex-col gap-3 w-full min-h-0">
+  <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 shrink-0">
     <Card class="p-3">
       <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
         {i18n.t.revenues}
@@ -67,8 +67,8 @@
     </Card>
   </div>
 
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-    <Card divided title={i18n.t.revenues}>
+  <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 flex-1 min-h-0">
+    <Card divided title={i18n.t.revenues} class="flex flex-col flex-1 min-h-0">
       {#snippet header()}
         <span class="font-proto text-text-white text-small font-bold tabular-nums">
           {fmt(totalIncome)}
@@ -76,41 +76,43 @@
       {/snippet}
 
       {#if incomeRows.length === 0}
-        <div class="text-text-dim font-aux py-8 text-center text-small">
+        <div class="text-text-dim font-aux flex flex-1 items-center justify-center py-8 text-center text-small">
           {i18n.t.noIncomeAccounts}
         </div>
       {:else}
-        <table class="sharp-table">
-          <thead>
-            <tr>
-              <th class="w-24 pl-3">{i18n.t.colCode}</th>
-              <th class="px-3">{i18n.t.name}</th>
-              <th class="numeric w-36 pr-3">{i18n.t.amount}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each incomeRows as row (row.account_id)}
+        <div class="flex-1 overflow-y-auto">
+          <table class="sharp-table w-full">
+            <thead>
               <tr>
-                <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
-                  {row.code}
-                </td>
-                <td class="font-aux text-text-white text-small px-3">
-                  <div class="flex items-center gap-2">
-                    <span class="bg-income size-1.5 shrink-0"></span>
-                    <span class="truncate">{row.name}</span>
-                  </div>
-                </td>
-                <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
-                  {fmt(row.amount)}
-                </td>
+                <th class="w-24 pl-3">{i18n.t.colCode}</th>
+                <th class="px-3">{i18n.t.name}</th>
+                <th class="numeric w-36 pr-3">{i18n.t.amount}</th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {#each incomeRows as row (row.account_id)}
+                <tr>
+                  <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
+                    {row.code}
+                  </td>
+                  <td class="font-aux text-text-white text-small px-3">
+                    <div class="flex items-center gap-2">
+                      <span class="bg-income size-1.5 shrink-0"></span>
+                      <span class="truncate">{row.name}</span>
+                    </div>
+                  </td>
+                  <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
+                    {fmt(row.amount)}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       {/if}
     </Card>
 
-    <Card divided title={i18n.t.operationalExpenses}>
+    <Card divided title={i18n.t.operationalExpenses} class="flex flex-col flex-1 min-h-0">
       {#snippet header()}
         <span class="font-proto text-text-white text-small font-bold tabular-nums">
           {fmt(totalExpenses)}
@@ -118,42 +120,44 @@
       {/snippet}
 
       {#if expenseRows.length === 0}
-        <div class="text-text-dim font-aux py-8 text-center text-small">
+        <div class="text-text-dim font-aux flex flex-1 items-center justify-center py-8 text-center text-small">
           {i18n.t.noExpenseAccounts}
         </div>
       {:else}
-        <table class="sharp-table">
-          <thead>
-            <tr>
-              <th class="w-24 pl-3">{i18n.t.colCode}</th>
-              <th class="px-3">{i18n.t.name}</th>
-              <th class="numeric w-36 pr-3">{i18n.t.amount}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each expenseRows as row (row.account_id)}
+        <div class="flex-1 overflow-y-auto">
+          <table class="sharp-table w-full">
+            <thead>
               <tr>
-                <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
-                  {row.code}
-                </td>
-                <td class="font-aux text-text-white text-small px-3">
-                  <div class="flex items-center gap-2">
-                    <span class="bg-expense size-1.5 shrink-0"></span>
-                    <span class="truncate">{row.name}</span>
-                  </div>
-                </td>
-                <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
-                  {fmt(row.amount)}
-                </td>
+                <th class="w-24 pl-3">{i18n.t.colCode}</th>
+                <th class="px-3">{i18n.t.name}</th>
+                <th class="numeric w-36 pr-3">{i18n.t.amount}</th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {#each expenseRows as row (row.account_id)}
+                <tr>
+                  <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
+                    {row.code}
+                  </td>
+                  <td class="font-aux text-text-white text-small px-3">
+                    <div class="flex items-center gap-2">
+                      <span class="bg-expense size-1.5 shrink-0"></span>
+                      <span class="truncate">{row.name}</span>
+                    </div>
+                  </td>
+                  <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
+                    {fmt(row.amount)}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       {/if}
     </Card>
   </div>
 
-  <Card class="border-line bg-bg-card/60 p-3">
+  <Card class="border-line bg-bg-card/60 p-2.5 shrink-0">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="font-proto text-smaller text-text-dim flex items-center gap-2">
         <span class="text-text-base font-bold">{i18n.t.netIncome}:</span>

@@ -184,29 +184,29 @@
     bind:to
   />
 
-  <div class="-mr-3 flex min-h-0 flex-1 overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col overflow-y-auto w-full">
     {#if tabRouter.current === 'bs'}
-      <div class="flex min-h-0 flex-1 pr-3">
+      <div class="flex min-h-0 flex-1 flex-col w-full">
         <BalanceSheet asOf={to} />
       </div>
     {:else if tabRouter.current === 'pnl'}
-      <div class="flex min-h-0 flex-1 pr-3">
+      <div class="flex min-h-0 flex-1 flex-col w-full">
         <ProfitLoss {from} {to} />
       </div>
     {:else if tabRouter.current === 'cashflow'}
-      <div class="flex min-h-0 flex-1 pr-3">
+      <div class="flex min-h-0 flex-1 flex-col w-full">
         <Cashflow {from} {to} />
       </div>
     {:else if tabRouter.current === 'tb'}
-      <div class="flex min-h-0 flex-1 pr-3">
+      <div class="flex min-h-0 flex-1 flex-col w-full">
         <TrialBalance asOf={to} />
       </div>
     {:else if tabRouter.current === 'budget-actual'}
-      <div class="flex min-h-0 flex-1 pr-3">
+      <div class="flex min-h-0 flex-1 flex-col w-full">
         <BudgetVsActual />
       </div>
     {:else if tabRouter.current === 'debt'}
-      <div class="flex min-h-0 flex-1 pr-3">
+      <div class="flex min-h-0 flex-1 flex-col w-full">
         <DebtReport asOf={to} />
       </div>
     {:else if tabRouter.current === 'trends'}
@@ -219,7 +219,7 @@
         {historicalPoints}
       />
     {:else if tabRouter.current === 'fx'}
-      <div class="flex min-h-0 flex-1 pr-3">
+      <div class="flex min-h-0 flex-1 flex-col w-full">
         <FxReport />
       </div>
     {/if}
