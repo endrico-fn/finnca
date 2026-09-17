@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { APP_NAME, version_app } from '$lib/core/types';
+  import { APP_NAME, APP_VERSION } from '$lib/core/types';
   import { Icon } from '$lib/components/ui';
 
   let { tagline = '' }: { tagline?: string } = $props();
@@ -19,7 +19,7 @@
       <span
         class="font-proto text-text-dim border-line bg-bg-card text-smaller border px-1.5 py-0.5"
       >
-        v{version_app}
+        v{APP_VERSION}
       </span>
     </div>
     {#if tagline}

@@ -1,7 +1,7 @@
 import type { JournalEntryView } from '$lib/core/ipc/bindings';
 
-export const APP_NAME = (__APP_NAME__ || 'finnca').toUpperCase();
-export const version_app = __APP_VERSION__ || '0.1.0';
+export const APP_NAME = __APP_NAME__.toUpperCase();
+export const APP_VERSION = __APP_VERSION__;
 
 export interface Settings {
   auto_lock_mode: 'always' | 'on-reboot';

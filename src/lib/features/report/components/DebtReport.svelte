@@ -174,7 +174,7 @@
                   class="h-full transition-all {p.plan_type === 'RECEIVABLE'
                     ? 'bg-income'
                     : 'bg-expense'}"
-                  style="width: {item.progress_percent}%"
+                  style="width: {Math.min(100, item.progress_percent)}%"
                 ></div>
               </div>
             </div>

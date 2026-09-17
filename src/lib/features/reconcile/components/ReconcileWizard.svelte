@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { listAccountsCmd, readStatementFileCmd, type Account } from '$lib/core/ipc/bindings';
   import { reconcileState } from '../state/reconcile.svelte';
-  import { toMinor } from '$lib/core/format/currency';
+  import { parseStringAmountToMinor } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { PageLayout, Button } from '$lib/components/ui';
   import { notificationState } from '$lib/core/state/notification.svelte';
@@ -34,11 +34,9 @@
   const effectiveClearedBalance = $derived(isDebit ? clearedBalance : -clearedBalance);
 
   const targetBalance = $derived.by(() => {
-    const raw = reconcileState.targetBalanceStr.replace(/[^0-9.-]/g, '');
-    if (!raw.trim()) return 0;
-    const num = parseFloat(raw);
-    if (isNaN(num)) return 0;
-    return toMinor(account?.currency || 'IDR', num);
+    const str = reconcileState.targetBalanceStr;
+    if (!str.trim()) return 0;
+    return parseStringAmountToMinor(str, account?.currency || 'IDR');
   });
 
   $effect(() => {

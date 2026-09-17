@@ -2,7 +2,7 @@
   import { BADGE_TONES, BADGE_SIZES, type BadgeTone, type BadgeSize } from './badgeTone';
 
   let {
-    tone = 'ok',
+    tone = 'neutral',
     size = 'm',
     class: extraClass = '',
     children,
