@@ -1,3 +1,5 @@
+import type { JournalEntryView } from '$lib/core/ipc/bindings';
+
 export const APP_NAME = (__APP_NAME__ || 'finnca').toUpperCase();
 export const version_app = __APP_VERSION__ || '0.1.0';
 
@@ -47,4 +49,23 @@ export interface DraftPostingLine {
   amount: number;
   memo?: string;
   action?: string;
+}
+
+export function journalEntryToTransaction(entry: JournalEntryView): Transaction {
+  return {
+    id: entry.id,
+    date: entry.date,
+    description: entry.description,
+    notes: entry.notes ?? undefined,
+    currency: entry.currency as Currency,
+    fxRateAtTransaction: entry.fx_rate,
+    splits: entry.postings.map((p) => ({
+      id: p.id,
+      accountId: p.account_id,
+      amount: p.amount,
+      memo: p.memo ?? undefined,
+      action: p.action ?? undefined,
+      reconcile: (p.reconcile as ReconcileState) ?? 'n',
+    })),
+  };
 }

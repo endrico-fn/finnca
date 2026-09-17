@@ -1023,4 +1023,7 @@ export const en = {
     'Your vault is ready. Record your opening cash or bank balance to balance your ledger for the first time.',
   onboardingActionBtn: 'RECORD OPENING BALANCE NOW',
   balanceAdjustSuccess: 'Account balance adjusted vs Opening Balance Equity.',
+  shortcutNavRows: 'Navigate rows up/down',
+  shortcutExpandSplits: 'Expand or collapse splits',
+  shortcutEditTx: 'Edit selected transaction',
 };

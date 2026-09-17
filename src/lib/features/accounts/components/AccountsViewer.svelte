@@ -8,14 +8,13 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { notificationState } from '$lib/core/state/notification.svelte';
-  import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
+  import { modalState } from '$lib/core/state/modal.svelte';
   import AccountTable, {
     type AccountRowItem,
   } from '$lib/features/accounts/components/AccountTable.svelte';
   import AccountFilterBar from '$lib/features/accounts/components/AccountFilterBar.svelte';
   import AccountModal from '$lib/features/accounts/components/AccountModal.svelte';
   import AccountTypeLegend from '$lib/features/accounts/components/AccountTypeLegend.svelte';
-  import TransferModal from '$lib/features/journal/components/TransferModal.svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
@@ -29,10 +28,7 @@
   let selectedTypeFilter = $state<AccountType | 'ALL'>('ALL');
   let showHidden = $state(false);
   let placeholderOnly = $state(false);
-  let confirmDeleteOpen = $state(false);
-  let deleteTarget = $state<Account | null>(null);
   let deleteError = $state('');
-  let transferOpen = $state(false);
   let selectedId = $state<string | null>(null);
 
   const selectedAccount = $derived(
@@ -86,28 +82,33 @@
   }
 
   function requestDelete(acc: Account) {
-    deleteTarget = acc;
-    confirmDeleteOpen = true;
-  }
-
-  async function executeDelete() {
-    if (!deleteTarget) return;
-    deleteError = '';
-    try {
-      await accountsState.delete(deleteTarget.id);
-      if (selectedId === deleteTarget.id) {
-        selectedId = null;
-      }
-    } catch (e) {
-      const msg = extractErrorMessage(e);
-      deleteError = msg;
-      notificationState.addNotification({
-        type: 'LEDGER_INTEGRITY',
-        priority: 'high',
-        title: i18n.t.deleteFailedTitle,
-        message: msg,
-      });
-    }
+    modalState.confirm({
+      title: i18n.t.deleteAccountTitle,
+      message: i18n.t.confirmDeleteAccountMsg
+        .replace('{code}', acc.code)
+        .replace('{name}', acc.name),
+      confirmLabel: i18n.t.confirmBtn,
+      cancelLabel: i18n.t.cancelModalBtn,
+      danger: true,
+      onConfirm: async () => {
+        deleteError = '';
+        try {
+          await accountsState.delete(acc.id);
+          if (selectedId === acc.id) {
+            selectedId = null;
+          }
+        } catch (e) {
+          const msg = extractErrorMessage(e);
+          deleteError = msg;
+          notificationState.addNotification({
+            type: 'LEDGER_INTEGRITY',
+            priority: 'high',
+            title: i18n.t.deleteFailedTitle,
+            message: msg,
+          });
+        }
+      },
+    });
   }
 
   async function toggleHide(acc: Account, e: MouseEvent) {
@@ -188,7 +189,7 @@
         class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
         title={i18n.t.transfersTitle}
         ariaLabel={i18n.t.transfersTitle}
-        onclick={() => (transferOpen = true)}
+        onclick={() => modalState.openTransfer()}
       >
         {i18n.t.transfersTitle}
       </Button>
@@ -270,17 +271,4 @@
     onSaved={() => accountsState.load()}
     onDeleteRequest={requestDelete}
   />
-
-  <ConfirmDialog
-    bind:open={confirmDeleteOpen}
-    title={i18n.t.deleteAccountTitle}
-    message={i18n.t.confirmDeleteAccountMsg
-      .replace('{code}', deleteTarget?.code ?? '')
-      .replace('{name}', deleteTarget?.name ?? '')}
-    confirmLabel={i18n.t.confirmBtn}
-    cancelLabel={i18n.t.cancelModalBtn}
-    onConfirm={executeDelete}
-  />
-
-  <TransferModal bind:open={transferOpen} onSuccess={() => accountsState.load()} />
 </PageLayout>

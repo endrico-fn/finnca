@@ -1,5 +1,3 @@
-import type { AccountType } from '$lib/core/ipc/bindings';
-
 export type BadgeTone =
   | 'ok'
   | 'warn'
@@ -31,12 +29,4 @@ export const BADGE_SIZES: Record<BadgeSize, string> = {
   s: 'px-1 py-px text-smaller leading-none font-bold tracking-wider',
   m: 'px-1.5 py-0.5 text-smaller leading-none font-bold tracking-wider',
   l: 'px-2 py-1 text-small leading-none font-bold tracking-wider',
-};
-
-export const ACCOUNT_TONE: Record<AccountType, BadgeTone> = {
-  ASSET: 'asset',
-  LIABILITY: 'liability',
-  EQUITY: 'equity',
-  INCOME: 'income',
-  EXPENSE: 'expense',
 };

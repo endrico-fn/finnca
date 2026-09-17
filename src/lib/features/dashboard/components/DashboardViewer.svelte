@@ -9,12 +9,11 @@
     type JournalEntryView,
     type LedgerTotalsView,
   } from '$lib/core/ipc/bindings';
-  import type { Transaction } from '$lib/core/types';
+  import { journalEntryToTransaction } from '$lib/core/types';
   import { getPref } from '$lib/core/state/prefs';
   import { modalState } from '$lib/core/state/modal.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import TransferModal from '$lib/features/journal/components/TransferModal.svelte';
   import { Splash, ErrorState, PageLayout, Button, SearchBar } from '$lib/components/ui';
 
   import { todayString, diffCalendarDays } from '$lib/core/format/date';
@@ -30,25 +29,7 @@
   let entries = $state<JournalEntryView[]>([]);
   let totals = $state<LedgerTotalsView | null>(null);
 
-  function toTransaction(entry: JournalEntryView): Transaction {
-    return {
-      id: entry.id,
-      date: entry.date,
-      description: entry.description,
-      notes: entry.notes ?? undefined,
-      currency: entry.currency as 'IDR' | 'USD',
-      fxRateAtTransaction: entry.fx_rate,
-      splits: entry.postings.map((p) => ({
-        id: p.id,
-        accountId: p.account_id,
-        amount: p.amount,
-        memo: p.memo ?? undefined,
-        reconcile: p.reconcile === 'y' ? 'y' : p.reconcile === 'c' ? 'c' : 'n',
-      })),
-    };
-  }
-
-  const transactions = $derived(entries.map(toTransaction));
+  const transactions = $derived(entries.map(journalEntryToTransaction));
 
   async function loadDashboard() {
     loading = true;
@@ -120,8 +101,6 @@
     const days = Math.max(0, diffCalendarDays(todayString(), reconciledDates[0]));
     return days === 0 ? i18n.t.reconToday : i18n.t.reconDaysAgo.replace('{days}', String(days));
   });
-
-  let transferOpen = $state(false);
 
   let searchQuery = $state<string>('');
   let searchInput = $state<string>('');
@@ -199,7 +178,7 @@
         class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
         title={i18n.t.transfersTitle}
         ariaLabel={i18n.t.transfersTitle}
-        onclick={() => (transferOpen = true)}
+        onclick={() => modalState.openTransfer()}
       >
         {i18n.t.transfersTitle}
       </Button>
@@ -241,6 +220,4 @@
       <CashflowCard {transactions} {accountsById} />
     </div>
   {/if}
-
-  <TransferModal bind:open={transferOpen} onSuccess={loadDashboard} />
 </PageLayout>

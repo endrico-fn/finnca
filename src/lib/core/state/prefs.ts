@@ -11,7 +11,6 @@ export interface PrefSchema {
   finnca_avatar: string;
   finnca_snoozed_notifs: Record<string, number>;
   finnca_lock_timeout: string;
-  finnca_last_briefing: string;
 }
 
 export type PrefKey = keyof PrefSchema;

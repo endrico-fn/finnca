@@ -44,7 +44,7 @@
       {@const active = isActive(item.href)}
       <a
         href={resolve(item.href as '/app')}
-        class="btn-nav text-small flex h-[32px] w-full items-center justify-between px-3 tracking-[0.06em] uppercase {active
+        class="btn-nav text-small flex h-8 w-full items-center justify-between px-3 tracking-wider uppercase {active
           ? 'active font-medium'
           : ''}"
       >

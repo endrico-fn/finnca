@@ -12,6 +12,7 @@
   } from '$lib/components/layout/HealthPulseModal.svelte';
   import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
   import JournalEntryForm from '$lib/features/journal/components/JournalEntryForm.svelte';
+  import TransferModal from '$lib/features/journal/components/TransferModal.svelte';
 
   let {
     healthStats = null,
@@ -97,5 +98,11 @@
       if (fn) await fn();
     }}
     onCancel={() => modalState.closeConfirm()}
+  />
+{/if}
+
+{#if modalState.transferModalOpen}
+  <TransferModal
+    bind:open={modalState.transferModalOpen}
   />
 {/if}

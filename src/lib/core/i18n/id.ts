@@ -1028,4 +1028,7 @@ export const id: TranslationDict = {
     'Vault Anda siap. Catat saldo awal kas atau rekening bank untuk menyeimbangkan buku besar pertama kali.',
   onboardingActionBtn: 'CATAT SALDO AWAL SEKARANG',
   balanceAdjustSuccess: 'Saldo akun berhasil disesuaikan vs Modal Awal.',
+  shortcutNavRows: 'Navigasi baris atas/bawah',
+  shortcutExpandSplits: 'Buka atau tutup rincian split',
+  shortcutEditTx: 'Edit transaksi terpilih',
 };

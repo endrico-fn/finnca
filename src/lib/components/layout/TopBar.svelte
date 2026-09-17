@@ -76,7 +76,7 @@
       aria-label={i18n.t.lockVault}
     >
       <Icon name="lock" size={13} />
-      <span class="hidden sm:inline">LOCK</span>
+      <span class="hidden sm:inline">{i18n.t.lockVault}</span>
     </button>
 
     <!-- Notification Bell Button -->

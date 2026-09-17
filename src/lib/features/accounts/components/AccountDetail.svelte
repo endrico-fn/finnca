@@ -2,7 +2,12 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { modalState } from '$lib/core/state/modal.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
-  import type { Transaction, ReconcileState, Currency } from '$lib/core/types';
+  import {
+    journalEntryToTransaction,
+    type Transaction,
+    type ReconcileState,
+    type Currency,
+  } from '$lib/core/types';
   import {
     listJournalEntriesCmd,
     postJournalEntryCmd,
@@ -15,7 +20,6 @@
   import { accountTypeLabel } from '$lib/core/format/account';
   import { accountsState } from '$lib/features/accounts/state/accounts.svelte';
   import JournalEntryForm from '$lib/features/journal/components/JournalEntryForm.svelte';
-  import TransferModal from '$lib/features/journal/components/TransferModal.svelte';
   import AccountModal from '$lib/features/accounts/components/AccountModal.svelte';
   import { todayString } from '$lib/core/format/date';
   import AccountLedgerSummary from './AccountLedgerSummary.svelte';
@@ -48,25 +52,7 @@
   const isPlaceholder = $derived(account?.placeholder ?? false);
   const balance = $derived(currentItem?.direct_balance ?? 0);
 
-  function toTransaction(entry: JournalEntryView): Transaction {
-    return {
-      id: entry.id,
-      date: entry.date,
-      description: entry.description,
-      notes: entry.notes ?? undefined,
-      currency: entry.currency as Currency,
-      fxRateAtTransaction: entry.fx_rate,
-      splits: entry.postings.map((p) => ({
-        id: p.id,
-        accountId: p.account_id,
-        amount: p.amount,
-        memo: p.memo ?? undefined,
-        reconcile: p.reconcile === 'y' ? 'y' : p.reconcile === 'c' ? 'c' : 'n',
-      })),
-    };
-  }
-
-  const transactions = $derived(entries.map(toTransaction));
+  const transactions = $derived(entries.map(journalEntryToTransaction));
 
   async function loadData() {
     loadError = null;

@@ -26,10 +26,8 @@
   let accounts = $state<Account[]>([]);
   const accountsById = $derived(new Map(accounts.map((a) => [a.id, a])));
 
-  // svelte-ignore state_referenced_locally
-  let transferFrom = $state(initialFrom);
-  // svelte-ignore state_referenced_locally
-  let transferTo = $state(initialTo);
+  let transferFrom = $state('');
+  let transferTo = $state('');
   let transferAmount = $state('');
   let transferDate = $state(new Date().toISOString().split('T')[0]);
   let transferNote = $state('');
