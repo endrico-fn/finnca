@@ -20,6 +20,7 @@
   import { accountTypeLabel } from '$lib/core/format/account';
   import { accountsState } from '$lib/features/accounts/state/accounts.svelte';
   import JournalEntryForm from '$lib/features/journal/components/JournalEntryForm.svelte';
+  import TransferModal from '$lib/features/journal/components/TransferModal.svelte';
   import AccountModal from '$lib/features/accounts/components/AccountModal.svelte';
   import { todayString } from '$lib/core/format/date';
   import AccountLedgerSummary from './AccountLedgerSummary.svelte';
