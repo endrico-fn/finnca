@@ -37,7 +37,7 @@
   );
 </script>
 
-<div class="border-line flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
+<div class="border-line bg-bg-card flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
   <SearchBar
     bind:value={searchQuery}
     placeholder={i18n.t.searchAccountPlaceholder}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { formatIDR, formatUSD } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Pagination } from '$lib/components/ui';
+  import { Pagination, Badge } from '$lib/components/ui';
 
   let {
     idrDebit = 0,
@@ -27,7 +27,7 @@
 </script>
 
 <div
-  class="border-line/40 font-proto text-medium flex shrink-0 items-center justify-between gap-2 border-t px-3 py-1.5"
+  class="border-line bg-bg-card font-proto text-smaller flex shrink-0 items-center justify-between gap-2 border-t px-3 py-2"
 >
   <div class="flex items-center gap-3">
     <span>
@@ -39,29 +39,23 @@
     <span class="text-line">|</span>
     <span>
       {i18n.t.totalCredit}:
-      <span class="text-text-base ml-1 font-bold tabular-nums">
+      <span class="text-text-strong ml-1 font-bold tabular-nums">
         {formatIDR(idrCredit)}{usdCredit > 0 ? ` + ${formatUSD(usdCredit)}` : ''}
       </span>
     </span>
 
     <div class="ml-1 hidden items-center sm:flex">
       {#if isBalanced}
-        <span
-          class="border-income/30 bg-income/10 text-income font-proto text-smaller inline-flex items-center gap-1 border px-1.5 py-0.5 font-bold tracking-wider uppercase"
-        >
-          <span class="bg-income size-1.5"></span>
+        <Badge size="s" tone="ok">
           {i18n.t.badgeBalanced}
-        </span>
+        </Badge>
       {:else}
-        <span
-          class="border-expense/30 bg-expense/10 text-expense font-proto text-smaller inline-flex items-center gap-1 border px-1.5 py-0.5 font-bold tracking-wider uppercase"
-        >
-          <span class="bg-expense size-1.5 animate-pulse"></span>
+        <Badge size="s" tone="err">
           {i18n.t.badgeImbalPrefix}
           {discrepancyIDR > 0 ? formatIDR(discrepancyIDR) : ''}{discrepancyUSD > 0
             ? ` ${formatUSD(discrepancyUSD)}`
             : ''}
-        </span>
+        </Badge>
       {/if}
     </div>
   </div>

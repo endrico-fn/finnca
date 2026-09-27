@@ -221,7 +221,7 @@
       title="{account.code} — {account.name}"
       badge={i18n.t.badgePhPlaceholder}
       badgeTone="warn"
-      class="min-h-0 flex-1"
+      class="border-line bg-bg-card min-h-0 flex-1 border"
     >
       <div class="space-y-2 p-3">
         <p class="text-text-muted text-small">{i18n.t.placeholderNotPostable}</p>
@@ -236,8 +236,9 @@
     <Card
       title="{account.code} — {account.name}"
       description={`${accountTypeLabel(account.account_type)} • ${account.currency} • ${i18n.t.accountPostableTag}${account.note ? ` • ${account.note}` : ''}`}
-      class="min-h-0 flex-1"
+      class="border-line bg-bg-card min-h-0 flex-1 flex flex-col overflow-hidden border"
       padding={false}
+      borderHeader
     >
       {#snippet header()}
         <div class="font-proto text-smaller shrink-0 text-right">
@@ -256,37 +257,35 @@
         </div>
       {/snippet}
 
-      <div class="flex flex-col gap-2 px-3 pt-2 pb-2">
-        {#if isAbnormal}
-          <div
-            class="border-expense/40 bg-expense/10 text-expense font-proto text-smaller border px-2 py-1"
-          >
-            {i18n.t.alertTag}{i18n.t.abnormalBalance.replace(
-              '{type}',
-              accountTypeLabel(account.account_type)
-            )}
-            ({isDebitNormal(account.account_type) ? i18n.t.shouldBeDebit : i18n.t.shouldBeCredit})
-          </div>
-        {/if}
+      {#if isAbnormal}
+        <div
+          class="border-expense/40 bg-expense/10 text-expense font-proto text-smaller border-b px-3 py-1.5"
+        >
+          {i18n.t.alertTag}{i18n.t.abnormalBalance.replace(
+            '{type}',
+            accountTypeLabel(account.account_type)
+          )}
+          ({isDebitNormal(account.account_type) ? i18n.t.shouldBeDebit : i18n.t.shouldBeCredit})
+        </div>
+      {/if}
 
-        <AccountLedgerFilterBar
-          bind:q
-          bind:from
-          bind:to
-          bind:reconcileFilter
-          {statusCounts}
-          filteredCount={filteredEntries.length}
-          totalCount={ledgerItems.length}
-          onReset={clearRange}
-        />
+      <AccountLedgerFilterBar
+        bind:q
+        bind:from
+        bind:to
+        bind:reconcileFilter
+        {statusCounts}
+        filteredCount={filteredEntries.length}
+        totalCount={ledgerItems.length}
+        onReset={clearRange}
+      />
 
-        <AccountLedgerSummary
-          currency={account.currency}
-          {periodStats}
-          filteredCount={filteredEntries.length}
-          totalCount={ledgerItems.length}
-        />
-      </div>
+      <AccountLedgerSummary
+        currency={account.currency}
+        {periodStats}
+        filteredCount={filteredEntries.length}
+        totalCount={ledgerItems.length}
+      />
 
       <AccountLedgerTable
         entries={filteredEntries}

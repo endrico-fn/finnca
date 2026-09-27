@@ -769,6 +769,11 @@ export const id: TranslationDict = {
   budgetRolloverBtn: 'SALIN BULAN SEBELUMNYA',
   budgetRolloverSuccess: 'Alokasi anggaran berhasil disalin dari bulan lalu.',
   budgetRolloverEmpty: 'Tidak ditemukan alokasi pada bulan sebelumnya.',
+  budgetSearchPlaceholder: 'Cari kategori atau kode akun…',
+  filterFunded: 'TERALOKASI',
+  filterOverspent: 'MELEBIHI',
+  filterUnassigned: 'BELUM DIALOKASI',
+  noEnvelopesMatch: 'Tidak ada kategori anggaran yang sesuai kriteria.',
 
   // Command Palette & Global Keys
   cmdCategoryNav: 'NAVIGASI',

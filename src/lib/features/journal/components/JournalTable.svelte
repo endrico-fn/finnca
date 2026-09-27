@@ -2,7 +2,7 @@
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import type { JournalEntryView, Account } from '$lib/core/ipc/bindings';
-  import { formatIDR, formatUSD } from '$lib/core/format/currency';
+  import { formatMinorToDisplay } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { Button, Badge, Icon } from '$lib/components/ui';
   import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
@@ -93,29 +93,22 @@
   }}
   class="min-h-0 flex-1 overflow-y-auto"
 >
-  {#if entries.length === 0}
-    <div class="flex h-full items-center justify-center p-8">
-      <p class="text-text-muted font-aux text-small">
-        {totalCount === 0 ? i18n.t.noTxRecorded : i18n.t.noTxMatchFilter}
-      </p>
-    </div>
-  {:else}
-    <table class="sharp-table">
-      <thead class="sticky top-0 z-10">
-        <tr>
-          <th class="w-24 pl-3">{i18n.t.date}</th>
-          <th class="w-20 px-2">{i18n.t.colRef}</th>
-          <th class="px-2.5">{i18n.t.description}</th>
-          <th class="w-36 px-2">{i18n.t.debit} {i18n.t.account}</th>
-          <th class="numeric w-28 px-2">{i18n.t.debit}</th>
-          <th class="w-36 px-2">{i18n.t.credit} {i18n.t.account}</th>
-          <th class="numeric w-28 px-2">{i18n.t.credit}</th>
-          <th class="center w-16 px-2">{i18n.t.status}</th>
-          <th class="w-16 pr-3"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {#snippet journalRow(tx: JournalEntryView, index: number)}
+  <table class="sharp-table w-full border-x-0 border-t-0" spellcheck="false">
+    <thead class="sticky top-0 z-10 bg-bg-card">
+      <tr class="border-b border-line">
+        <th class="w-24 pl-3 py-2 whitespace-nowrap">{i18n.t.date}</th>
+        <th class="w-20 px-2 py-2 whitespace-nowrap">{i18n.t.colRef}</th>
+        <th class="px-3 py-2">{i18n.t.description}</th>
+        <th class="w-36 px-2 py-2">{i18n.t.debit} {i18n.t.account}</th>
+        <th class="numeric w-28 px-3 py-2 whitespace-nowrap text-right">{i18n.t.debit}</th>
+        <th class="w-36 px-2 py-2">{i18n.t.credit} {i18n.t.account}</th>
+        <th class="numeric w-28 px-3 py-2 whitespace-nowrap text-right">{i18n.t.credit}</th>
+        <th class="center w-16 px-2 py-2">{i18n.t.status}</th>
+        <th class="w-16 pr-3 py-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {#snippet journalRow(tx: JournalEntryView, index: number)}
           {@const imb = transactionImbalance(tx)}
           {@const drcr = getDrCrPostings(tx, accountsById)}
           {@const isLocked = closingBooksState.isDateLocked(tx.date)}
@@ -132,18 +125,19 @@
 
           <tr
             id="tx-row-{tx.id}"
-            class="cursor-pointer transition-colors {isSelected
-              ? 'bg-bg-row-active border-teal border-l-2'
+            class="hover:bg-bg-row-active cursor-pointer transition-colors {isSelected
+              ? 'selected bg-bg-row-active border-teal border-l-2'
               : ''} {isEditing ? 'bg-bg-row-active' : ''}"
+            aria-selected={isSelected}
             onclick={() => {
               onToggleExpand(tx.id);
               onSelectRow(index);
             }}
           >
-            <td class="font-proto text-text-base py-2 pl-3 whitespace-nowrap tabular-nums">
+            <td class="font-proto text-text-muted text-smaller w-24 py-2 pl-3 whitespace-nowrap tabular-nums">
               {tx.date}
             </td>
-            <td class="font-proto text-text-muted text-smaller px-2 py-2 whitespace-nowrap">
+            <td class="font-proto text-text-muted text-smaller w-20 px-2 py-2 whitespace-nowrap">
               {#if num}
                 <span class="bg-bg-app border-line text-text-dim border px-1">
                   {num}
@@ -152,9 +146,9 @@
                 —
               {/if}
             </td>
-            <td class="px-2.5 py-2">
+            <td class="px-3 py-2">
               <div class="flex items-center gap-1.5">
-                <span class="font-aux text-text-strong truncate">{tx.description}</span>
+                <span class="font-aux text-text-strong text-small truncate normal-case">{tx.description}</span>
                 {#if cleanDue}
                   {#if isSettled}
                     <Badge size="s" tone="ok">{i18n.t.badgeSettled}</Badge>
@@ -175,26 +169,26 @@
                 {/if}
               </div>
               {#if displayNotes}
-                <p class="text-text-muted font-aux text-smaller mt-0.5 leading-tight">
+                <p class="text-text-muted font-aux text-smaller mt-0.5 leading-tight normal-case">
                   {displayNotes}
                 </p>
               {/if}
             </td>
-            <td class="font-proto text-text-base text-smaller max-w-36 truncate px-2 py-2">
-              <span class="text-text-strong font-medium">{drcr.drLabel}</span>
+            <td class="font-proto text-text-base text-smaller w-36 max-w-36 truncate px-2 py-2">
+              <span class="text-text-strong font-medium truncate">{drcr.drLabel}</span>
             </td>
             <td
-              class="numeric font-proto text-income text-smaller px-2 py-2 font-bold whitespace-nowrap tabular-nums"
+              class="numeric font-proto text-income text-smaller w-28 px-3 py-2 font-bold whitespace-nowrap tabular-nums text-right"
             >
-              {tx.currency === 'USD' ? formatUSD(drcr.drTotal) : formatIDR(drcr.drTotal)}
+              {formatMinorToDisplay(drcr.drTotal, tx.currency)}
             </td>
-            <td class="font-proto text-text-base text-smaller max-w-36 truncate px-2 py-2">
-              <span class="text-text-base">{drcr.crLabel}</span>
+            <td class="font-proto text-text-base text-smaller w-36 max-w-36 truncate px-2 py-2">
+              <span class="text-text-strong font-medium truncate">{drcr.crLabel}</span>
             </td>
             <td
-              class="numeric font-proto text-text-strong text-smaller px-2 py-2 font-bold whitespace-nowrap tabular-nums"
+              class="numeric font-proto text-text-strong text-smaller w-28 px-3 py-2 font-bold whitespace-nowrap tabular-nums text-right"
             >
-              {tx.currency === 'USD' ? formatUSD(drcr.crTotal) : formatIDR(drcr.crTotal)}
+              {formatMinorToDisplay(drcr.crTotal, tx.currency)}
             </td>
             <td class="center px-2 py-2">
               {#if imb !== 0}
@@ -264,6 +258,13 @@
           {/if}
         {/snippet}
 
+      {#if entries.length === 0}
+        <tr>
+          <td colspan="9" class="text-text-muted font-aux text-small py-12 text-center">
+            {totalCount === 0 ? i18n.t.noTxRecorded : i18n.t.noTxMatchFilter}
+          </td>
+        </tr>
+      {:else}
         {#if topPadding > 0}
           <tr style="height: {topPadding}px"><td colspan="9" class="p-0 border-none"></td></tr>
         {/if}
@@ -273,7 +274,7 @@
         {#if bottomPadding > 0}
           <tr style="height: {bottomPadding}px"><td colspan="9" class="p-0 border-none"></td></tr>
         {/if}
-      </tbody>
-    </table>
-  {/if}
+      {/if}
+    </tbody>
+  </table>
 </div>

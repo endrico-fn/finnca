@@ -22,7 +22,7 @@
 </script>
 
 <div
-  class="font-proto border-line text-smaller flex shrink-0 flex-wrap items-center gap-4 border-t pt-2"
+  class="font-proto border-line bg-bg-card text-smaller flex shrink-0 flex-wrap items-center gap-4 border-b px-3 py-2"
 >
   <span class="text-text-muted">
     {i18n.t.debitLabel}
@@ -33,7 +33,7 @@
   <span class="text-line">|</span>
   <span class="text-text-muted">
     {i18n.t.creditLabel}
-    <strong class="text-text-base ml-1 tabular-nums">
+    <strong class="text-text-strong ml-1 tabular-nums">
       {formatMinorToDisplay(periodStats.credit, currency)}
     </strong>
   </span>

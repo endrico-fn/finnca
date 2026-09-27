@@ -765,6 +765,11 @@ export const en = {
   budgetRolloverBtn: 'COPY PREVIOUS MONTH',
   budgetRolloverSuccess: 'Budget allocations copied from last month.',
   budgetRolloverEmpty: 'No allocations found in previous month.',
+  budgetSearchPlaceholder: 'Search category or account code…',
+  filterFunded: 'FUNDED',
+  filterOverspent: 'OVERSPENT',
+  filterUnassigned: 'UNASSIGNED',
+  noEnvelopesMatch: 'No budget categories match the search criteria.',
 
   // Command Palette & Global Keys
   cmdCategoryNav: 'NAVIGATION',

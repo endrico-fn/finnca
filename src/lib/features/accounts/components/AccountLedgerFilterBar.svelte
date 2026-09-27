@@ -44,7 +44,7 @@
   );
 </script>
 
-<div class="flex shrink-0 flex-wrap items-center gap-2">
+<div class="border-line bg-bg-card flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
   <SearchBar
     bind:value={q}
     placeholder={i18n.t.searchLedgerPlaceholder}

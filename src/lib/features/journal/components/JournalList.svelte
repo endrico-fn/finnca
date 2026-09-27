@@ -259,7 +259,7 @@
     <ErrorState message={journalState.error} onRetry={() => journalState.loadEntries()} />
   {:else}
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <Card padding={false} class="min-h-0 min-w-0 flex-1 flex flex-col overflow-hidden">
+      <Card padding={false} class="border-line bg-bg-card min-h-0 min-w-0 flex-1 flex flex-col overflow-hidden border">
         <JournalFilterBar
           bind:q
           bind:from

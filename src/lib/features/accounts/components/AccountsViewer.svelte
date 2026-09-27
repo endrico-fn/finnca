@@ -253,8 +253,9 @@
   {:else}
     <Card
       title="{i18n.t.chartOfAccounts} ({filteredAccounts.length})"
-      class="min-h-0 flex-1"
+      class="border-line bg-bg-card min-h-0 flex-1 flex flex-col overflow-hidden border"
       padding={false}
+      borderHeader
     >
       {#snippet header()}
         <span

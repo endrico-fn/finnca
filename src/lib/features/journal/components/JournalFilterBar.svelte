@@ -48,7 +48,7 @@
   );
 </script>
 
-<div class="border-line flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2.5">
+<div class="border-line bg-bg-card flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
   <SearchBar
     bind:value={q}
     oninput={onFilterChange}
@@ -103,7 +103,7 @@
     <button
       type="button"
       class="font-proto text-smaller px-2.5 py-1.5 transition-colors {statusFilter === 'all'
-        ? 'bg-bg-card-selected text-text-strong font-bold'
+        ? 'bg-bg-btn text-text-strong font-bold'
         : 'text-text-muted hover:text-text-base'}"
       onclick={() => {
         statusFilter = 'all';
@@ -116,7 +116,7 @@
       type="button"
       class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {statusFilter ===
       'due'
-        ? 'bg-warn-soft text-warn font-bold'
+        ? 'bg-warning-bg text-warning font-bold'
         : 'text-text-muted hover:text-text-base'}"
       onclick={() => {
         statusFilter = 'due';
@@ -129,7 +129,7 @@
       type="button"
       class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {statusFilter ===
       'overdue'
-        ? 'bg-err-soft text-err font-bold'
+        ? 'bg-danger-bg text-danger font-bold'
         : 'text-text-muted hover:text-text-base'}"
       onclick={() => {
         statusFilter = 'overdue';
