@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { formatIDR, formatMinorToDisplay } from '$lib/core/format/currency';
+  import { formatIDR, formatUSD } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { Pagination } from '$lib/components/ui';
-
-  const formatUSD = (val: number) => formatMinorToDisplay(val, 'USD');
 
   let {
     idrDebit = 0,
@@ -52,14 +50,15 @@
           class="border-income/30 bg-income/10 text-income font-proto text-smaller inline-flex items-center gap-1 border px-1.5 py-0.5 font-bold tracking-wider uppercase"
         >
           <span class="bg-income size-1.5"></span>
-          BALANCED
+          {i18n.t.badgeBalanced}
         </span>
       {:else}
         <span
           class="border-expense/30 bg-expense/10 text-expense font-proto text-smaller inline-flex items-center gap-1 border px-1.5 py-0.5 font-bold tracking-wider uppercase"
         >
           <span class="bg-expense size-1.5 animate-pulse"></span>
-          IMBAL: {discrepancyIDR > 0 ? formatIDR(discrepancyIDR) : ''}{discrepancyUSD > 0
+          {i18n.t.badgeImbalPrefix}
+          {discrepancyIDR > 0 ? formatIDR(discrepancyIDR) : ''}{discrepancyUSD > 0
             ? ` ${formatUSD(discrepancyUSD)}`
             : ''}
         </span>

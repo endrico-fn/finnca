@@ -1,44 +1,31 @@
 import { SvelteMap } from 'svelte/reactivity';
 import { invokeIpc } from '$lib/core/ipc/client';
+import {
+  listReconcileRulesCmd,
+  createReconcileRuleCmd,
+  deleteReconcileRuleCmd,
+  evaluateReconcileRulesCmd,
+  matchStatementCmd,
+  type ReconcileRuleWithAccount,
+  type CreateReconcileRuleInput,
+  type MatchedRuleSuggestion,
+  type StatementRow,
+  type MatchStatementOutput,
+  type MatchResult,
+  type PostingReconcileView,
+  type ReconciliationStatusView,
+} from '$lib/core/ipc/bindings';
 
-export interface PostingReconcileView {
-  posting_id: string;
-  entry_id: string;
-  date: string;
-  description: string;
-  amount: number;
-  memo: string | null;
-  reconciled: string;
-  reconciled_at: number | null;
-}
-
-export interface ReconciliationStatusView {
-  account_id: string;
-  reconciled_balance: number;
-  cleared_balance: number;
-  uncleared_balance: number;
-  total_balance: number;
-  uncleared_postings: PostingReconcileView[];
-}
-
-export interface StatementRow {
-  date: string;
-  amount: number;
-  description?: string;
-}
-
-export interface MatchResult {
-  statement_index: number;
-  posting_id: string;
-  matched_amount: number;
-}
-
-export interface MatchStatementOutput {
-  matches: MatchResult[];
-  unmatched_statement_indices: number[];
-  matched_count: number;
-  unmatched_count: number;
-}
+export type {
+  PostingReconcileView,
+  ReconciliationStatusView,
+  StatementRow,
+  MatchResult,
+  MatchStatementOutput,
+  ReconcileRuleWithAccount,
+  CreateReconcileRuleInput,
+  MatchedRuleSuggestion,
+};
 
 class ReconcileState {
   selectedAccountId = $state<string>('');
@@ -46,6 +33,9 @@ class ReconcileState {
   targetBalanceMinor = $state<number>(0);
   loading = $state<boolean>(false);
   error = $state<string | null>(null);
+
+  rules = $state<ReconcileRuleWithAccount[]>([]);
+  rulesLoading = $state<boolean>(false);
 
   status = $state<ReconciliationStatusView | null>(null);
   clearedMap = $state(new SvelteMap<string, boolean>());
@@ -146,6 +136,48 @@ class ReconcileState {
     }
   }
 
+  async loadRules(): Promise<void> {
+    this.rulesLoading = true;
+    try {
+      this.rules = await listReconcileRulesCmd();
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.rulesLoading = false;
+    }
+  }
+
+  async createRule(input: CreateReconcileRuleInput): Promise<ReconcileRuleWithAccount> {
+    this.rulesLoading = true;
+    try {
+      const created = await createReconcileRuleCmd(input);
+      await this.loadRules();
+      return created;
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+      throw e;
+    } finally {
+      this.rulesLoading = false;
+    }
+  }
+
+  async deleteRule(ruleId: string): Promise<void> {
+    this.rulesLoading = true;
+    try {
+      await deleteReconcileRuleCmd(ruleId);
+      await this.loadRules();
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+      throw e;
+    } finally {
+      this.rulesLoading = false;
+    }
+  }
+
+  async evaluateRules(statements: StatementRow[]): Promise<StatementRow[]> {
+    return evaluateReconcileRulesCmd(statements);
+  }
+
   async matchStatement(
     statements: StatementRow[],
     autoClear = true
@@ -153,13 +185,29 @@ class ReconcileState {
     if (!this.selectedAccountId) throw new Error('No account selected');
     this.loading = true;
     try {
-      const res = await invokeIpc<MatchStatementOutput>('match_statement_cmd', {
-        accountId: this.selectedAccountId,
-        statements,
-        autoClear,
-      });
+      const res = await matchStatementCmd(this.selectedAccountId, statements, autoClear);
       await this.loadStatus();
       return res;
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+      throw e;
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  async applyMatchedPostings(postingIds: string[]): Promise<void> {
+    if (!this.selectedAccountId || postingIds.length === 0) return;
+    this.loading = true;
+    try {
+      for (const id of postingIds) {
+        this.clearedMap.set(id, true);
+      }
+      await invokeIpc('bulk_set_postings_reconciled_cmd', {
+        postingIds,
+        status: 'c',
+      });
+      await this.loadStatus();
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
       throw e;

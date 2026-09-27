@@ -14,7 +14,7 @@
     rememberVault,
     syncVaultsFromBackend,
   } from '$lib/features/vault/state/vaultList.svelte';
-  import type { AppStateView } from '$lib/core/types';
+  import { APP_SLUG, type AppStateView } from '$lib/core/types';
   import VaultBrandHeader from './VaultBrandHeader.svelte';
   import VaultImportView from './VaultImportView.svelte';
   import RegisterFields from './RegisterFields.svelte';
@@ -41,7 +41,8 @@
   let username = $state('');
   let password = $state('');
   let confirm = $state('');
-  let templateLanguage = $state<'en' | 'id'>('en');
+  let templateLanguage = $state<'en' | 'id'>(i18n.locale === 'id' ? 'id' : 'en');
+  let accountProfile = $state<'personal' | 'freelance' | 'business' | 'minimal'>('personal');
   let busy = $state(false);
   let error = $state('');
   let showImport = $state(false);
@@ -57,10 +58,10 @@
   const targetFolderPreview = $derived.by(() => {
     if (!vaultPath) return '';
     const cleanPath = vaultPath.replace(/\/+$/, '');
-    if (cleanPath.split('/').pop()?.startsWith('finnca-')) {
+    if (cleanPath.split('/').pop()?.startsWith(`${APP_SLUG}-`)) {
       return cleanPath;
     }
-    return `${cleanPath}/finnca-${slug}`;
+    return `${cleanPath}/${APP_SLUG}-${slug}`;
   });
 
   async function pickFolder() {
@@ -94,7 +95,7 @@
     busy = true;
     try {
       await createVault(vaultName.trim(), vaultPath);
-      const st = await createAccount(username.trim(), password, templateLanguage);
+      const st = await createAccount(username.trim(), password, templateLanguage, accountProfile);
       session.raw = st;
       if (st.vault_name) {
         rememberVault({
@@ -127,9 +128,8 @@
   }
 </script>
 
-<div class="border-line bg-bg-card relative w-full max-w-4xl overflow-hidden border">
-  <div class="grid min-h-[540px] grid-cols-12 items-stretch">
-    <!-- Left column: Branding & Security specifications -->
+<div class="border-line bg-bg-card relative w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto border">
+  <div class="grid min-h-135 grid-cols-12 items-stretch">
     <div class="bg-bg-app border-line col-span-5 flex flex-col justify-between border-r p-7">
       <div>
         <VaultBrandHeader tagline={i18n.t.setupTagline} />
@@ -152,7 +152,7 @@
             <span class="text-text-dim text-smaller font-proto block tracking-wider uppercase">
               {i18n.t.encryptionScheme}
             </span>
-            <span class="text-text-base text-smaller font-proto">ARGON2ID • SQLCIPHER AES-256</span>
+            <span class="text-text-base text-smaller font-proto">Argon2id · SQLCipher AES-256-GCM</span>
           </div>
 
           <div class="border-line border-t pt-2">
@@ -170,7 +170,6 @@
       </div>
     </div>
 
-    <!-- Right column: Unified Form or Import -->
     <div class="bg-bg-card col-span-7 flex flex-col justify-between p-7">
       {#if showImport}
         <VaultImportView
@@ -223,6 +222,7 @@
               bind:password
               bind:confirm
               bind:templateLanguage
+              bind:accountProfile
               {targetFolderPreview}
               onPickFolder={pickFolder}
             />

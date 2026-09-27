@@ -5,18 +5,23 @@ use std::path::Path;
 use tauri::{AppHandle, State};
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_app_state(app: AppHandle, state: State<'_, AppState>) -> Result<AppStateView, String> {
     view(&app, &state)
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn unlock(
     app: AppHandle,
     state: State<'_, AppState>,
     password: String,
 ) -> Result<AppStateView, String> {
-    let config = config::load(&app)?;
-    let vault = config.vault.ok_or("vault not created — start from setup")?;
+    let mut config = config::load(&app)?;
+    let vault = config
+        .vault
+        .as_ref()
+        .ok_or("vault not created — start from setup")?;
     let vault_path = Path::new(&vault.path);
 
     let vault_path_clone = vault_path.to_path_buf();
@@ -27,6 +32,14 @@ pub async fn unlock(
     .map_err(|e| format!("Unlock task failed: {e}"))?
     .map_err(|e| format!("Failed to unlock vault: {e}"))?;
 
+    #[cfg(target_os = "linux")]
+    if config.settings.auto_lock_mode == "on-reboot" {
+        if let Ok(boot_id) = std::fs::read_to_string("/proc/sys/kernel/random/boot_id") {
+            config.settings.boot_id = Some(boot_id.trim().to_string());
+            let _ = config::save(&app, &config);
+        }
+    }
+
     state.set_session(Session {
         vault_path: vault_path.to_path_buf(),
         vault_name: vault.name.clone(),
@@ -36,12 +49,14 @@ pub async fn unlock(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn lock(app: AppHandle, state: State<'_, AppState>) -> Result<AppStateView, String> {
     state.clear_session();
     view(&app, &state)
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn change_password(
     app: AppHandle,
     state: State<'_, AppState>,

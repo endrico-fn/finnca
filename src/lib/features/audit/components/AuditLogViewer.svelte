@@ -1,6 +1,12 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { getAuditLogCmd, type AuditEntry } from '$lib/core/ipc/bindings';
+  import {
+    getAuditLogCmd,
+    verifyAuditLogIntegrityCmd,
+    type AuditEntry,
+    type AuditIntegrityReport,
+  } from '$lib/core/ipc/bindings';
   import {
     PageLayout,
     Card,
@@ -8,6 +14,7 @@
     Badge,
     Pagination,
     LoadingSpinner,
+    Button,
   } from '$lib/components/ui';
 
   let currentPage = $state(1);
@@ -17,7 +24,21 @@
   let loading = $state(false);
   let error = $state<string | null>(null);
 
+  let integrityReport = $state<AuditIntegrityReport | null>(null);
+  let verifyingIntegrity = $state(false);
+
   const totalPages = $derived(Math.max(1, Math.ceil(total / perPage)));
+
+  async function checkIntegrity() {
+    verifyingIntegrity = true;
+    try {
+      integrityReport = await verifyAuditLogIntegrityCmd();
+    } catch {
+      integrityReport = null;
+    } finally {
+      verifyingIntegrity = false;
+    }
+  }
 
   async function loadLogs() {
     loading = true;
@@ -32,6 +53,10 @@
       loading = false;
     }
   }
+
+  onMount(() => {
+    checkIntegrity();
+  });
 
   $effect(() => {
     void currentPage;
@@ -53,6 +78,31 @@
 </script>
 
 <PageLayout title={i18n.t.auditLogTitle}>
+  {#snippet actions()}
+    <div class="flex items-center gap-2">
+      {#if integrityReport}
+        <Badge
+          size="s"
+          tone={integrityReport.is_valid ? 'ok' : 'err'}
+          class="font-proto tracking-wider uppercase font-bold"
+        >
+          {integrityReport.is_valid
+            ? i18n.t.auditHashChainValid.replace('{count}', String(integrityReport.total_verified))
+            : i18n.t.auditHashChainTampered}
+        </Badge>
+      {/if}
+      <Button
+        variant="secondary"
+        size="sm"
+        loading={verifyingIntegrity}
+        onclick={checkIntegrity}
+        class="font-proto text-smaller h-8 px-2.5 font-bold uppercase tracking-wider"
+      >
+        {i18n.t.auditVerifyIntegrityBtn}
+      </Button>
+    </div>
+  {/snippet}
+
   {#if error}
     <div class="badge-err text-small font-proto mb-2 p-2">{error}</div>
   {/if}
@@ -83,30 +133,45 @@
         </div>
       {:else}
         <div class="font-proto text-small min-h-0 flex-1 overflow-y-auto">
-          <table class="w-full border-collapse">
-            <thead class="bg-bg-card sticky top-0 z-10">
-              <tr class="border-line text-text-base border-b">
-                <th class="label-xs w-48 py-1.5 pl-3 text-left font-normal whitespace-nowrap">
+          <table class="sharp-table">
+            <thead class="sticky top-0 z-10">
+              <tr>
+                <th class="w-48 pl-3 text-left">
                   {i18n.t.auditTimeCol}
                 </th>
-                <th class="label-xs w-36 px-3 py-1.5 text-left font-normal whitespace-nowrap">
+                <th class="w-28 px-2 text-left">
+                  HASH
+                </th>
+                <th class="w-36 px-3 text-left">
                   {i18n.t.auditActorCol}
                 </th>
-                <th class="label-xs w-36 px-3 py-1.5 text-left font-normal whitespace-nowrap">
+                <th class="w-36 px-3 text-left">
                   {i18n.t.auditActionCol}
                 </th>
-                <th class="label-xs px-3 py-1.5 text-left font-normal">
+                <th class="px-3 text-left">
                   {i18n.t.auditEntityCol}
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-line/40 divide-y">
+            <tbody>
               {#each entries as entry (entry.id)}
-                <tr class="hover:bg-bg-row-active transition-colors">
+                <tr>
                   <td
                     class="text-text-muted font-proto text-smaller py-1 pl-3 whitespace-nowrap tabular-nums"
                   >
                     {formatTimestamp(entry.created_at)}
+                  </td>
+                  <td class="px-2 py-1 whitespace-nowrap">
+                    {#if entry.hash}
+                      <span
+                        class="font-proto text-smaller bg-bg-app border-line text-text-dim border px-1 select-all"
+                        title="prev: {entry.prev_hash || 'GENESIS'}&#10;hash: {entry.hash}"
+                      >
+                        {entry.hash.slice(0, 8)}…
+                      </span>
+                    {:else}
+                      <span class="text-text-dim font-proto text-smaller">—</span>
+                    {/if}
                   </td>
                   <td
                     class="font-proto text-text-strong text-smaller px-3 py-1 font-medium whitespace-nowrap"

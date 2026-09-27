@@ -59,7 +59,9 @@
           <div class="flex min-h-6 min-w-0 shrink-0 items-center gap-1.5">
             <p class="label-title truncate leading-none uppercase">{title}</p>
             {#if count !== undefined}
-              <span class="text-text-dim font-proto text-small font-normal tabular-nums">{count}</span>
+              <span class="text-text-dim font-proto text-small font-normal tabular-nums"
+                >{count}</span
+              >
             {/if}
           </div>
           {#if description}

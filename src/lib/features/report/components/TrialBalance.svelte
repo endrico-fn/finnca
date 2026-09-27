@@ -6,7 +6,7 @@
   import { Badge, Card } from '$lib/components/ui';
   import { reportState } from '../state/report.svelte';
 
-  const fmt = (n: number) => formatMinorToDisplay(n, 'IDR');
+  const fmt = (n: number, c = 'IDR') => formatMinorToDisplay(n, c);
 
   let { asOf = '' }: { asOf?: string } = $props();
 
@@ -21,7 +21,11 @@
   const balanced = $derived(tbReport?.is_balanced ?? true);
 </script>
 
-<Card divided title={i18n.t.trialBalanceTitle} class="flex flex-1 min-h-0 flex-col w-full overflow-hidden">
+<Card
+  divided
+  title={i18n.t.trialBalanceTitle}
+  class="flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+>
   {#snippet header()}
     <div class="flex min-w-0 items-center justify-end gap-4">
       <Badge size="m" tone={balanced ? 'ok' : 'warn'}>
@@ -30,11 +34,11 @@
       <div
         class="font-proto text-smaller flex shrink-0 items-center gap-4 whitespace-nowrap tabular-nums"
       >
-        <span class="shrink-0 text-text-dim">
+        <span class="text-text-dim shrink-0">
           {i18n.t.totalDebit}:
           <strong class="text-text-white font-bold">{fmt(totalDebit)}</strong>
         </span>
-        <span class="shrink-0 text-text-dim">
+        <span class="text-text-dim shrink-0">
           {i18n.t.totalCredit}:
           <strong class="text-text-white font-bold">{fmt(totalCredit)}</strong>
         </span>
@@ -65,11 +69,15 @@
             <td class="font-proto text-text-dim text-smaller w-32 px-3 whitespace-nowrap">
               {accountTypeLabel(r.account_type as AccountType)}
             </td>
-            <td class="numeric font-proto text-text-white text-smaller w-36 px-3 whitespace-nowrap tabular-nums">
-              {r.debit ? fmt(r.debit) : '—'}
+            <td
+              class="numeric font-proto text-text-white text-smaller w-36 px-3 whitespace-nowrap tabular-nums"
+            >
+              {r.debit ? fmt(r.debit, r.currency) : '—'}
             </td>
-            <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
-              {r.credit ? fmt(r.credit) : '—'}
+            <td
+              class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums"
+            >
+              {r.credit ? fmt(r.credit, r.currency) : '—'}
             </td>
           </tr>
         {:else}
@@ -80,6 +88,25 @@
           </tr>
         {/each}
       </tbody>
+      {#if rows.length > 0}
+        <tfoot class="border-line bg-bg-card font-proto sticky bottom-0 z-10 border-t-2 font-bold">
+          <tr>
+            <td colspan="3" class="text-smaller text-text-muted py-2 pl-3 tracking-wider uppercase">
+              {i18n.t.totals}
+            </td>
+            <td
+              class="numeric text-smaller text-text-white w-36 px-3 py-2 whitespace-nowrap tabular-nums"
+            >
+              {fmt(totalDebit)}
+            </td>
+            <td
+              class="numeric text-smaller text-text-white w-36 py-2 pr-3 whitespace-nowrap tabular-nums"
+            >
+              {fmt(totalCredit)}
+            </td>
+          </tr>
+        </tfoot>
+      {/if}
     </table>
   </div>
 </Card>

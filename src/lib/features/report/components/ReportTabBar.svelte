@@ -1,8 +1,9 @@
 <script lang="ts">
   import { i18n } from '$lib/core/i18n.svelte';
   import { todayString } from '$lib/core/format/date';
-  import { Tabs, DateRangeDropdown, DateDropdown } from '$lib/components/ui';
+  import { DateRangeDropdown, DateDropdown } from '$lib/components/ui';
   import type { ReportTab, ReportGroup } from '../state/report.svelte';
+  import { REPORT_GROUPS, REPORT_TAB_LABELS, reportGroupOf } from '../state/reportNav';
 
   let {
     currentTab,
@@ -16,70 +17,45 @@
     to: string;
   } = $props();
 
-  const groups: { id: ReportGroup; label: string; defaultTab: ReportTab }[] = $derived([
-    { id: 'statements', label: i18n.t.reportGroupStatements, defaultTab: 'bs' },
-    { id: 'budget-debt', label: i18n.t.reportGroupBudgetDebt, defaultTab: 'budget-actual' },
-    { id: 'analysis', label: i18n.t.reportGroupAnalysis, defaultTab: 'trends' },
-  ]);
-
-  const activeGroup = $derived<ReportGroup>(
-    currentTab === 'bs' || currentTab === 'pnl' || currentTab === 'cashflow' || currentTab === 'tb'
-      ? 'statements'
-      : currentTab === 'budget-actual' || currentTab === 'debt'
-        ? 'budget-debt'
-        : 'analysis'
+  const activeGroup = $derived<ReportGroup>(reportGroupOf(currentTab));
+  const currentGroupMeta = $derived(
+    REPORT_GROUPS.find((g) => g.id === activeGroup) ?? REPORT_GROUPS[0]
   );
-
-  const currentGroupTabs = $derived.by(() => {
-    switch (activeGroup) {
-      case 'statements':
-        return [
-          { id: 'bs', label: i18n.t.balanceSheetTitle },
-          { id: 'pnl', label: i18n.t.pnlTitle },
-          { id: 'cashflow', label: i18n.t.cashflowTab },
-          { id: 'tb', label: i18n.t.trialBalanceTitle },
-        ];
-      case 'budget-debt':
-        return [
-          { id: 'budget-actual', label: i18n.t.budgetVsActualTitle },
-          { id: 'debt', label: i18n.t.debtReportTitle },
-        ];
-      case 'analysis':
-        return [
-          { id: 'trends', label: i18n.t.trendsTitle },
-          { id: 'fx', label: i18n.t.fxRevalTab },
-        ];
-    }
-  });
 
   const isRangeTab = $derived(
-    currentTab === 'pnl' || currentTab === 'cashflow' || currentTab === 'fx'
+    currentTab === 'pnl' ||
+      currentTab === 'cashflow' ||
+      currentTab === 'spending' ||
+      currentTab === 'fx' ||
+      currentTab === 'income-exp' ||
+      currentTab === 'trends' ||
+      currentTab === 'networth'
   );
   const isAsOfTab = $derived(
-    currentTab === 'bs' || currentTab === 'tb' || currentTab === 'debt'
+    currentTab === 'bs' || currentTab === 'tb' || currentTab === 'debt' || currentTab === 'forecast'
   );
-
-  function onSelectGroup(groupId: ReportGroup) {
-    const grp = groups.find((g) => g.id === groupId);
-    if (grp && activeGroup !== groupId) {
-      onSelectTab(grp.defaultTab);
-    }
-  }
 </script>
 
-<div class="border-line mb-3 flex flex-col gap-2 border-b pb-2">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-2">
-      {#each groups as g (g.id)}
+<div class="border-line mb-3 shrink-0 space-y-1.5 border-b pb-2.5 select-none">
+  <div class="flex flex-wrap items-center justify-between gap-2.5">
+    <div class="border-line/60 bg-bg-app inline-flex items-center gap-1 border p-0.5">
+      {#each REPORT_GROUPS as g (g.id)}
         {@const isGroupActive = activeGroup === g.id}
         <button
           type="button"
-          onclick={() => onSelectGroup(g.id)}
-          class="font-proto text-smaller px-2.5 py-1 tracking-wider uppercase transition-colors {isGroupActive
-            ? 'border-b-2 border-teal text-teal font-bold'
-            : 'text-text-muted hover:text-text-base'}"
+          onclick={() => {
+            if (!isGroupActive) {
+              onSelectTab(g.defaultTab);
+            }
+          }}
+          class="font-proto text-smaller flex h-7 cursor-pointer items-center gap-1.5 px-3 uppercase transition-colors {isGroupActive
+            ? 'border-line/80 bg-bg-card text-text-strong font-bold border'
+            : 'text-text-muted hover:text-text-strong hover:bg-bg-btn'}"
         >
-          {g.label}
+          {#if isGroupActive}
+            <span class="bg-teal size-1.5 shrink-0"></span>
+          {/if}
+          <span>{i18n.t[g.labelKey]}</span>
         </button>
       {/each}
     </div>
@@ -89,7 +65,7 @@
         <DateRangeDropdown bind:from bind:to />
       </div>
     {:else if isAsOfTab}
-      <div class="flex h-6 shrink-0 items-center gap-2">
+      <div class="flex h-7 shrink-0 items-center gap-2">
         <label
           for="as-of-date"
           class="font-proto text-text-dim text-smaller tracking-wider uppercase"
@@ -106,12 +82,18 @@
     {/if}
   </div>
 
-  <div class="border-line/40 flex flex-wrap items-center gap-1 border-t pt-1.5">
-    <Tabs
-      tabs={currentGroupTabs}
-      active={currentTab}
-      onSelect={(id) => onSelectTab(id as ReportTab)}
-    />
+  <div class="flex items-center gap-1.5 overflow-x-auto pt-0.5">
+    {#each currentGroupMeta.tabs as tabId (tabId)}
+      {@const isSelected = currentTab === tabId}
+      <button
+        type="button"
+        onclick={() => onSelectTab(tabId)}
+        class="font-proto text-smaller flex h-7 cursor-pointer items-center gap-1.5 px-2.5 uppercase transition-colors whitespace-nowrap {isSelected
+          ? 'bg-teal/15 text-teal border-teal/50 font-bold border'
+          : 'border-line/40 bg-bg-card/50 text-text-muted hover:text-text-strong hover:bg-bg-btn hover:border-line border'}"
+      >
+        <span>{i18n.t[REPORT_TAB_LABELS[tabId]]}</span>
+      </button>
+    {/each}
   </div>
 </div>
-

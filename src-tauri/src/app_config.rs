@@ -3,17 +3,17 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct VaultInfo {
     pub name: String,
     pub path: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct Settings {
     pub auto_lock_mode: String,
     /// Linux boot_id at time mode was set to on-reboot — for fast-unlock comparison
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub boot_id: Option<String>,
 }
 
@@ -26,7 +26,7 @@ impl Default for Settings {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct VaultRegistryEntry {
     pub id: String,
     pub name: String,

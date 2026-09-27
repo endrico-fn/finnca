@@ -3,49 +3,37 @@
   import { modalState } from '$lib/core/state/modal.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import {
-    journalEntryToTransaction,
-    type Transaction,
-    type ReconcileState,
-    type Currency,
-  } from '$lib/core/types';
-  import {
-    listJournalEntriesCmd,
-    postJournalEntryCmd,
-    updateJournalEntryCmd,
-    deleteJournalEntryCmd,
-    type JournalEntryView,
-    type PostingInput,
+    getAccountLedgerCmd,
+    getJournalEntryCmd,
+    setPostingReconciledCmd,
+    type AccountRunningLedgerItem,
+    type ReconcileStatus,
+    type CreateJournalEntryInput,
   } from '$lib/core/ipc/bindings';
   import { formatMinorToDisplay } from '$lib/core/format/currency';
   import { accountTypeLabel } from '$lib/core/format/account';
   import { accountsState } from '$lib/features/accounts/state/accounts.svelte';
-  import JournalEntryForm from '$lib/features/journal/components/JournalEntryForm.svelte';
-  import TransferModal from '$lib/features/journal/components/TransferModal.svelte';
   import AccountModal from '$lib/features/accounts/components/AccountModal.svelte';
   import { todayString } from '$lib/core/format/date';
   import AccountLedgerSummary from './AccountLedgerSummary.svelte';
-  import AccountLedgerTable, { type LedgerEntryRow } from './AccountLedgerTable.svelte';
+  import AccountLedgerTable from './AccountLedgerTable.svelte';
   import AccountLedgerFilterBar from './AccountLedgerFilterBar.svelte';
   import {
     isDebitNormal,
     checkAbnormalBalance,
-    buildAccountEntries,
     filterLedgerEntries,
     computeLedgerStats,
     computeStatusCounts,
   } from '../state/accountLedgerUtils';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
-  import { PageLayout, Card, Button, ModalShell, Splash, ErrorState } from '$lib/components/ui';
+  import { PageLayout, Card, Button, Splash, ErrorState } from '$lib/components/ui';
 
   let loadError = $state<string | null>(null);
-  let entries = $state<JournalEntryView[]>([]);
+  let ledgerItems = $state<AccountRunningLedgerItem[]>([]);
 
   const accountItems = $derived(accountsState.items);
   const loading = $derived(accountsState.loading && accountsState.items.length === 0);
-
-  const accounts = $derived(accountItems.map((i) => i.account));
-  const accountsById = $derived(new Map(accounts.map((a) => [a.id, a])));
 
   const code = $derived(page.params.code ?? '');
   const currentItem = $derived(accountItems.find((i) => i.account.code === code) ?? null);
@@ -53,22 +41,35 @@
   const isPlaceholder = $derived(account?.placeholder ?? false);
   const balance = $derived(currentItem?.direct_balance ?? 0);
 
-  const transactions = $derived(entries.map(journalEntryToTransaction));
-
   async function loadData() {
     loadError = null;
     try {
-      const [entryList] = await Promise.all([
-        listJournalEntriesCmd(),
-        accountsState.items.length === 0 && !accountsState.loading
-          ? accountsState.load()
-          : Promise.resolve(),
-      ]);
-      entries = entryList;
+      if (accountsState.items.length === 0 && !accountsState.loading) {
+        await accountsState.load();
+      }
+      if (account) {
+        ledgerItems = await getAccountLedgerCmd(account.id);
+      } else {
+        ledgerItems = [];
+      }
     } catch (e) {
       loadError = e instanceof Error ? e.message : String(e);
     }
   }
+
+  $effect(() => {
+    if (account?.id) {
+      getAccountLedgerCmd(account.id)
+        .then((items) => {
+          ledgerItems = items;
+        })
+        .catch((e) => {
+          loadError = e instanceof Error ? e.message : String(e);
+        });
+    } else {
+      ledgerItems = [];
+    }
+  });
 
   onMount(() => {
     loadData();
@@ -80,38 +81,33 @@
     };
   });
 
-  const allEntries = $derived(buildAccountEntries(account, transactions));
-
   let q = $state('');
   let from = $state('');
   let to = $state('');
-  let reconcileFilter = $state<'ALL' | ReconcileState>('ALL');
-  let showNew = $state(false);
-  let editing = $state<Transaction | null>(null);
-  let transferOpen = $state(false);
+  let reconcileFilter = $state<'ALL' | ReconcileStatus>('ALL');
   let addSubModalOpen = $state(false);
 
-  const initialDraftForAccount = $derived.by((): Transaction | undefined => {
+  const initialDraftForAccount = $derived.by((): CreateJournalEntryInput | undefined => {
     if (!account || isPlaceholder) return undefined;
     return {
       id: crypto.randomUUID(),
       date: todayString(),
-      dueDate: '',
-      settled: false,
       description: '',
-      num: '',
       notes: '',
-      currency: (account.currency as Currency) || 'IDR',
-      splits: [
+      reference_no: null,
+      due_date: null,
+      currency: account.currency || 'IDR',
+      fx_rate: null,
+      postings: [
         {
           id: crypto.randomUUID(),
-          accountId: account.id,
+          account_id: account.id,
           amount: 0,
           reconcile: 'n',
         },
         {
           id: crypto.randomUUID(),
-          accountId: '',
+          account_id: '',
           amount: 0,
           reconcile: 'n',
         },
@@ -126,61 +122,31 @@
     reconcileFilter = 'ALL';
   }
 
-  const filteredEntries = $derived(filterLedgerEntries(allEntries, q, from, to, reconcileFilter));
-  const statusCounts = $derived(computeStatusCounts(allEntries, q, from, to));
+  const filteredEntries = $derived(filterLedgerEntries(ledgerItems, q, from, to, reconcileFilter));
+  const statusCounts = $derived(computeStatusCounts(ledgerItems, q, from, to));
   const periodStats = $derived(computeLedgerStats(filteredEntries));
   const isAbnormal = $derived(checkAbnormalBalance(account, balance));
 
-  async function persistTx(tx: Transaction) {
-    const postings: PostingInput[] = tx.splits.map((s) => ({
-      id: s.id || undefined,
-      account_id: s.accountId,
-      amount: Math.round(s.amount),
-      memo: s.memo || null,
-      action: null,
-      reconcile: (s.reconcile === 'y' ? 'y' : s.reconcile === 'c' ? 'c' : null) as 'c' | 'y' | null,
-    }));
-
-    if (tx.id && entries.some((e) => e.id === tx.id)) {
-      await updateJournalEntryCmd(tx.id, {
-        date: tx.date,
-        description: tx.description,
-        notes: tx.notes || null,
-        currency: tx.currency,
-        fx_rate: tx.fxRateAtTransaction ?? null,
-        postings,
-      });
-    } else {
-      await postJournalEntryCmd({
-        date: tx.date,
-        description: tx.description,
-        notes: tx.notes || null,
-        currency: tx.currency,
-        fx_rate: tx.fxRateAtTransaction ?? null,
-        postings,
-      });
+  async function handleEdit(entryId: string) {
+    try {
+      const entry = await getJournalEntryCmd(entryId);
+      modalState.openInspector({ entry, isNew: false });
+    } catch (e) {
+      loadError = e instanceof Error ? e.message : String(e);
     }
-    eventBus.emit('transaction:posted', { id: tx.id });
-    eventBus.emit('accounts:changed', undefined);
   }
 
-  async function handleSave(tx: Transaction) {
-    await persistTx(tx);
-    await loadData();
-    editing = null;
-    showNew = false;
-  }
-
-  async function toggleReconcile(entry: LedgerEntryRow) {
-    const order: ReconcileState[] = ['n', 'c', 'y'];
-    const cur = entry.split.reconcile;
+  async function toggleReconcile(entry: AccountRunningLedgerItem) {
+    const order: ReconcileStatus[] = ['n', 'c', 'y'];
+    const cur = entry.reconcile;
     const next = order[(order.indexOf(cur) + 1) % 3];
-    const cloned: Transaction = $state.snapshot(entry.tx);
-    const target = cloned.splits.find((s) => s.id === entry.split.id);
-    if (target) {
-      target.reconcile = next;
-      await persistTx(cloned);
-      await loadData();
+    try {
+      await setPostingReconciledCmd(entry.posting_id, next);
+      if (account) {
+        ledgerItems = await getAccountLedgerCmd(account.id);
+      }
+    } catch (e) {
+      loadError = e instanceof Error ? e.message : String(e);
     }
   }
 </script>
@@ -197,22 +163,12 @@
       {#if !isPlaceholder}
         <div class="flex shrink-0 items-center gap-1.5">
           <Button
-            variant="ghost"
-            class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
-            title={i18n.t.transfersTitle}
-            ariaLabel={i18n.t.transfersTitle}
-            onclick={() => (transferOpen = true)}
-          >
-            {i18n.t.transfersTitle}
-          </Button>
-          <Button
             variant="primary"
             class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
             title={i18n.t.addEntry}
             ariaLabel={i18n.t.addEntry}
             onclick={() => {
-              showNew = true;
-              editing = null;
+              modalState.openQuickTx(initialDraftForAccount, true);
             }}
           >
             {i18n.t.addEntry}
@@ -286,7 +242,7 @@
       {#snippet header()}
         <div class="font-proto text-smaller shrink-0 text-right">
           <span class="text-text-muted">
-            {allEntries.length}
+            {ledgerItems.length}
             {i18n.t.entriesLabel} • {filteredEntries.length}
             {i18n.t.filteredLabel}
           </span>
@@ -320,7 +276,7 @@
           bind:reconcileFilter
           {statusCounts}
           filteredCount={filteredEntries.length}
-          totalCount={allEntries.length}
+          totalCount={ledgerItems.length}
           onReset={clearRange}
         />
 
@@ -328,85 +284,24 @@
           currency={account.currency}
           {periodStats}
           filteredCount={filteredEntries.length}
-          totalCount={allEntries.length}
+          totalCount={ledgerItems.length}
         />
       </div>
 
-      {#if editing}
-        <div class="mb-3 shrink-0 px-3 pt-1 pb-2">
-          <svelte:boundary>
-            <JournalEntryForm
-              tx={editing}
-              onSave={handleSave}
-              onCancel={() => (editing = null)}
-              onDelete={async (id: string) => {
-                const tx = transactions.find((t) => t.id === id);
-                modalState.confirm({
-                  title: i18n.t.confirmDeleteJournalTitle,
-                  message: i18n.t.confirmDeleteJournalMsg.replace('{desc}', tx?.description ?? id),
-                  confirmLabel: i18n.t.confirmBtn,
-                  cancelLabel: i18n.t.cancelModalBtn,
-                  danger: true,
-                  onConfirm: async () => {
-                    await deleteJournalEntryCmd(id);
-                    eventBus.emit('transaction:posted', { id });
-                    eventBus.emit('accounts:changed', undefined);
-                    await loadData();
-                    editing = null;
-                  },
-                });
-              }}
-            />
-            {#snippet failed()}
-              <div class="badge-err font-proto text-small mt-2 px-3 py-2">
-                {i18n.t.quickTxLoadFailed}
-              </div>
-            {/snippet}
-          </svelte:boundary>
-        </div>
-      {/if}
-
       <AccountLedgerTable
         entries={filteredEntries}
-        {accountsById}
         accountCurrency={account.currency}
-        hasAnyEntries={allEntries.length > 0}
+        hasAnyEntries={ledgerItems.length > 0}
         {isPlaceholder}
         onAddSubAccount={() => (addSubModalOpen = true)}
         onToggleReconcile={toggleReconcile}
-        onEdit={(tx) => (editing = tx)}
+        onEdit={handleEdit}
         onNewEntry={() => {
-          showNew = true;
-          editing = null;
+          modalState.openQuickTx(initialDraftForAccount, true);
         }}
       />
     </Card>
   {/if}
-
-  {#if showNew && account && !isPlaceholder}
-    <ModalShell
-      bind:open={showNew}
-      title={i18n.t.addEntry}
-      maxWidth="max-w-5xl"
-      onClose={() => (showNew = false)}
-    >
-      <svelte:boundary>
-        <JournalEntryForm
-          tx={null}
-          initialDraft={initialDraftForAccount}
-          onSave={handleSave}
-          onCancel={() => (showNew = false)}
-        />
-        {#snippet failed()}
-          <div class="badge-err font-proto text-small mt-2 px-3 py-2">
-            {i18n.t.quickTxLoadFailed}
-          </div>
-        {/snippet}
-      </svelte:boundary>
-    </ModalShell>
-  {/if}
-
-  <TransferModal bind:open={transferOpen} initialFrom={account?.id ?? ''} onSuccess={loadData} />
 
   {#if account}
     <AccountModal

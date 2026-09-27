@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct UpsertBudgetInput {
+    #[serde(default)]
     pub id: Option<String>,
     pub month: String,
     pub account_id: String,
     pub amount: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct EnvelopeView {
     pub account_id: String,
     pub account_code: String,
@@ -18,7 +19,7 @@ pub struct EnvelopeView {
     pub available: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct BudgetMonthSummary {
     pub month: String,
     pub envelopes: Vec<EnvelopeView>,

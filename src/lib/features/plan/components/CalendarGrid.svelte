@@ -3,7 +3,7 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import type { DateEvents } from '../state/plan.svelte';
   import { getDayCashflow, formatCompact } from '../state/planCalendarUtils';
-  import { Icon, Button, Badge, Card } from '$lib/components/ui';
+  import { Badge, Card, MonthPager } from '$lib/components/ui';
 
   export interface CalendarNavigation {
     monthName: string;
@@ -43,29 +43,13 @@
           {/if}
         </h2>
       </div>
-      <div class="flex items-center gap-1.5">
-        <Button
-          variant="pager"
-          size="icon"
-          onclick={nav.prevMonth}
-          ariaLabel={i18n.t.prevMonth}
-          title={i18n.t.prevMonth}
-        >
-          <Icon name="chev-left" size={14} />
-        </Button>
-        <Button variant="pager" onclick={nav.goToday}>
-          {i18n.t.today}
-        </Button>
-        <Button
-          variant="pager"
-          size="icon"
-          onclick={nav.nextMonth}
-          ariaLabel={i18n.t.nextMonth}
-          title={i18n.t.nextMonth}
-        >
-          <Icon name="chev-right" size={14} />
-        </Button>
-      </div>
+      <MonthPager
+        variant="bare"
+        onPrev={nav.prevMonth}
+        onNext={nav.nextMonth}
+        onToday={nav.goToday}
+        iconSize={14}
+      />
     </div>
   {/snippet}
 
@@ -87,11 +71,12 @@
       {#each calendarDays as day (day.dateStr)}
         {@const evts = eventsByDate.get(day.dateStr)}
         {@const flow = getDayCashflow(evts)}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div
+        <button
+          type="button"
           onclick={() => (selectedDate = day.dateStr)}
-          class="group relative flex h-full min-h-0 cursor-pointer flex-col p-1.5 transition-colors
+          aria-pressed={day.dateStr === selectedDate}
+          aria-label={day.dateStr}
+          class="group relative flex h-full min-h-0 cursor-pointer flex-col p-1.5 text-left transition-colors
           {day.dateStr === selectedDate
             ? 'bg-bg-row-active outline-teal z-10 outline outline-1 -outline-offset-1'
             : !day.isCurrentMonth
@@ -132,7 +117,9 @@
                   class="font-proto text-smaller truncate border-l px-1.5 py-0.5 {p.type ===
                   'RECEIVABLE'
                     ? 'border-income bg-income/10 text-income'
-                    : 'border-expense bg-expense/10 text-expense'}"
+                    : p.type === 'PAYABLE'
+                      ? 'border-expense bg-expense/10 text-expense'
+                      : 'border-teal bg-teal/10 text-teal'}"
                   title={p.title}
                 >
                   {p.title}
@@ -151,7 +138,7 @@
               {/if}
             {/if}
           </div>
-        </div>
+        </button>
       {/each}
     </div>
 
@@ -165,6 +152,10 @@
       <div class="flex items-center gap-1.5">
         <div class="bg-expense h-2 w-2"></div>
         <span>{i18n.t.planLegendPayable}</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="bg-teal h-2 w-2"></div>
+        <span>{i18n.t.planLegendRecurring}</span>
       </div>
       <div class="flex items-center gap-1.5">
         <div class="border-line bg-bg-app h-2 w-2 border"></div>

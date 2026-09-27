@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PlanType {
     Receivable,
@@ -32,7 +32,7 @@ impl FromStr for PlanType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PlanStatus {
     Active,
@@ -66,7 +66,7 @@ impl FromStr for PlanStatus {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PlanFrequency {
     Daily,
@@ -97,7 +97,7 @@ impl FromStr for PlanFrequency {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, specta::Type)]
 pub struct PaymentPlan {
     pub id: String,
     pub title: String,
@@ -112,5 +112,7 @@ pub struct PaymentPlan {
     pub from_account_id: String,
     pub to_account_id: String,
     pub notes: Option<String>,
+    pub last_posted_date: Option<String>,
+    pub auto_post: bool,
     pub created_at: i64,
 }

@@ -4,6 +4,7 @@ use crate::{view, AppStateView};
 use tauri::{AppHandle, State};
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_boot_id() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
@@ -18,6 +19,7 @@ pub fn get_boot_id() -> Result<String, String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn set_auto_lock_mode(
     app: AppHandle,
     state: State<'_, AppState>,

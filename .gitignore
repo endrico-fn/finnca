@@ -8,13 +8,26 @@ build/
 dist/
 
 # tauri / rust
+target/
 src-tauri/target/
 src-tauri/gen/schemas/
+**/*.rs.bk
 
 # logs / os
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 .DS_Store
 Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
 
 .env
 .env.*
@@ -23,9 +36,14 @@ Thumbs.db
 *.tsbuildinfo
 
 # finnca vault secrets — never commit
+*.db
+*.db-wal
+*.db-shm
 *.age
 *.key
+*.meta.json
 .finnca-test
+finnca-*/
 finnca-*-backup/
 
 # scratch / one-off scripts — never commit
@@ -34,5 +52,5 @@ split_finance.cjs
 test-pdfmake.mjs
 lint_output.txt
 
-# agent run workspace (teamwork_preview session logs) — local archive only
+# agent run workspace
 .agents/

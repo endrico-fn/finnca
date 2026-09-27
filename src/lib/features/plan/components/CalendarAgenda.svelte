@@ -6,7 +6,7 @@
   import type { PaymentPlan, DateEvents } from '../state/plan.svelte';
   import { isPlanPostedOnDate } from '../planUtils';
   import { computeDayCashflowTotals, getTxPositiveTotal } from '../state/planCalendarUtils';
-  import { Icon, Badge, Card } from '$lib/components/ui';
+  import { Icon, Badge, Card, Button } from '$lib/components/ui';
 
   let {
     selectedDate,
@@ -72,50 +72,56 @@
         <span class="text-text-muted font-proto text-smaller tabular-nums">{selectedDate}</span>
       </div>
 
-      <!-- [1] EXPECTED IN -->
-      <div class="sharp-card bg-income/5 border-income/20 flex flex-col gap-1 p-2">
-        <div class="flex items-center gap-1.5">
-          <span class="text-text-muted text-smaller tracking-wider uppercase">
-            {i18n.t.planExpectedIn}
+      <div class="grid grid-cols-3 gap-1.5">
+        <div class="sharp-card bg-income/5 border-income/20 flex flex-col gap-1 p-2">
+          <div class="flex items-center gap-1.5">
+            <span class="text-text-muted text-smaller truncate tracking-wider uppercase">
+              {i18n.t.planExpectedIn}
+            </span>
+          </div>
+          <span
+            class="text-income font-proto text-small truncate leading-none font-bold tabular-nums"
+          >
+            {totals.totalIn > 0 ? `+${formatIDR(totals.totalIn)}` : formatIDR(0)}
           </span>
         </div>
-        <span class="text-income font-proto text-small leading-none font-bold tabular-nums">
-          {totals.totalIn > 0 ? `+${formatIDR(totals.totalIn)}` : formatIDR(0)}
-        </span>
-      </div>
 
-      <!-- [2] EXPECTED OUT -->
-      <div class="sharp-card bg-expense/5 border-expense/20 flex flex-col gap-1 p-2">
-        <div class="flex items-center gap-1.5">
-          <span class="text-text-muted text-smaller tracking-wider uppercase">
-            {i18n.t.planExpectedOut}
+        <div class="sharp-card bg-expense/5 border-expense/20 flex flex-col gap-1 p-2">
+          <div class="flex items-center gap-1.5">
+            <span class="text-text-muted text-smaller truncate tracking-wider uppercase">
+              {i18n.t.planExpectedOut}
+            </span>
+          </div>
+          <span
+            class="text-expense font-proto text-small truncate leading-none font-bold tabular-nums"
+          >
+            {totals.totalOut > 0 ? `-${formatIDR(totals.totalOut)}` : formatIDR(0)}
           </span>
         </div>
-        <span class="text-expense font-proto text-small leading-none font-bold tabular-nums">
-          {totals.totalOut > 0 ? `-${formatIDR(totals.totalOut)}` : formatIDR(0)}
-        </span>
-      </div>
 
-      <!-- [3] NET ESTIMATE -->
-      <div class="sharp-card bg-bg-app border-line flex flex-col gap-1 p-2">
-        <div class="flex items-center gap-1.5">
-          <span class="text-text-strong text-smaller font-medium tracking-wider uppercase">
-            {i18n.t.planNetEstimate}
+        <div class="sharp-card bg-bg-app border-line flex flex-col gap-1 p-2">
+          <div class="flex items-center gap-1.5">
+            <span
+              class="text-text-strong text-smaller truncate font-medium tracking-wider uppercase"
+            >
+              {i18n.t.planNetEstimate}
+            </span>
+          </div>
+          <span
+            class="font-proto text-small truncate leading-none font-bold tabular-nums {totals.net >
+            0
+              ? 'text-income'
+              : totals.net < 0
+                ? 'text-expense'
+                : 'text-text-muted'}"
+          >
+            {totals.net > 0
+              ? `+${formatIDR(totals.net)}`
+              : totals.net < 0
+                ? `-${formatIDR(Math.abs(totals.net))}`
+                : formatIDR(0)}
           </span>
         </div>
-        <span
-          class="font-proto text-small leading-none font-bold tabular-nums {totals.net > 0
-            ? 'text-income'
-            : totals.net < 0
-              ? 'text-expense'
-              : 'text-text-muted'}"
-        >
-          {totals.net > 0
-            ? `+${formatIDR(totals.net)}`
-            : totals.net < 0
-              ? `-${formatIDR(Math.abs(totals.net))}`
-              : formatIDR(0)}
-        </span>
       </div>
     </div>
 
@@ -126,13 +132,9 @@
           {i18n.t.planNoDueOnDate}
         </p>
         {#if openCreatePlan}
-          <button
-            type="button"
-            onclick={openCreatePlan}
-            class="sharp-btn bg-teal/10 text-teal border-teal/30 hover:bg-teal hover:text-bg-app font-proto text-smaller border px-3 py-1.5 transition-all"
-          >
+          <Button variant="outline" size="sm" onclick={openCreatePlan}>
             {i18n.t.planAddForDate}
-          </button>
+          </Button>
         {/if}
       </div>
     {:else}
@@ -153,7 +155,9 @@
               <div
                 class="bg-bg-app border-line border p-2.5 transition-colors {p.type === 'RECEIVABLE'
                   ? 'border-l-income border-l'
-                  : 'border-l-expense border-l'}"
+                  : p.type === 'PAYABLE'
+                    ? 'border-l-expense border-l'
+                    : 'border-l-teal border-l'}"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0 flex-1">
@@ -182,18 +186,18 @@
                     {#if isPosted}
                       <Badge size="s" tone="ok">{i18n.t.planMarkPosted}</Badge>
                     {:else}
-                      <button
-                        type="button"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onclick={() => postInstallment(p)}
                         disabled={postingBusyId === p.id}
-                        class="sharp-btn bg-teal/10 text-teal border-teal/20 hover:bg-teal hover:text-bg-app text-smaller border px-2 py-0.5 transition-all"
                       >
                         {#if postingBusyId === p.id}
                           <span class="spinner-sm border-teal"></span>
                         {:else}
                           {i18n.t.recordEntry}
                         {/if}
-                      </button>
+                      </Button>
                     {/if}
                   </div>
                 </div>

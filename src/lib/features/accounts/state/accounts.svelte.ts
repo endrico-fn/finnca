@@ -19,38 +19,9 @@ export {
   ACCOUNT_TYPE_BG,
   ACCOUNT_TYPE_TEXT,
   accountTypeLabel,
+  getAccountPath,
+  getAccountBreadcrumb,
 } from '$lib/core/format/account';
-
-export function getAccountPath(acc: Account, byId: Map<string, Account>): string {
-  const parts: string[] = [acc.name];
-  let cur: Account | undefined = acc;
-  while (cur?.parent_id && byId.has(cur.parent_id)) {
-    const parent: Account = byId.get(cur.parent_id)!;
-    parts.unshift(parent.name);
-    cur = parent;
-  }
-  const rootType =
-    acc.account_type === 'ASSET'
-      ? 'Assets'
-      : acc.account_type === 'LIABILITY'
-        ? 'Liabilities'
-        : acc.account_type === 'EQUITY'
-          ? 'Equity'
-          : acc.account_type === 'INCOME'
-            ? 'Income'
-            : 'Expenses';
-  if (parts.length > 0 && parts[0].toLowerCase() !== rootType.toLowerCase()) {
-    parts.unshift(rootType);
-  }
-  return parts.join(' > ');
-}
-
-export function getAccountCleanPath(accId: string, byId: Map<string, Account>): string {
-  const acc = byId.get(accId);
-  if (!acc) return '';
-  return getAccountPath(acc, byId);
-}
-
 
 class AccountsStore {
   items = $state<AccountBalanceView[]>([]);
@@ -68,7 +39,6 @@ class AccountsStore {
       ])
     )
   );
-
 
   async load(): Promise<void> {
     this.loading = true;

@@ -1,4 +1,5 @@
 import type { TranslationDict } from '$lib/core/i18n/types';
+import { todayString } from '$lib/core/format/date';
 
 export function getThisMonthRange(): [string, string] {
   const now = new Date();
@@ -24,17 +25,12 @@ export function getThisYearRange(): [string, string] {
 
 export function getLast30DaysRange(): [string, string] {
   const end = new Date();
-  const start = new Date(Date.now() - 29 * 86400000);
-  const f = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return [f(start), f(end)];
+  const start = new Date();
+  start.setDate(start.getDate() - 29);
+  return [todayString(start), todayString(end)];
 }
 
-export function formatRangeDisplayLabel(
-  from: string,
-  to: string,
-  t: TranslationDict
-): string {
+export function formatRangeDisplayLabel(from: string, to: string, t: TranslationDict): string {
   if (!from && !to) return t.allTime;
 
   const [tmFrom, tmTo] = getThisMonthRange();

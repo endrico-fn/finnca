@@ -81,7 +81,7 @@ pub struct LegacyVaultData {
 }
 
 fn default_fx_rate() -> i64 {
-    16000
+    crate::ledger::currency::DEFAULT_FX_RATE
 }
 
 pub fn is_legacy_vault(vault_path: &Path) -> bool {
@@ -213,6 +213,7 @@ fn populate_and_verify(
                     memo: s.memo.clone(),
                     action: s.action.clone(),
                     reconcile: rec,
+                    ..Default::default()
                 }
             })
             .collect();
@@ -224,6 +225,9 @@ fn populate_and_verify(
                 date: tx.date.clone(),
                 description: tx.description.clone(),
                 notes: tx.notes.clone(),
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
                 currency: Some(tx.currency.clone()),
                 fx_rate: tx.fx_rate_at_transaction,
                 postings,

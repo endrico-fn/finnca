@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct AccountReportRow {
     pub account_id: String,
     pub code: String,
@@ -9,7 +9,7 @@ pub struct AccountReportRow {
     pub amount: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct ProfitLossReport {
     pub from_date: Option<String>,
     pub to_date: Option<String>,
@@ -20,7 +20,7 @@ pub struct ProfitLossReport {
     pub net_income: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct BalanceSheetReport {
     pub as_of_date: Option<String>,
     pub asset_rows: Vec<AccountReportRow>,
@@ -34,14 +34,16 @@ pub struct BalanceSheetReport {
     pub is_balanced: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct CashFlowActivityRow {
+    pub date: String,
     pub category: String,
     pub description: String,
+    pub account_name: String,
     pub amount: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct CashFlowReport {
     pub from_date: Option<String>,
     pub to_date: Option<String>,
@@ -52,9 +54,11 @@ pub struct CashFlowReport {
     pub net_cash_change: i64,
     pub ending_cash: i64,
     pub operating_rows: Vec<CashFlowActivityRow>,
+    pub investing_rows: Vec<CashFlowActivityRow>,
+    pub financing_rows: Vec<CashFlowActivityRow>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct TrialBalanceRow {
     pub account_id: String,
     pub code: String,
@@ -65,7 +69,7 @@ pub struct TrialBalanceRow {
     pub credit: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct TrialBalanceReport {
     pub as_of_date: Option<String>,
     pub rows: Vec<TrialBalanceRow>,
@@ -74,7 +78,7 @@ pub struct TrialBalanceReport {
     pub is_balanced: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct FxRevaluationItem {
     pub account_id: String,
     pub code: String,
@@ -86,7 +90,7 @@ pub struct FxRevaluationItem {
     pub unrealized_gain_idr: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct FxRevaluationReport {
     pub as_of_date: Option<String>,
     pub current_fx_rate: i64,
@@ -96,7 +100,7 @@ pub struct FxRevaluationReport {
     pub total_unrealized_gain_idr: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct DailyTrendPoint {
     pub date: String,
     pub net_worth: i64,
@@ -105,9 +109,17 @@ pub struct DailyTrendPoint {
     pub liquid_cash: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct HistoricalTrendsReport {
     pub from_date: String,
     pub to_date: String,
     pub points: Vec<DailyTrendPoint>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+pub struct MonthlyCashflowPoint {
+    pub month: String,
+    pub income: i64,
+    pub expense: i64,
+    pub net: i64,
 }

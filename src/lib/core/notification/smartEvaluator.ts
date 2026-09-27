@@ -2,31 +2,15 @@ import {
   listPlansWithProgressCmd,
   getLedgerTotalsCmd,
   listAccountsCmd,
+  getBudgetSummaryCmd,
   type Account,
   type AccountBalanceView,
 } from '$lib/core/ipc/bindings';
-import { invokeIpc } from '$lib/core/ipc/client';
 import { notificationState } from '$lib/core/state/notification.svelte';
 import { getPref } from '$lib/core/state/prefs';
 import { formatMinorToDisplay } from '$lib/core/format/currency';
+import { todayString } from '$lib/core/format/date';
 import type { TranslationDict } from '$lib/core/i18n/types';
-
-interface BudgetEnvelope {
-  account_id: string;
-  account_code: string;
-  account_name: string;
-  assigned: number;
-  activity: number;
-  available: number;
-}
-
-interface BudgetMonthSummary {
-  month: string;
-  envelopes: BudgetEnvelope[];
-  total_assigned: number;
-  total_activity: number;
-  to_be_budgeted: number;
-}
 
 const evaluatedKeys = new Set<string>();
 
@@ -38,7 +22,7 @@ export async function evaluateSmartNotifications(t: TranslationDict): Promise<vo
     integrity: true,
   });
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayString();
   const currentMonth = todayStr.slice(0, 7);
 
   try {
@@ -157,53 +141,47 @@ export async function evaluateSmartNotifications(t: TranslationDict): Promise<vo
     }
 
     if (notifToggles.spike !== false) {
-      try {
-        const budgetSummary = await invokeIpc<BudgetMonthSummary>('get_budget_summary_cmd', {
-          month: currentMonth,
-        });
+      const budgetSummary = await getBudgetSummaryCmd(currentMonth).catch(() => null);
 
-        if (budgetSummary && budgetSummary.envelopes) {
-          for (const env of budgetSummary.envelopes) {
-            if (env.assigned <= 0) continue;
+      if (budgetSummary && budgetSummary.envelopes) {
+        for (const env of budgetSummary.envelopes) {
+          if (env.assigned <= 0) continue;
 
-            if (env.available < 0) {
-              const key = `budget-over:${env.account_id}:${currentMonth}`;
-              if (!evaluatedKeys.has(key)) {
-                notificationState.addNotification({
-                  type: 'EXPENSE_SPIKE',
-                  priority: 'high',
-                  title: t.notifExpenseSpikeTitle,
-                  message: `${env.account_name} — ${t.badgeDestructive}: ${formatMinorToDisplay(Math.abs(env.available), 'IDR')}`,
-                  actionHref: '/app/budget',
-                  actionLabel: t.budget,
-                });
-                evaluatedKeys.add(key);
-              }
-            } else if (env.activity / env.assigned >= 0.85) {
-              const key = `budget-near:${env.account_id}:${currentMonth}`;
-              const pct = Math.round((env.activity / env.assigned) * 100);
-              if (!evaluatedKeys.has(key)) {
-                notificationState.addNotification({
-                  type: 'EXPENSE_SPIKE',
-                  priority: 'medium',
-                  title: t.budget,
-                  message: `${env.account_name} (${pct}%) — ${formatMinorToDisplay(env.available, 'IDR')} ${t.remainingPayables}`,
-                  actionHref: '/app/budget',
-                  actionLabel: t.budget,
-                });
-                evaluatedKeys.add(key);
-              }
+          if (env.available < 0) {
+            const key = `budget-over:${env.account_id}:${currentMonth}`;
+            if (!evaluatedKeys.has(key)) {
+              notificationState.addNotification({
+                type: 'EXPENSE_SPIKE',
+                priority: 'high',
+                title: t.notifExpenseSpikeTitle,
+                message: `${env.account_name} — ${t.badgeDestructive}: ${formatMinorToDisplay(Math.abs(env.available), 'IDR')}`,
+                actionHref: '/app/budget',
+                actionLabel: t.budget,
+              });
+              evaluatedKeys.add(key);
+            }
+          } else if (env.activity / env.assigned >= 0.85) {
+            const key = `budget-near:${env.account_id}:${currentMonth}`;
+            const pct = Math.round((env.activity / env.assigned) * 100);
+            if (!evaluatedKeys.has(key)) {
+              notificationState.addNotification({
+                type: 'EXPENSE_SPIKE',
+                priority: 'medium',
+                title: t.budget,
+                message: `${env.account_name} (${pct}%) — ${formatMinorToDisplay(env.available, 'IDR')} ${t.remainingPayables}`,
+                actionHref: '/app/budget',
+                actionLabel: t.budget,
+              });
+              evaluatedKeys.add(key);
             }
           }
         }
-      } catch {
-        // budget module silent fail
       }
     }
 
     if (notifToggles.integrity !== false) {
-      try {
-        const totals = await getLedgerTotalsCmd();
+      const totals = await getLedgerTotalsCmd().catch(() => null);
+      if (totals) {
         if (!totals.is_balance_sheet_aligned) {
           const key = `integrity-unaligned:${todayStr}`;
           if (!evaluatedKeys.has(key)) {
@@ -237,8 +215,6 @@ export async function evaluateSmartNotifications(t: TranslationDict): Promise<vo
             evaluatedKeys.add(key);
           }
         }
-      } catch {
-        // ledger totals silent fail
       }
     }
   } catch (err) {

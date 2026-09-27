@@ -15,6 +15,7 @@
   import AccountFilterBar from '$lib/features/accounts/components/AccountFilterBar.svelte';
   import AccountModal from '$lib/features/accounts/components/AccountModal.svelte';
   import AccountTypeLegend from '$lib/features/accounts/components/AccountTypeLegend.svelte';
+  import AccountInspectorPane from '$lib/features/accounts/components/AccountInspectorPane.svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
@@ -33,6 +34,12 @@
 
   const selectedAccount = $derived(
     selectedId ? (accountsState.accountsById.get(selectedId) ?? null) : null
+  );
+  const selectedItem = $derived(
+    selectedId ? (accountsState.items.find((it) => it.account.id === selectedId) ?? null) : null
+  );
+  const selectedFullPath = $derived(
+    selectedAccount ? getAccountPath(selectedAccount, accountsState.accountsById) : ''
   );
 
   const accountsWithPath = $derived(
@@ -141,12 +148,64 @@
     }
   }
 
+  function handleKeydown(e: KeyboardEvent) {
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+
+    if (e.key === 'j' || e.key === 'ArrowDown') {
+      if (filteredAccounts.length === 0) return;
+      e.preventDefault();
+      const currentIdx = filteredAccounts.findIndex((a) => a.id === selectedId);
+      const nextIdx = currentIdx < 0 ? 0 : Math.min(filteredAccounts.length - 1, currentIdx + 1);
+      const nextAcc = filteredAccounts[nextIdx];
+      selectedId = nextAcc.id;
+      document.getElementById(`acc-row-${nextAcc.id}`)?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'k' || e.key === 'ArrowUp') {
+      if (filteredAccounts.length === 0) return;
+      e.preventDefault();
+      const currentIdx = filteredAccounts.findIndex((a) => a.id === selectedId);
+      const prevIdx = currentIdx < 0 ? filteredAccounts.length - 1 : Math.max(0, currentIdx - 1);
+      const prevAcc = filteredAccounts[prevIdx];
+      selectedId = prevAcc.id;
+      document.getElementById(`acc-row-${prevAcc.id}`)?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      if (selectedAccount) {
+        e.preventDefault();
+        const currentItem = filteredAccounts.find((a) => a.id === selectedId);
+        if (currentItem) {
+          handleRowDblClick(currentItem);
+        }
+      }
+    } else if (e.key === 'e' || e.key === 'E') {
+      if (selectedAccount) {
+        e.preventDefault();
+        openEdit(selectedAccount);
+      }
+    } else if (e.key === 'a' || e.key === 'A') {
+      if (selectedAccount) {
+        e.preventDefault();
+        openAdd(selectedAccount.id);
+      }
+    } else if (e.key === 'Escape') {
+      if (selectedId) {
+        selectedId = null;
+      }
+    }
+  }
+
   onMount(() => {
     if (accountsState.items.length === 0) {
       accountsState.load();
     }
   });
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <PageLayout title={i18n.t.account}>
   {#snippet actions()}
@@ -183,15 +242,6 @@
         onclick={() => selectedAccount && openEdit(selectedAccount)}
       >
         {i18n.t.editAccount}
-      </Button>
-      <Button
-        variant="ghost"
-        class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
-        title={i18n.t.transfersTitle}
-        ariaLabel={i18n.t.transfersTitle}
-        onclick={() => modalState.openTransfer()}
-      >
-        {i18n.t.transfersTitle}
       </Button>
     </div>
   {/snippet}
@@ -232,31 +282,50 @@
         </div>
       {/if}
 
-      <div class="font-proto text-small min-h-0 flex-1 overflow-y-auto py-0">
-        {#if filteredAccounts.length === 0}
-          {#if accountsState.items.length === 0}
-            <div class="flex h-full flex-col items-center justify-center space-y-3 p-8 text-center">
-              <p class="text-text-muted">{i18n.t.noAccountsYet}</p>
-              <Button variant="primary" onclick={() => accountsState.seedRoots()}>
-                <span class="font-proto text-small inline-flex items-center gap-1.5 font-bold">
-                  ◈ {i18n.t.initRootAccounts}
-                </span>
-              </Button>
-              <p class="text-text-dim text-smaller font-proto">{i18n.t.initRootAccountsDesc}</p>
-            </div>
+      <div class="min-h-0 flex-1 flex flex-col xl:flex-row overflow-hidden">
+        <div class="font-proto text-small min-h-0 flex-1 overflow-y-auto py-0">
+          {#if filteredAccounts.length === 0}
+            {#if accountsState.items.length === 0}
+              <div class="flex h-full flex-col items-center justify-center space-y-3 p-8 text-center">
+                <p class="text-text-muted">{i18n.t.noAccountsYet}</p>
+                <Button variant="primary" onclick={() => accountsState.seedRoots()}>
+                  <span class="font-proto text-small inline-flex items-center gap-1.5 font-bold">
+                    ◈ {i18n.t.initRootAccounts}
+                  </span>
+                </Button>
+                <p class="text-text-dim text-smaller font-proto">{i18n.t.initRootAccountsDesc}</p>
+              </div>
+            {:else}
+              <div class="text-text-muted flex h-full items-center justify-center p-8 text-center">
+                <p>{i18n.t.noAccountsMatch}</p>
+              </div>
+            {/if}
           {:else}
-            <div class="text-text-muted flex h-full items-center justify-center p-8 text-center">
-              <p>{i18n.t.noAccountsMatch}</p>
-            </div>
+            <AccountTable
+              accounts={filteredAccounts}
+              {selectedId}
+              onSelect={handleRowClick}
+              onDblClick={handleRowDblClick}
+              onToggleHide={toggleHide}
+            />
           {/if}
-        {:else}
-          <AccountTable
-            accounts={filteredAccounts}
-            {selectedId}
-            onSelect={handleRowClick}
-            onDblClick={handleRowDblClick}
-            onToggleHide={toggleHide}
-          />
+        </div>
+
+        {#if selectedAccount && selectedItem}
+          <div class="w-full xl:w-80 shrink-0 border-t xl:border-t-0 xl:border-l border-line bg-bg-card flex flex-col min-h-0 overflow-y-auto">
+            <AccountInspectorPane
+              account={selectedAccount}
+              directBalance={selectedItem.direct_balance}
+              rollupBalance={selectedItem.recursive_balance}
+              fullPath={selectedFullPath}
+              onClose={() => (selectedId = null)}
+              onAddSubAccount={(parentId) => openAdd(parentId)}
+              onEdit={(acc) => openEdit(acc)}
+              onViewLedger={(code) => goto(resolve('/app/accounts/[code]', { code }))}
+              onDelete={(acc) => requestDelete(acc)}
+              onToggleHide={(acc, e) => toggleHide(acc, e)}
+            />
+          </div>
         {/if}
       </div>
 

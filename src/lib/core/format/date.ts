@@ -58,6 +58,20 @@ export function shiftMonth(yearMonth: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+export function formatMonthLabel(
+  year: number,
+  month0Based: number,
+  locale: string,
+  withYear = false
+): string {
+  const d = new Date(year, month0Based, 1);
+  const tag = locale === 'id' ? 'id-ID' : 'en-US';
+  const s = withYear
+    ? d.toLocaleDateString(tag, { month: 'long', year: 'numeric' })
+    : d.toLocaleDateString(tag, { month: 'long' });
+  return s.toUpperCase();
+}
+
 export interface CalendarDay {
   dayNum: number;
   dateStr: string;

@@ -6,6 +6,7 @@ use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub fn upsert_budget_cmd(
     state: State<'_, AppState>,
     input: UpsertBudgetInput,
@@ -16,6 +17,7 @@ pub fn upsert_budget_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn delete_budget_cmd(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
     let db = state.get_db()?;
     let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
@@ -23,6 +25,7 @@ pub fn delete_budget_cmd(state: State<'_, AppState>, id: String) -> Result<(), A
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_budget_summary_cmd(
     state: State<'_, AppState>,
     month: String,

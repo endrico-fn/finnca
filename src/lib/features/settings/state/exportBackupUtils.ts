@@ -4,16 +4,16 @@ import {
   exportVaultBackupFolder,
   listAccountsCmd,
   listJournalEntriesCmd,
+  exportBeancountCmd,
 } from '$lib/core/ipc/bindings';
 import { invokeIpc } from '$lib/core/ipc/client';
 import { pickDirectory, pickSaveFile } from '$lib/core/dialog';
-import { APP_NAME } from '$lib/core/types';
+import { APP_SLUG } from '$lib/core/types';
 
 export async function exportVaultBackupJson(currentVault: string | null): Promise<string | null> {
-  const dest = await pickSaveFile(
-    `${APP_NAME.toLowerCase()}-vault-backup-${todayString()}.json`,
-    [{ name: 'JSON Backup', extensions: ['json'] }]
-  );
+  const dest = await pickSaveFile(`${APP_SLUG}-vault-backup-${todayString()}.json`, [
+    { name: 'JSON Backup', extensions: ['json'] },
+  ]);
   if (!dest) return null;
 
   const [accountsView, entries] = await Promise.all([
@@ -33,10 +33,9 @@ export async function exportVaultBackupJson(currentVault: string | null): Promis
 }
 
 export async function exportCsvTransactions(): Promise<string | null> {
-  const dest = await pickSaveFile(
-    `${APP_NAME.toLowerCase()}-transactions-${todayString()}.csv`,
-    [{ name: 'CSV Transactions', extensions: ['csv'] }]
-  );
+  const dest = await pickSaveFile(`${APP_SLUG}-transactions-${todayString()}.csv`, [
+    { name: 'CSV Transactions', extensions: ['csv'] },
+  ]);
   if (!dest) return null;
 
   const entries = await listJournalEntriesCmd().catch(() => []);
@@ -60,3 +59,11 @@ export async function exportEncryptedVault(): Promise<string | null> {
   return dest;
 }
 
+export async function exportBeancountLedger(): Promise<string | null> {
+  const dest = await pickSaveFile(`${APP_SLUG}-ledger-${todayString()}.beancount`, [
+    { name: 'Beancount Plain Text Ledger', extensions: ['beancount', 'bean'] },
+  ]);
+  if (!dest) return null;
+  await exportBeancountCmd(dest);
+  return dest;
+}

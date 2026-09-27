@@ -1,4 +1,5 @@
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  esbuild: true
+  tesseract.js: true
 overrides:
   cookie@<0.7.0: ^0.7.0

@@ -17,4 +17,7 @@ export type IconName =
   | 'folder'
   | 'clock'
   | 'refresh'
-  | 'export';
+  | 'export'
+  | 'eye'
+  | 'eye-off'
+  | 'pencil';

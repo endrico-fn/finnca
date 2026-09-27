@@ -13,6 +13,7 @@ fn get_actor(app: &AppHandle) -> String {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn create_account_cmd(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -25,6 +26,7 @@ pub fn create_account_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn update_account_cmd(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -38,6 +40,7 @@ pub fn update_account_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn delete_account_cmd(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -50,6 +53,7 @@ pub fn delete_account_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_account_cmd(state: State<'_, AppState>, id: String) -> Result<Account, AppError> {
     let db = state.get_db()?;
     let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
@@ -57,6 +61,7 @@ pub fn get_account_cmd(state: State<'_, AppState>, id: String) -> Result<Account
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn list_accounts_cmd(state: State<'_, AppState>) -> Result<Vec<AccountBalanceView>, AppError> {
     let db = state.get_db()?;
     let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
@@ -64,6 +69,7 @@ pub fn list_accounts_cmd(state: State<'_, AppState>) -> Result<Vec<AccountBalanc
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn seed_root_accounts_cmd(state: State<'_, AppState>) -> Result<Vec<Account>, AppError> {
     let db = state.get_db()?;
     let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
@@ -71,12 +77,15 @@ pub fn seed_root_accounts_cmd(state: State<'_, AppState>) -> Result<Vec<Account>
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn seed_starter_accounts_cmd(
     state: State<'_, AppState>,
     language: Option<String>,
+    profile: Option<String>,
 ) -> Result<Vec<Account>, AppError> {
     let db = state.get_db()?;
     let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
     let lang = language.as_deref().unwrap_or("en");
-    service::seed_comprehensive_accounts(&conn, lang, "IDR")
+    let prof = profile.as_deref().unwrap_or("personal");
+    service::seed_account_template(&conn, prof, lang, "IDR")
 }

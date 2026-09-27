@@ -41,7 +41,7 @@
   }
 </script>
 
-<ModalShell bind:open {title} onClose={onCancel}>
+<ModalShell bind:open {title} tone={danger ? 'err' : 'teal'} onClose={onCancel}>
   <p class="text-text-base text-small py-3 leading-relaxed">
     {message}
   </p>

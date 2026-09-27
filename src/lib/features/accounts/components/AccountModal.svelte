@@ -206,7 +206,7 @@
             );
             await postJournalEntryCmd({
               date: openingBalanceDate || todayString(),
-              description: `${i18n.t.openingBalanceDesc.replace('{name}', form.name || '')} (Adjustment)`,
+              description: `${i18n.t.openingBalanceDesc.replace('{name}', form.name || '')}${i18n.t.openingBalanceAdjustment}`,
               notes: i18n.t.openingBalanceNotes,
               currency: form.currency ?? 'IDR',
               fx_rate: null,
@@ -248,7 +248,7 @@
 <ModalShell
   bind:open
   title={isNew ? i18n.t.newAccountTitle : i18n.t.editAccountTitle}
-  maxWidth="max-w-xl"
+  size="xl"
   onClose={handleClose}
 >
   {#if !isNew && editingAccount}

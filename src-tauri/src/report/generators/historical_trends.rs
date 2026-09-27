@@ -1,4 +1,4 @@
-use crate::ledger::currency::{normalize_fx_rate, usd_minor_to_idr, DEFAULT_FX_RATE};
+use crate::ledger::currency::{convert_minor_units, normalize_fx_rate, DEFAULT_FX_RATE};
 use crate::report::dto::{DailyTrendPoint, HistoricalTrendsReport};
 use crate::shared::AppError;
 use chrono::{Duration, NaiveDate};
@@ -98,40 +98,26 @@ pub fn generate(
         }
     }
 
-    let mut assets_idr: i64 = 0;
-    let mut assets_usd: i64 = 0;
-    let mut liabilities_idr: i64 = 0;
-    let mut liabilities_usd: i64 = 0;
-    let mut liquid_cash_idr: i64 = 0;
-    let mut liquid_cash_usd: i64 = 0;
+    let mut assets_by_curr: HashMap<String, i64> = HashMap::new();
+    let mut liabilities_by_curr: HashMap<String, i64> = HashMap::new();
+    let mut liquid_cash_by_curr: HashMap<String, i64> = HashMap::new();
 
     let apply_posting = |acc: &AccountMeta,
                          amount: i64,
-                         assets_idr: &mut i64,
-                         assets_usd: &mut i64,
-                         liabilities_idr: &mut i64,
-                         liabilities_usd: &mut i64,
-                         liquid_cash_idr: &mut i64,
-                         liquid_cash_usd: &mut i64| {
+                         assets: &mut HashMap<String, i64>,
+                         liabilities: &mut HashMap<String, i64>,
+                         liquid: &mut HashMap<String, i64>| {
+        let curr = acc.currency.trim().to_uppercase();
         if acc.account_type == "ASSET" {
-            if acc.currency == "USD" {
-                *assets_usd += amount;
-            } else {
-                *assets_idr += amount;
-            }
+            let e = assets.entry(curr.clone()).or_insert(0);
+            *e = e.saturating_add(amount);
             if acc.is_liquid_cash {
-                if acc.currency == "USD" {
-                    *liquid_cash_usd += amount;
-                } else {
-                    *liquid_cash_idr += amount;
-                }
+                let le = liquid.entry(curr).or_insert(0);
+                *le = le.saturating_add(amount);
             }
         } else if acc.account_type == "LIABILITY" {
-            if acc.currency == "USD" {
-                *liabilities_usd -= amount;
-            } else {
-                *liabilities_idr -= amount;
-            }
+            let e = liabilities.entry(curr).or_insert(0);
+            *e = e.saturating_sub(amount);
         }
     };
 
@@ -140,12 +126,9 @@ pub fn generate(
             apply_posting(
                 acc,
                 amount,
-                &mut assets_idr,
-                &mut assets_usd,
-                &mut liabilities_idr,
-                &mut liabilities_usd,
-                &mut liquid_cash_idr,
-                &mut liquid_cash_usd,
+                &mut assets_by_curr,
+                &mut liabilities_by_curr,
+                &mut liquid_cash_by_curr,
             );
         }
     }
@@ -162,21 +145,27 @@ pub fn generate(
                     apply_posting(
                         acc,
                         *amount,
-                        &mut assets_idr,
-                        &mut assets_usd,
-                        &mut liabilities_idr,
-                        &mut liabilities_usd,
-                        &mut liquid_cash_idr,
-                        &mut liquid_cash_usd,
+                        &mut assets_by_curr,
+                        &mut liabilities_by_curr,
+                        &mut liquid_cash_by_curr,
                     );
                 }
             }
         }
 
-        let assets = assets_idr + usd_minor_to_idr(assets_usd, current_fx_rate);
-        let liabilities = liabilities_idr + usd_minor_to_idr(liabilities_usd, current_fx_rate);
-        let liquid_cash = liquid_cash_idr + usd_minor_to_idr(liquid_cash_usd, current_fx_rate);
-        let net_worth = assets - liabilities;
+        let assets: i64 = assets_by_curr
+            .iter()
+            .map(|(curr, amt)| convert_minor_units(*amt, curr, "IDR", current_fx_rate))
+            .sum();
+        let liabilities: i64 = liabilities_by_curr
+            .iter()
+            .map(|(curr, amt)| convert_minor_units(*amt, curr, "IDR", current_fx_rate))
+            .sum();
+        let liquid_cash: i64 = liquid_cash_by_curr
+            .iter()
+            .map(|(curr, amt)| convert_minor_units(*amt, curr, "IDR", current_fx_rate))
+            .sum();
+        let net_worth = assets.saturating_sub(liabilities);
 
         points.push(DailyTrendPoint {
             date: date_str,

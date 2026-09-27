@@ -144,4 +144,3 @@ export function computeTrendsDateRange(
 
   return { startStr, endStr: todayStr };
 }
-

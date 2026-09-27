@@ -9,7 +9,7 @@ import { removePref } from '$lib/core/state/prefs';
 import { eventBus } from '$lib/core/events/eventBus.svelte';
 
 export interface KnownVault {
-  id: string; // fallback ID for backward compatibility
+  id: string;
   name: string;
   path: string;
   username: string;
@@ -18,7 +18,7 @@ export interface KnownVault {
 
 class VaultRegistryStore {
   knownVaults = $state<KnownVault[]>([]);
-  activeVaultId = $state<string | null>(null); // maps to vault path
+  activeVaultId = $state<string | null>(null);
 
   getKnownVaults(): KnownVault[] {
     return this.knownVaults;

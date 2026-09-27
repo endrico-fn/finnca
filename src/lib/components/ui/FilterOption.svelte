@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Icon from './Icon.svelte';
+
   let {
     label,
     selected = false,
@@ -48,6 +50,8 @@
     <span class="ml-auto tabular-nums opacity-60">({count})</span>
   {/if}
   {#if selected && check}
-    <span class="text-smaller shrink-0 font-bold">✓</span>
+    <span class="inline-flex shrink-0">
+      <Icon name="check" size={11} />
+    </span>
   {/if}
 </button>

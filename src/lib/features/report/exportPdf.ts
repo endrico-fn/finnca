@@ -1,15 +1,15 @@
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeFileRawCmd, exportTextFileCmd } from '$lib/core/ipc/bindings';
+import { pickSaveFile } from '$lib/core/dialog';
+import { writeFileRawCmd } from '$lib/core/ipc/bindings';
 import pdfMake from 'pdfmake/build/pdfmake';
-import Papa from 'papaparse';
 import type { TDocumentDefinitions, Margins, Content } from 'pdfmake/interfaces';
 import { pdfMakeVfs } from './vfsFonts';
-import { APP_NAME } from '$lib/core/types';
+import { APP_NAME, APP_SLUG } from '$lib/core/types';
 import { formatMinorToDisplay } from '$lib/core/format/currency';
 import type {
   TrialBalanceReport,
   ProfitLossReport,
   BalanceSheetReport,
+  CashFlowReport,
   ReportTab,
 } from '$lib/features/report/state/report.svelte';
 import { i18n } from '$lib/core/i18n.svelte';
@@ -26,13 +26,13 @@ import { i18n } from '$lib/core/i18n.svelte';
 
 const right = 'right' as const;
 
-export interface StatementRow {
-  date: string;
-  description: string;
-  debit: number;
-  credit: number;
-  balance: number;
-}
+const PDF_INK = {
+  lineSoft: '#333',
+  lineStrong: '#222',
+  textStrong: '#111',
+  textBody: '#333',
+  headerFill: '#eeeeee',
+} as const;
 
 export interface ReportPDFOptions {
   vaultName: string;
@@ -42,13 +42,11 @@ export interface ReportPDFOptions {
   trialBalance?: TrialBalanceReport | null;
   profitLoss?: ProfitLossReport | null;
   balanceSheet?: BalanceSheetReport | null;
+  cashFlow?: CashFlowReport | null;
 }
 
 async function savePDF(docDefinition: TDocumentDefinitions, defaultPath: string) {
-  const filePath = await save({
-    filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
-    defaultPath,
-  });
+  const filePath = await pickSaveFile(defaultPath, [{ name: 'PDF Document', extensions: ['pdf'] }]);
   if (!filePath) return;
 
   const pdfDocGenerator = pdfMake.createPdf(docDefinition);
@@ -67,7 +65,108 @@ async function savePDF(docDefinition: TDocumentDefinitions, defaultPath: string)
 
 function buildReportPDFBody(opts: ReportPDFOptions): Content[] {
   const fmt = (minor: number) => formatMinorToDisplay(minor, 'IDR');
-  const { tab, trialBalance, profitLoss, balanceSheet } = opts;
+  const { tab, trialBalance, profitLoss, balanceSheet, cashFlow } = opts;
+
+  if (tab === 'cashflow' && cashFlow) {
+    const allRows = [
+      ...cashFlow.operating_rows.map((r) => [
+        { text: r.date, style: 'bodyRow' },
+        { text: 'OPERATING', style: 'bodyRow' },
+        { text: r.description, style: 'bodyRow' },
+        { text: r.account_name, style: 'bodyRow' },
+        { text: (r.amount >= 0 ? '+' : '') + fmt(r.amount), style: 'bodyRow', alignment: right },
+      ]),
+      ...cashFlow.investing_rows.map((r) => [
+        { text: r.date, style: 'bodyRow' },
+        { text: 'INVESTING', style: 'bodyRow' },
+        { text: r.description, style: 'bodyRow' },
+        { text: r.account_name, style: 'bodyRow' },
+        { text: (r.amount >= 0 ? '+' : '') + fmt(r.amount), style: 'bodyRow', alignment: right },
+      ]),
+      ...cashFlow.financing_rows.map((r) => [
+        { text: r.date, style: 'bodyRow' },
+        { text: 'FINANCING', style: 'bodyRow' },
+        { text: r.description, style: 'bodyRow' },
+        { text: r.account_name, style: 'bodyRow' },
+        { text: (r.amount >= 0 ? '+' : '') + fmt(r.amount), style: 'bodyRow', alignment: right },
+      ]),
+    ];
+
+    return [
+      {
+        table: {
+          widths: ['*', 120],
+          body: [
+            [
+              { text: i18n.t.startingCash, style: 'bodyRow' },
+              { text: fmt(cashFlow.starting_cash), style: 'bodyRow', alignment: right },
+            ],
+            [
+              { text: i18n.t.operatingCashFlow, style: 'bodyRow' },
+              {
+                text:
+                  (cashFlow.operating_cash_flow >= 0 ? '+' : '') +
+                  fmt(cashFlow.operating_cash_flow),
+                style: 'bodyRow',
+                alignment: right,
+              },
+            ],
+            [
+              { text: i18n.t.investingCashFlow, style: 'bodyRow' },
+              {
+                text:
+                  (cashFlow.investing_cash_flow >= 0 ? '+' : '') +
+                  fmt(cashFlow.investing_cash_flow),
+                style: 'bodyRow',
+                alignment: right,
+              },
+            ],
+            [
+              { text: i18n.t.financingCashFlow, style: 'bodyRow' },
+              {
+                text:
+                  (cashFlow.financing_cash_flow >= 0 ? '+' : '') +
+                  fmt(cashFlow.financing_cash_flow),
+                style: 'bodyRow',
+                alignment: right,
+              },
+            ],
+            [
+              { text: i18n.t.netCashFlow, style: 'total' },
+              {
+                text: (cashFlow.net_cash_change >= 0 ? '+' : '') + fmt(cashFlow.net_cash_change),
+                style: 'total',
+                alignment: right,
+              },
+            ],
+            [
+              { text: i18n.t.endingCash, style: 'total' },
+              { text: fmt(cashFlow.ending_cash), style: 'total', alignment: right },
+            ],
+          ],
+        },
+        layout: 'lightHorizontalLines',
+        margin: [0, 0, 0, 12] as Margins,
+      },
+      {
+        table: {
+          headerRows: 1,
+          widths: [65, 75, '*', 90, 85],
+          body: [
+            [
+              { text: i18n.t.colDate, style: 'tableHeader' },
+              { text: i18n.t.category, style: 'tableHeader' },
+              { text: i18n.t.description, style: 'tableHeader' },
+              { text: i18n.t.contraAccount, style: 'tableHeader' },
+              { text: i18n.t.netChange, style: 'tableHeader', alignment: right },
+            ],
+            ...allRows,
+          ],
+        },
+        layout: 'lightHorizontalLines',
+      },
+    ];
+  }
 
   if (tab === 'tb' && trialBalance) {
     const tbRows = trialBalance.rows.map((r) => [
@@ -145,7 +244,17 @@ function buildReportPDFBody(opts: ReportPDFOptions): Content[] {
         layout: 'noBorders',
       },
       {
-        canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#333' }],
+        canvas: [
+          {
+            type: 'line',
+            x1: 0,
+            y1: 4,
+            x2: 515,
+            y2: 4,
+            lineWidth: 0.5,
+            lineColor: PDF_INK.lineSoft,
+          },
+        ],
       },
       {
         columns: [
@@ -175,7 +284,9 @@ function buildReportPDFBody(opts: ReportPDFOptions): Content[] {
       }
     }
     rows.push({
-      canvas: [{ type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: '#333' }],
+      canvas: [
+        { type: 'line', x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.5, lineColor: PDF_INK.lineSoft },
+      ],
     });
     rows.push({
       columns: [
@@ -224,7 +335,17 @@ export async function exportReportPDF(opts: ReportPDFOptions) {
           margin: [0, 0, 0, 16] as Margins,
         },
         {
-          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 742, y2: 0, lineWidth: 1, lineColor: '#222' }],
+          canvas: [
+            {
+              type: 'line',
+              x1: 0,
+              y1: 0,
+              x2: 742,
+              y2: 0,
+              lineWidth: 1,
+              lineColor: PDF_INK.lineStrong,
+            },
+          ],
         },
         {
           columns: [
@@ -240,132 +361,18 @@ export async function exportReportPDF(opts: ReportPDFOptions) {
         ...buildReportPDFBody(opts),
       ],
       styles: {
-        brandTitle: { fontSize: 14, bold: true, color: '#111' },
-        reportTitle: { fontSize: 11, bold: true, color: '#111' },
-        section: { fontSize: 10, bold: true, color: '#111' },
-        total: { fontSize: 10, bold: true, color: '#111' },
-        bodyRow: { fontSize: 9, color: '#333' },
-        tableHeader: { bold: true, fontSize: 8, fillColor: '#eeeeee', margin: margin4 },
+        brandTitle: { fontSize: 14, bold: true, color: PDF_INK.textStrong },
+        reportTitle: { fontSize: 11, bold: true, color: PDF_INK.textStrong },
+        section: { fontSize: 10, bold: true, color: PDF_INK.textStrong },
+        total: { fontSize: 10, bold: true, color: PDF_INK.textStrong },
+        bodyRow: { fontSize: 9, color: PDF_INK.textBody },
+        tableHeader: { bold: true, fontSize: 8, fillColor: PDF_INK.headerFill, margin: margin4 },
       },
     };
 
     const slug = opts.reportTitle.replace(/\s+/g, '_').toLowerCase();
-    await savePDF(docDefinition, `finnca_${slug}_${opts.period || 'alltime'}.pdf`);
+    await savePDF(docDefinition, `${APP_SLUG}_${slug}_${opts.period || 'alltime'}.pdf`);
   } catch (err) {
     console.error('Export Report PDF error:', err);
   }
 }
-
-export async function exportAccountStatementCSV(
-  account: { name: string; currency: string },
-  rows: StatementRow[],
-  period: string
-) {
-  try {
-    const filePath = await save({
-      filters: [{ name: 'CSV Document', extensions: ['csv'] }],
-      defaultPath: `${account.name}_Statement_${period.replace(/\s/g, '_')}.csv`,
-    });
-    if (!filePath) return;
-
-    const csvData = rows.map((row) => ({
-      [i18n.t.date]: row.date,
-      [i18n.t.description]: row.description,
-      [i18n.t.debit]: row.debit !== 0 ? formatMinorToDisplay(row.debit, account.currency) : '',
-      [i18n.t.credit]: row.credit !== 0 ? formatMinorToDisplay(row.credit, account.currency) : '',
-      [i18n.t.colBalance]: formatMinorToDisplay(row.balance, account.currency),
-    }));
-
-    const csvStr = Papa.unparse(csvData);
-    const bytes = new TextEncoder().encode(csvStr);
-    await writeFileRawCmd(filePath, Array.from(bytes));
-  } catch (err) {
-    console.error('Export CSV error:', err);
-  }
-}
-
-export async function exportReportCSV(
-  tab: string,
-  historicalPoints: Array<{ date: string; netWorth: number; assets: number; liabilities: number; liquidCash: number }>,
-  trialBalance?: TrialBalanceReport | null,
-  defaultFilename: string = 'report.csv',
-  csvFilterLabel: string = 'CSV Document',
-  balanceSheet?: BalanceSheetReport | null,
-  profitLoss?: ProfitLossReport | null
-): Promise<string | null> {
-  const csvRows: string[] = [];
-
-  if (tab === 'trends') {
-    csvRows.push('DATE,NET_WORTH_IDR,ASSETS_IDR,LIABILITIES_IDR,LIQUID_CASH_IDR');
-    for (const pt of historicalPoints) {
-      csvRows.push(`${pt.date},${pt.netWorth},${pt.assets},${pt.liabilities},${pt.liquidCash}`);
-    }
-  } else if (tab === 'bs' && balanceSheet) {
-    csvRows.push('SECTION,CODE,ACCOUNT_NAME,AMOUNT_IDR');
-    for (const r of balanceSheet.asset_rows) {
-      csvRows.push(`"ASSET","${r.code}","${r.name}",${r.amount}`);
-    }
-    for (const r of balanceSheet.liability_rows) {
-      csvRows.push(`"LIABILITY","${r.code}","${r.name}",${r.amount}`);
-    }
-    for (const r of balanceSheet.equity_rows) {
-      csvRows.push(`"EQUITY","${r.code}","${r.name}",${r.amount}`);
-    }
-    csvRows.push(`"TOTAL_ASSETS","","TOTAL ASSETS",${balanceSheet.total_assets}`);
-    csvRows.push(`"TOTAL_LIABILITIES","","TOTAL LIABILITIES",${balanceSheet.total_liabilities}`);
-    csvRows.push(`"TOTAL_EQUITY","","TOTAL EQUITY",${balanceSheet.total_equity}`);
-    csvRows.push(`"NET_INCOME","","NET INCOME",${balanceSheet.net_income}`);
-    csvRows.push(`"DISCREPANCY","","DISCREPANCY",${balanceSheet.discrepancy}`);
-  } else if (tab === 'pnl' && profitLoss) {
-    csvRows.push('SECTION,CODE,ACCOUNT_NAME,AMOUNT_IDR');
-    for (const r of profitLoss.income_rows) {
-      csvRows.push(`"REVENUE","${r.code}","${r.name}",${r.amount}`);
-    }
-    for (const r of profitLoss.expense_rows) {
-      csvRows.push(`"EXPENSE","${r.code}","${r.name}",${r.amount}`);
-    }
-    csvRows.push(`"TOTAL_REVENUES","","TOTAL REVENUES",${profitLoss.total_income}`);
-    csvRows.push(`"TOTAL_EXPENSES","","TOTAL EXPENSES",${profitLoss.total_expenses}`);
-    csvRows.push(`"NET_INCOME","","NET INCOME",${profitLoss.net_income}`);
-  } else {
-    csvRows.push('CODE,ACCOUNT_NAME,TYPE,DEBIT_IDR,CREDIT_IDR');
-    const rows = trialBalance?.rows ?? [];
-    for (const row of rows) {
-      csvRows.push(
-        `"${row.code}","${row.name}","${row.account_type}",${row.debit},${row.credit}`
-      );
-    }
-    if (trialBalance) {
-      csvRows.push(
-        `,,,TOTAL_DEBIT,${trialBalance.total_debit},TOTAL_CREDIT,${trialBalance.total_credit}`
-      );
-    }
-  }
-
-  const csvContent = csvRows.join('\n');
-
-  try {
-    const selectedPath = await save({
-      defaultPath: defaultFilename,
-      filters: [{ name: csvFilterLabel, extensions: ['csv'] }],
-    });
-
-    if (selectedPath) {
-      await exportTextFileCmd(selectedPath, csvContent);
-      return selectedPath;
-    }
-    return null;
-  } catch {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', defaultFilename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    return defaultFilename;
-  }
-}
-

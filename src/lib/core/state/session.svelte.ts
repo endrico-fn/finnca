@@ -20,8 +20,9 @@ class SessionStore {
     if (this.refreshPromise) return this.refreshPromise;
     this.refreshPromise = getAppState()
       .then((s) => {
+        const wasUnlocked = this.raw?.unlocked ?? false;
         this.raw = s;
-        if (s.unlocked) {
+        if (s.unlocked && !wasUnlocked) {
           eventBus.emit('vault:unlocked', {
             vaultName: s.vault_name ?? '',
             username: s.username ?? '',

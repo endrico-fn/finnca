@@ -5,6 +5,7 @@ export type AppErrorCode =
   | 'ERR_INVALID_INPUT'
   | 'ERR_NOT_FOUND'
   | 'ERR_CONFLICT'
+  | 'ERR_PERIOD_LOCKED'
   | 'ERR_IO'
   | 'ERR_TIMEOUT'
   | 'ERR_UNKNOWN';

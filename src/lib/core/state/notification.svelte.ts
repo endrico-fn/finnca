@@ -43,6 +43,23 @@ export function getNotificationAccent(type: NotificationType): string {
   }
 }
 
+export function getNotificationBorderClass(type: NotificationType): string {
+  switch (type) {
+    case 'DUE_DATE':
+    case 'LEDGER_INTEGRITY':
+      return 'border-l-expense';
+    case 'FX_ALERT':
+      return 'border-l-income';
+    case 'EXPENSE_SPIKE':
+    case 'CASHFLOW_DEFICIT':
+    case 'LIQUIDITY_ALERT':
+      return 'border-l-warning';
+    case 'GREETING':
+    default:
+      return 'border-l-teal';
+  }
+}
+
 class NotificationState {
   notifications = $state<AppNotification[]>([]);
   activeToasts = $state<AppNotification[]>([]);

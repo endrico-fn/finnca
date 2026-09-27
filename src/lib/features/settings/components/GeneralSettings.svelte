@@ -3,6 +3,7 @@
   import UserProfileCard from './UserProfileCard.svelte';
   import VaultIdentityCard from './VaultIdentityCard.svelte';
   import LocalizationCard from './LocalizationCard.svelte';
+  import AppAboutCard from './AppAboutCard.svelte';
   import { generalSettingsState } from '../state/settings.svelte';
 
   onMount(() => {
@@ -17,4 +18,5 @@
   </div>
 
   <LocalizationCard />
+  <AppAboutCard />
 </div>

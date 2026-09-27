@@ -1,9 +1,11 @@
-import type { Account, JournalEntryView } from '$lib/core/ipc/bindings';
-import type { Transaction } from '$lib/core/types';
+import type { Account, JournalEntryView, CreateJournalEntryInput } from '$lib/core/ipc/bindings';
 import { accountTypeLabel } from '$lib/core/format/account';
-import { formatIDR } from '$lib/core/format/currency';
+import { formatIDR, formatMinorGrouping } from '$lib/core/format/currency';
 import { todayString } from '$lib/core/format/date';
 import type { TranslationDict } from '$lib/core/i18n/types';
+import type { NavItem } from '$lib/core/router/nav';
+
+export type { NavItem };
 
 export interface PaletteItem {
   label: string;
@@ -12,29 +14,33 @@ export interface PaletteItem {
   action: () => void;
 }
 
-export interface NavItem {
-  href: string;
-  label: string;
-}
-
 export function searchPalette(options: {
   query: string;
   nav: NavItem[];
   accounts: Account[];
   entries: JournalEntryView[];
   t: TranslationDict;
-  locale: string;
-  onQuickTxDraft: (tx: Transaction) => void;
+  onQuickTxDraft: (draft: CreateJournalEntryInput) => void;
   onLock: () => void;
+  onTransfer: () => void;
   onNavigate: (href: string, param?: Record<string, string>) => void;
   onClose: () => void;
 }): PaletteItem[] {
-  const { query, nav, accounts, entries, t, locale, onQuickTxDraft, onLock, onNavigate, onClose } =
-    options;
+  const {
+    query,
+    nav,
+    accounts,
+    entries,
+    t,
+    onQuickTxDraft,
+    onLock,
+    onTransfer,
+    onNavigate,
+    onClose,
+  } = options;
   const q = query.toLowerCase().trim();
   const results: PaletteItem[] = [];
 
-  // 1. System Navigation
   for (const item of nav) {
     if (!q || item.label.toLowerCase().includes(q) || item.href.includes(q)) {
       results.push({
@@ -49,7 +55,6 @@ export function searchPalette(options: {
     }
   }
 
-  // 2. Quick Actions
   if (!q || 'lock vault'.includes(q) || 'kunci'.includes(q)) {
     results.push({
       label: t.cmdLockVault,
@@ -62,7 +67,18 @@ export function searchPalette(options: {
     });
   }
 
-  // 3. Accounts Search
+  if (!q || 'transfer'.includes(q) || 'pemindahan'.includes(q)) {
+    results.push({
+      label: t.transfersTitle,
+      sub: t.quickTransferTitle,
+      category: t.cmdCategoryQuickAdd,
+      action: () => {
+        onTransfer();
+        onClose();
+      },
+    });
+  }
+
   for (const acc of accounts.filter((a) => !a.placeholder)) {
     if (!q || acc.code.toLowerCase().includes(q) || acc.name.toLowerCase().includes(q)) {
       results.push({
@@ -77,7 +93,6 @@ export function searchPalette(options: {
     }
   }
 
-  // 4. Shorthand Quick Entry: starts with '+'
   const shorthandMatch = q.match(/^\+\s*(.+)$/);
   if (shorthandMatch) {
     const rest = shorthandMatch[1].trim();
@@ -129,24 +144,24 @@ export function searchPalette(options: {
         category: t.cmdCategoryQuickAdd,
         action: () => {
           onQuickTxDraft({
-            id: '',
+            id: crypto.randomUUID(),
             date: todayString(),
-            dueDate: '',
-            settled: false,
             description: desc,
-            num: '',
             notes: '',
+            reference_no: null,
+            due_date: null,
             currency: 'IDR',
-            splits: [
+            fx_rate: null,
+            postings: [
               {
-                id: '',
-                accountId: fromAccId,
+                id: crypto.randomUUID(),
+                account_id: fromAccId,
                 amount: -parsedAmt,
                 reconcile: 'n',
               },
               {
-                id: '',
-                accountId: toAccId,
+                id: crypto.randomUUID(),
+                account_id: toAccId,
                 amount: parsedAmt,
                 reconcile: 'n',
               },
@@ -158,7 +173,6 @@ export function searchPalette(options: {
     }
   }
 
-  // 5. Quick Add Transaction (if query starts with a number)
   const quickAddMatch = q.match(/^(\d+)\s+(.*)$/);
   if (quickAddMatch) {
     const amtStr = quickAddMatch[1];
@@ -167,30 +181,30 @@ export function searchPalette(options: {
       const parsedAmt = parseInt(amtStr, 10);
       results.push({
         label: t.cmdRecordTxPrompt
-          .replace('{amount}', parsedAmt.toLocaleString(locale === 'id' ? 'id-ID' : 'en-US'))
+          .replace('{amount}', formatMinorGrouping(parsedAmt, 'IDR'))
           .replace('{desc}', desc),
         sub: t.cmdRecordTxSub,
         category: t.cmdCategoryQuickAdd,
         action: () => {
           onQuickTxDraft({
-            id: '',
+            id: crypto.randomUUID(),
             date: todayString(),
-            dueDate: '',
-            settled: false,
             description: desc,
-            num: '',
             notes: '',
+            reference_no: null,
+            due_date: null,
             currency: 'IDR',
-            splits: [
+            fx_rate: null,
+            postings: [
               {
-                id: '',
-                accountId: '',
+                id: crypto.randomUUID(),
+                account_id: '',
                 amount: -parsedAmt,
                 reconcile: 'n',
               },
               {
-                id: '',
-                accountId: '',
+                id: crypto.randomUUID(),
+                account_id: '',
                 amount: parsedAmt,
                 reconcile: 'n',
               },
@@ -202,12 +216,12 @@ export function searchPalette(options: {
     }
   }
 
-  // 6. Transactions Search
   if (q.length > 2) {
     let foundCount = 0;
     for (const tx of entries) {
       if (
         tx.description.toLowerCase().includes(q) ||
+        (tx.reference_no && tx.reference_no.toLowerCase().includes(q)) ||
         (tx.notes && tx.notes.toLowerCase().includes(q))
       ) {
         const totalAmt = tx.postings
@@ -215,12 +229,10 @@ export function searchPalette(options: {
           .reduce((sum, p) => sum + p.amount, 0);
         results.push({
           label: tx.description,
-          sub: `${tx.date} • ${tx.currency} ${totalAmt.toLocaleString(locale === 'id' ? 'id-ID' : 'en-US')}`,
+          sub: `${tx.date} • ${tx.currency} ${formatMinorGrouping(totalAmt, tx.currency)}`,
           category: t.cmdCategoryTransaction,
           action: () => {
-            onNavigate(
-              `/app/journal?search=${encodeURIComponent(tx.description)}`
-            );
+            onNavigate(`/app/journal?search=${encodeURIComponent(tx.description)}`);
             onClose();
           },
         });

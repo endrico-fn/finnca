@@ -125,6 +125,8 @@
               bind:value={query}
               placeholder={searchPlaceholder ?? i18n.t.searchAllPlaceholder}
               aria-label={searchPlaceholder ?? i18n.t.searchAllPlaceholder}
+              autocomplete="off"
+              spellcheck="false"
               class="text-text-strong placeholder:text-text-muted text-small font-aux h-full w-full bg-transparent outline-none"
             />
           </div>

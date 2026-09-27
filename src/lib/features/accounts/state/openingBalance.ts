@@ -1,9 +1,9 @@
 import type { Account, AccountType } from '$lib/core/ipc/bindings';
 import { accountsState } from '$lib/features/accounts/state/accounts.svelte';
 
-export function isDebitNormalType(t: string | undefined): boolean {
-  return t === 'ASSET' || t === 'EXPENSE';
-}
+import { isDebitNormal } from './accountLedgerUtils';
+
+export { isDebitNormal, isDebitNormal as isDebitNormalType };
 
 export function resolveOpeningEquity(
   accounts: Account[],
@@ -30,7 +30,15 @@ export function resolveOpeningEquity(
 }
 
 function nextFreeEquityCode(taken: Set<string>, currency: string): string {
-  const candidates = ['3110', '3010', '3111', '3112', '3113', `3110-${currency}`, `3010-${currency}`];
+  const candidates = [
+    '3110',
+    '3010',
+    '3111',
+    '3112',
+    '3113',
+    `3110-${currency}`,
+    `3010-${currency}`,
+  ];
   for (const c of candidates) {
     if (!taken.has(c)) return c;
   }

@@ -42,7 +42,7 @@
       {#if tabRouter.current === 'general'}
         <Button
           variant="primary"
-          class="font-proto text-small h-8 px-3 font-bold uppercase tracking-wider"
+          class="font-proto text-small h-8 px-3 font-bold tracking-wider uppercase"
           disabled={!generalSettingsState.canSave}
           onclick={() => generalSettingsState.save()}
         >

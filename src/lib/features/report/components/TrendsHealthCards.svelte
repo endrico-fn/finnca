@@ -1,7 +1,7 @@
 <script lang="ts">
   import { formatIDR } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Card } from '$lib/components/ui';
+  import { Card, ProgressBar } from '$lib/components/ui';
   import type { Account } from '$lib/core/ipc/bindings';
 
   let {
@@ -15,11 +15,12 @@
     debtStatus: string;
     runwayMonths: string;
   } = $props();
+
+  const numRatio = $derived(Number(debtRatio) || 0);
 </script>
 
 <div class="grid grid-cols-12 gap-2 pb-2">
-  <!-- Left: Top Asset Holdings (Col-span-7) -->
-  <Card title={i18n.t.topHoldings} class="col-span-7">
+  <Card title={i18n.t.topHoldings} class="col-span-12 lg:col-span-7">
     {#snippet header()}
       <span class="text-text-dim font-proto text-smaller leading-none">
         {i18n.t.trendsTop5}
@@ -39,10 +40,7 @@
               <span class="text-text-dim text-smaller ml-1">({item.percent}%)</span>
             </div>
           </div>
-          <!-- Distribution Bar -->
-          <div class="bg-bg-app border-line h-1.5 overflow-hidden border">
-            <div class="bg-income h-full" style="width: {item.percent}%"></div>
-          </div>
+          <ProgressBar value={Number(item.percent)} tone="income" track="app" size="s" />
         </div>
       {:else}
         <div class="text-text-dim text-small p-4 text-center">{i18n.t.trendsNoHoldings}</div>
@@ -50,8 +48,7 @@
     </div>
   </Card>
 
-  <!-- Right: Financial Health Ratios (Col-span-5) -->
-  <Card title={i18n.t.financialHealthRatios} class="col-span-5">
+  <Card title={i18n.t.financialHealthRatios} class="col-span-12 lg:col-span-5">
     {#snippet header()}
       <span class="text-text-dim font-proto text-smaller leading-none">
         {i18n.t.trendsMetricsLabel}
@@ -59,15 +56,14 @@
     {/snippet}
 
     <div class="text-small space-y-3">
-      <!-- Debt Ratio -->
       <div class="border-line bg-bg-app space-y-1 border p-2.5">
         <div class="flex items-center justify-between">
           <span class="text-text-muted text-smaller font-proto">{i18n.t.debtToAssetRatio}</span>
           <span
             class="border-line text-smaller font-proto border px-1.5 py-0.5 font-bold uppercase
-            {Number(debtRatio) < 30
+            {numRatio < 30
               ? 'text-income border-income/40'
-              : Number(debtRatio) < 60
+              : numRatio < 60
                 ? 'text-text-base'
                 : 'text-expense border-expense/40'}"
           >
@@ -80,7 +76,6 @@
         <div class="text-text-dim text-smaller font-proto">{i18n.t.debtRatioFormula}</div>
       </div>
 
-      <!-- Cash Runway -->
       <div class="border-line bg-bg-app space-y-1 border p-2.5">
         <div class="flex items-center justify-between">
           <span class="text-text-muted text-smaller font-proto">{i18n.t.cashRunwayMonths}</span>

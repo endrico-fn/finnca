@@ -37,9 +37,24 @@
   } = $props();
 
   let password = $state('');
+  let showPassword = $state(false);
   let busy = $state(false);
   let error = $state('');
   let showImport = $state(false);
+  let isCapsLock = $state(false);
+  let passwordInputEl = $state<HTMLInputElement | null>(null);
+
+  $effect(() => {
+    if (activeVault && !showImport && !busy) {
+      passwordInputEl?.focus();
+    }
+  });
+
+  function checkCapsLock(e: KeyboardEvent) {
+    if (typeof e.getModifierState === 'function') {
+      isCapsLock = e.getModifierState('CapsLock');
+    }
+  }
 
   let knownVaults = $state<KnownVault[]>([]);
   let selectedVaultId = $state<string | null>(null);
@@ -161,9 +176,8 @@
   }
 </script>
 
-<div class="border-line bg-bg-card relative w-full max-w-4xl overflow-hidden border">
-  <div class="grid h-[500px] grid-cols-12 items-stretch">
-    <!-- Left column: Branding & Vault list -->
+<div class="border-line bg-bg-card relative w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto border">
+  <div class="grid min-h-125 grid-cols-12 items-stretch">
     <div class="bg-bg-app border-line col-span-5 flex flex-col justify-between border-r p-7">
       <div>
         <VaultBrandHeader tagline={i18n.t.loginTagline} />
@@ -181,7 +195,7 @@
             <span class="text-text-dim text-smaller font-proto block tracking-wider uppercase">
               {i18n.t.encryptionScheme}
             </span>
-            <span class="text-text-base text-smaller font-proto">ARGON2ID • SQLCIPHER AES-256</span>
+            <span class="text-text-base text-smaller font-proto">Argon2id · SQLCipher AES-256-GCM</span>
           </div>
         </div>
       </div>
@@ -193,7 +207,6 @@
       </div>
     </div>
 
-    <!-- Right column: Unlock Form or Import -->
     <div class="bg-bg-card col-span-7 flex flex-col justify-between p-7">
       {#if showImport}
         <VaultImportView
@@ -234,23 +247,53 @@
                 <span class="label-xs text-text-base mb-1.5 block">
                   {i18n.t.masterPasswordLabel}
                 </span>
-                <!-- svelte-ignore a11y_autofocus -->
-                <input
-                  bind:value={password}
-                  type="password"
-                  autofocus
-                  class="sharp-input text-small w-full h-10 px-3.5"
-                  placeholder={i18n.t.enterMasterPassword}
-                />
+                <div class="relative flex items-center">
+                  <!-- svelte-ignore a11y_autofocus -->
+                  <input
+                    bind:this={passwordInputEl}
+                    bind:value={password}
+                    type={showPassword ? 'text' : 'password'}
+                    autofocus
+                    autocomplete="current-password"
+                    onkeydown={checkCapsLock}
+                    onkeyup={checkCapsLock}
+                    class="sharp-input text-small h-8 w-full pr-8 pl-2.5"
+                    placeholder={i18n.t.enterMasterPassword}
+                  />
+                  <button
+                    type="button"
+                    onclick={() => (showPassword = !showPassword)}
+                    class="text-text-muted hover:text-text-strong absolute right-1.5 flex h-6 w-6 cursor-pointer items-center justify-center transition-colors"
+                    title={showPassword ? i18n.t.hidePassword : i18n.t.showPassword}
+                    aria-label={showPassword ? i18n.t.hidePassword : i18n.t.showPassword}
+                  >
+                    <Icon name={showPassword ? 'eye-off' : 'eye'} size={13} />
+                  </button>
+                </div>
+                {#if isCapsLock}
+                  <span class="text-warning font-proto text-smaller mt-1 block font-bold tracking-wider">
+                    {i18n.t.capsLockActive}
+                  </span>
+                {/if}
+                {#if password.length > 0 && password.length < 8}
+                  <span class="text-warning font-proto text-smaller mt-1 block">
+                    {i18n.t.passwordTooShort} ({password.length}/8)
+                  </span>
+                {/if}
               </div>
 
               {#if error}
-                <div class="badge-err text-small px-3 py-2 tracking-wide">
+                <div class="badge-err font-proto text-small px-3 py-2 tracking-wide">
                   {error}
                 </div>
               {/if}
 
-              <Button type="submit" variant="primary" disabled={busy || !password}>
+              <Button
+                type="submit"
+                variant="primary"
+                loading={busy}
+                disabled={busy || password.length < 8}
+              >
                 <span class="text-small w-full font-medium tracking-wider">
                   {busy ? i18n.t.decryptingVault : i18n.t.unlockVaultBtn}
                 </span>

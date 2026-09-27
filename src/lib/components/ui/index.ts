@@ -1,4 +1,7 @@
 export { default as Icon } from './Icon.svelte';
+export { default as AppBrand } from './AppBrand.svelte';
+export { default as MonthPager } from './MonthPager.svelte';
+export { default as ProgressBar } from './ProgressBar.svelte';
 export type { IconName } from './icons';
 export { default as Splash } from './Splash.svelte';
 export { default as Button } from './Button.svelte';
@@ -22,4 +25,8 @@ export { default as Pagination } from './Pagination.svelte';
 export { default as KpiCard } from './KpiCard.svelte';
 export { default as CloseButton } from './CloseButton.svelte';
 export { default as LoadingSpinner } from '../feedback/LoadingSpinner.svelte';
+export { default as AccountSelectDropdown } from './AccountSelectDropdown.svelte';
 export { default as ReceiptScanner } from './ReceiptScanner.svelte';
+export { default as AnimatedCounter } from './AnimatedCounter.svelte';
+export { default as AccountHoverCard } from './AccountHoverCard.svelte';
+export { default as Tooltip } from './Tooltip.svelte';

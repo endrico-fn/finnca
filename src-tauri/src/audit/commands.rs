@@ -5,6 +5,7 @@ use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_audit_log_cmd(
     state: State<'_, AppState>,
     page: u32,
@@ -23,6 +24,7 @@ pub fn get_audit_log_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_entity_audit_log_cmd(
     state: State<'_, AppState>,
     entity_type: String,
@@ -31,4 +33,14 @@ pub fn get_entity_audit_log_cmd(
     let db = state.get_db()?;
     let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
     repository::list_by_entity(&conn, &entity_type, &entity_id)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn verify_audit_log_integrity_cmd(
+    state: State<'_, AppState>,
+) -> Result<super::models::AuditIntegrityReport, AppError> {
+    let db = state.get_db()?;
+    let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    repository::verify_integrity(&conn)
 }

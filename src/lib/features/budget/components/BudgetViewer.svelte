@@ -1,31 +1,37 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { SvelteDate } from 'svelte/reactivity';
+  import { shiftMonth, formatMonthLabel } from '$lib/core/format/date';
   import { budgetState, type BudgetMonthSummary } from '../state/budget.svelte';
   import { invokeIpc } from '$lib/core/ipc/client';
-  import { PageLayout, Icon, Button } from '$lib/components/ui';
+  import { PageLayout, Icon, Button, MonthPager } from '$lib/components/ui';
   import { i18n } from '$lib/core/i18n.svelte';
   import { notificationState } from '$lib/core/state/notification.svelte';
+  import { listAccountsCmd } from '$lib/core/ipc/bindings';
   import BudgetSummaryCards from './BudgetSummaryCards.svelte';
   import BudgetEnvelopeTable from './BudgetEnvelopeTable.svelte';
 
   const dateObj = new SvelteDate();
+  let currency = $state('IDR');
 
   const currentMonth = $derived(
     dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0')
   );
 
   const monthName = $derived(
-    dateObj
-      .toLocaleDateString(i18n.locale === 'id' ? 'id-ID' : 'en-US', {
-        month: 'long',
-        year: 'numeric',
-      })
-      .toUpperCase()
+    formatMonthLabel(dateObj.getFullYear(), dateObj.getMonth(), i18n.locale, true)
   );
 
-  onMount(() => {
+  onMount(async () => {
     budgetState.setMonth(currentMonth);
+    try {
+      const items = await listAccountsCmd();
+      if (items.length > 0 && items[0].account?.currency) {
+        currency = items[0].account.currency;
+      }
+    } catch {
+      currency = 'IDR';
+    }
   });
 
   async function prevMonth() {
@@ -45,9 +51,7 @@
   }
 
   async function copyPreviousMonth() {
-    const prevD = new SvelteDate(dateObj);
-    prevD.setMonth(prevD.getMonth() - 1);
-    const prevMonthStr = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}`;
+    const prevMonthStr = shiftMonth(currentMonth, -1);
 
     try {
       const prevSummary = await invokeIpc<BudgetMonthSummary>('get_budget_summary_cmd', {
@@ -100,39 +104,12 @@
         {i18n.t.budgetRolloverBtn}
       </Button>
 
-      <div class="border-line bg-bg-card flex h-7 items-center gap-1 border px-1">
-        <Button
-          variant="pager"
-          size="icon"
-          onclick={prevMonth}
-          ariaLabel={i18n.t.prevMonth}
-          title={i18n.t.prevMonth}
-        >
-          <Icon name="chev-left" size={12} />
-        </Button>
-        <span
-          class="font-proto text-text-strong text-smaller min-w-28 text-center font-bold tracking-widest tabular-nums"
-        >
-          {monthName}
-        </span>
-        <Button
-          variant="pager"
-          size="icon"
-          onclick={nextMonth}
-          ariaLabel={i18n.t.nextMonth}
-          title={i18n.t.nextMonth}
-        >
-          <Icon name="chev-right" size={12} />
-        </Button>
-      </div>
+      <MonthPager variant="boxed" label={monthName} onPrev={prevMonth} onNext={nextMonth} />
     </div>
   {/snippet}
 
   <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-    <!-- Telemetry HUD Summary Strip -->
-    <BudgetSummaryCards {budgetData} />
-
-    <!-- Envelopes Table Grid -->
-    <BudgetEnvelopeTable {budgetData} onAssignBudget={assignBudget} />
+    <BudgetSummaryCards {budgetData} {currency} />
+    <BudgetEnvelopeTable {budgetData} {currency} onAssignBudget={assignBudget} />
   </div>
 </PageLayout>

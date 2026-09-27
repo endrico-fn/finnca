@@ -5,14 +5,13 @@
   import { notificationState } from '$lib/core/state/notification.svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { ModalShell } from '$lib/components/ui';
   import CommandPalette from '$lib/components/layout/CommandPalette.svelte';
   import HealthPulseModal, {
     type HealthStats,
   } from '$lib/components/layout/HealthPulseModal.svelte';
   import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
-  import JournalEntryForm from '$lib/features/journal/components/JournalEntryForm.svelte';
-  import TransferModal from '$lib/features/journal/components/TransferModal.svelte';
+  import EntryInspector from '$lib/features/journal/components/EntryInspector.svelte';
+  import FloatingInspectorWindow from '$lib/components/layout/FloatingInspectorWindow.svelte';
 
   let {
     healthStats = null,
@@ -26,6 +25,7 @@
 <CommandPalette
   bind:open={modalState.commandPaletteOpen}
   onQuickTxDraft={(draft) => modalState.openQuickTx(draft)}
+  onTransfer={() => modalState.openTransfer()}
   {onLock}
 />
 
@@ -40,48 +40,35 @@
   />
 {/if}
 
-{#if modalState.quickTxOpen}
-  <ModalShell
-    bind:open={modalState.quickTxOpen}
-    title={modalState.quickTxIsNew ? i18n.t.newTransactionTitle : i18n.t.quickTxModalTitle}
-    maxWidth="max-w-5xl"
-    onClose={() => modalState.closeQuickTx()}
+{#if modalState.inspectorOpen}
+  <FloatingInspectorWindow
+    open={true}
+    title={modalState.inspectorEntry ? i18n.t.editEntryTitle : modalState.inspectorMode === 'transfer' ? i18n.t.quickTransferTitle : i18n.t.newEntryTitle}
+    onClose={() => modalState.closeInspector()}
   >
-    <svelte:boundary>
-      {#if modalState.quickTxDraft}
-        <JournalEntryForm
-          tx={modalState.quickTxIsNew ? null : modalState.quickTxDraft}
-          initialDraft={modalState.quickTxIsNew ? modalState.quickTxDraft : undefined}
-          onSave={async (savedTx) => {
-            await journalState.saveTransaction(savedTx);
-            notificationState.addNotification({
-              type: 'LEDGER_INTEGRITY',
-              priority: 'low',
-              title: i18n.t.quickTxSavedNotifTitle,
-              message: i18n.t.quickTxSavedNotifMsg,
-            });
-            modalState.closeQuickTx();
-          }}
-          onCancel={() => modalState.closeQuickTx()}
-        />
-      {/if}
-      {#snippet failed(err, reset)}
-        <div class="badge-err font-proto text-small mt-2 px-3 py-2">
-          {i18n.t.quickTxLoadFailed}
-        </div>
-        <pre class="font-proto text-smaller text-text-muted mt-2 overflow-x-auto px-1 py-2 wrap-break-word whitespace-pre-wrap">{err instanceof Error ? (err.stack ?? err.message) : String(err)}</pre>
-        <div class="mt-2 flex justify-end">
-          <button
-            type="button"
-            onclick={reset}
-            class="sharp-btn btn-ghost font-proto text-small h-8 cursor-pointer px-3.5"
-          >
-            {i18n.t.commonRetry}
-          </button>
-        </div>
-      {/snippet}
-    </svelte:boundary>
-  </ModalShell>
+    <EntryInspector
+      entry={modalState.inspectorEntry}
+      initialDraft={modalState.inspectorDraft}
+      initialMode={modalState.inspectorMode}
+      initialFrom={modalState.inspectorInitialFrom}
+      initialTo={modalState.inspectorInitialTo}
+      onSave={async (savedTx) => {
+        await journalState.saveEntry(savedTx);
+        notificationState.addNotification({
+          type: 'LEDGER_INTEGRITY',
+          priority: 'low',
+          title: i18n.t.quickTxSavedNotifTitle,
+          message: i18n.t.quickTxSavedNotifMsg,
+        });
+        modalState.closeInspector();
+      }}
+      onCancel={() => modalState.closeInspector()}
+      onDelete={async (id) => {
+        await journalState.deleteEntry(id);
+        modalState.closeInspector();
+      }}
+    />
+  </FloatingInspectorWindow>
 {/if}
 
 {#if modalState.confirmConfig}
@@ -98,11 +85,5 @@
       if (fn) await fn();
     }}
     onCancel={() => modalState.closeConfirm()}
-  />
-{/if}
-
-{#if modalState.transferModalOpen}
-  <TransferModal
-    bind:open={modalState.transferModalOpen}
   />
 {/if}

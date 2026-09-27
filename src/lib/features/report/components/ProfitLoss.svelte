@@ -1,10 +1,10 @@
 <script lang="ts">
   import { i18n } from '$lib/core/i18n.svelte';
   import { formatMinorToDisplay } from '$lib/core/format/currency';
-  import { Card } from '$lib/components/ui';
+  import { Card, KpiCard, AnimatedCounter } from '$lib/components/ui';
   import { reportState } from '../state/report.svelte';
 
-  const fmt = (n: number) => formatMinorToDisplay(n, 'IDR');
+  const fmt = (n: number, c = 'IDR') => formatMinorToDisplay(n, c);
 
   let { from = '', to = '' }: { from?: string; to?: string } = $props();
 
@@ -20,55 +20,70 @@
   const totalExpenses = $derived(pnl?.total_expenses ?? 0);
   const netIncome = $derived(pnl?.net_income ?? 0);
 
-  const profitMargin = $derived(
-    totalIncome > 0 ? Math.round((netIncome / totalIncome) * 100) : 0
-  );
+  const profitMargin = $derived(totalIncome > 0 ? Math.round((netIncome / totalIncome) * 100) : 0);
   const expenseRatio = $derived(
     totalIncome > 0 ? Math.round((totalExpenses / totalIncome) * 100) : 0
   );
 </script>
 
-<div class="flex flex-1 flex-col gap-3 w-full min-h-0">
-  <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 shrink-0">
-    <Card class="p-3">
-      <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
-        {i18n.t.revenues}
-      </div>
-      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
-        {fmt(totalIncome)}
-      </div>
-    </Card>
+<div class="flex min-h-0 w-full flex-1 flex-col gap-3">
+  <div class="grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-4">
+    <KpiCard label={i18n.t.revenues} labelClass="text-income">
+      <AnimatedCounter
+        value={totalIncome}
+        currency="IDR"
+        class="text-medium text-income block leading-tight font-bold"
+      />
+      <span class="text-text-dim font-proto text-smaller block truncate leading-tight">
+        {incomeRows.length}
+        {i18n.t.accountsTitle}
+      </span>
+    </KpiCard>
 
-    <Card class="p-3">
-      <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
-        {i18n.t.operationalExpenses}
-      </div>
-      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
-        {fmt(totalExpenses)}
-      </div>
-    </Card>
+    <KpiCard label={i18n.t.operationalExpenses} labelClass="text-expense">
+      <AnimatedCounter
+        value={totalExpenses}
+        currency="IDR"
+        class="text-medium text-expense block leading-tight font-bold"
+      />
+      <span class="text-text-dim font-proto text-smaller block truncate leading-tight">
+        {expenseRows.length}
+        {i18n.t.accountsTitle}
+      </span>
+    </KpiCard>
 
-    <Card class="p-3">
-      <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
+    <KpiCard
+      label={i18n.t.netIncome}
+      labelClass={netIncome >= 0 ? 'text-text-white' : 'text-expense'}
+      badge={netIncome >= 0 ? i18n.t.statusOk : i18n.t.statusErr}
+      badgeTone={netIncome >= 0 ? 'ok' : 'err'}
+    >
+      <AnimatedCounter
+        value={netIncome}
+        currency="IDR"
+        class="text-medium block leading-tight font-bold {netIncome < 0
+          ? 'text-expense'
+          : 'text-text-white'}"
+      />
+      <span class="text-text-dim font-proto text-smaller block truncate leading-tight">
         {i18n.t.netIncome}
-      </div>
-      <div class="font-proto text-lg font-bold tabular-nums {netIncome < 0 ? 'text-expense' : 'text-text-white'}">
-        {fmt(netIncome)}
-      </div>
-    </Card>
+      </span>
+    </KpiCard>
 
-    <Card class="p-3">
-      <div class="font-proto text-text-dim text-smaller uppercase tracking-wider">
-        {i18n.t.financialEfficiency}
-      </div>
-      <div class="font-proto text-text-white text-lg font-bold tabular-nums">
-        {profitMargin}% <span class="text-text-dim text-smaller font-normal">({i18n.t.profitMargin})</span>
-      </div>
-    </Card>
+    <KpiCard label={i18n.t.financialEfficiency}>
+      <span
+        class="text-medium text-text-white font-proto block leading-tight font-bold tabular-nums"
+      >
+        {profitMargin}%
+      </span>
+      <span class="text-text-dim font-proto text-smaller block truncate leading-tight">
+        {i18n.t.profitMargin}
+      </span>
+    </KpiCard>
   </div>
 
-  <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 flex-1 min-h-0">
-    <Card divided title={i18n.t.revenues} class="flex flex-col flex-1 min-h-0">
+  <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
+    <Card divided title={i18n.t.revenues} class="flex min-h-0 flex-1 flex-col">
       {#snippet header()}
         <span class="font-proto text-text-white text-small font-bold tabular-nums">
           {fmt(totalIncome)}
@@ -76,7 +91,9 @@
       {/snippet}
 
       {#if incomeRows.length === 0}
-        <div class="text-text-dim font-aux flex flex-1 items-center justify-center py-8 text-center text-small">
+        <div
+          class="text-text-dim font-aux text-small flex flex-1 items-center justify-center py-8 text-center"
+        >
           {i18n.t.noIncomeAccounts}
         </div>
       {:else}
@@ -101,8 +118,10 @@
                       <span class="truncate">{row.name}</span>
                     </div>
                   </td>
-                  <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
-                    {fmt(row.amount)}
+                  <td
+                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums"
+                  >
+                    {fmt(row.amount, row.currency)}
                   </td>
                 </tr>
               {/each}
@@ -112,7 +131,7 @@
       {/if}
     </Card>
 
-    <Card divided title={i18n.t.operationalExpenses} class="flex flex-col flex-1 min-h-0">
+    <Card divided title={i18n.t.operationalExpenses} class="flex min-h-0 flex-1 flex-col">
       {#snippet header()}
         <span class="font-proto text-text-white text-small font-bold tabular-nums">
           {fmt(totalExpenses)}
@@ -120,7 +139,9 @@
       {/snippet}
 
       {#if expenseRows.length === 0}
-        <div class="text-text-dim font-aux flex flex-1 items-center justify-center py-8 text-center text-small">
+        <div
+          class="text-text-dim font-aux text-small flex flex-1 items-center justify-center py-8 text-center"
+        >
           {i18n.t.noExpenseAccounts}
         </div>
       {:else}
@@ -145,8 +166,10 @@
                       <span class="truncate">{row.name}</span>
                     </div>
                   </td>
-                  <td class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums">
-                    {fmt(row.amount)}
+                  <td
+                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums"
+                  >
+                    {fmt(row.amount, row.currency)}
                   </td>
                 </tr>
               {/each}
@@ -157,7 +180,7 @@
     </Card>
   </div>
 
-  <Card class="border-line bg-bg-card/60 p-2.5 shrink-0">
+  <Card class="border-line bg-bg-card/60 shrink-0 p-2.5">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="font-proto text-smaller text-text-dim flex items-center gap-2">
         <span class="text-text-base font-bold">{i18n.t.netIncome}:</span>

@@ -6,6 +6,7 @@
     variant = 'primary',
     size = 'md',
     disabled = false,
+    loading = false,
     type = 'button',
     onclick,
     href,
@@ -15,9 +16,10 @@
     class: extraClass = '',
     children,
   }: {
-    variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'pager' | 'tactical';
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'pager' | 'tactical' | 'outline';
     size?: 'sm' | 'md' | 'lg' | 'icon';
     disabled?: boolean;
+    loading?: boolean;
     type?: 'button' | 'submit';
     onclick?: (e: MouseEvent) => void;
     href?: string;
@@ -27,6 +29,8 @@
     class?: string;
     children: Snippet;
   } = $props();
+
+  const isBusy = $derived(disabled || loading);
 
   const cls = $derived.by(() => {
     if (variant === 'pager') {
@@ -41,7 +45,7 @@
           : size === 'icon'
             ? 'w-7 h-7 p-0 shrink-0'
             : 'h-8 px-3.5 text-small';
-    const dim = disabled ? 'opacity-40 cursor-not-allowed' : '';
+    const dim = isBusy ? 'opacity-50 cursor-not-allowed' : '';
     return `sharp-btn btn-${variant} font-proto ${sizing} ${dim} ${extraClass}`
       .trim()
       .replace(/\s+/g, ' ');
@@ -52,22 +56,28 @@
   <a
     href={resolve(href as '/app')}
     class={cls}
-    aria-disabled={disabled}
+    aria-disabled={isBusy}
     aria-label={ariaLabel}
     {title}
   >
+    {#if loading}
+      <span class="spinner-sm mr-1.5" aria-hidden="true"></span>
+    {/if}
     {@render children()}
   </a>
 {:else}
   <button
     {type}
-    {disabled}
+    disabled={isBusy}
     {onclick}
     class={cls}
     aria-label={ariaLabel}
     aria-pressed={pressed}
     {title}
   >
+    {#if loading}
+      <span class="spinner-sm mr-1.5" aria-hidden="true"></span>
+    {/if}
     {@render children()}
   </button>
 {/if}

@@ -43,7 +43,7 @@
 </script>
 
 <div
-  class="bg-bg-app border-line focus-within:border-teal flex h-7 w-full min-w-40 items-center border transition-colors {extraClass}"
+  class="bg-bg-app border-line focus-within:border-teal flex h-8 w-full min-w-40 items-center border transition-colors {extraClass}"
 >
   {#if scope}
     <div
@@ -101,6 +101,8 @@
     {oninput}
     placeholder={placeholder || i18n.t.searchAllPlaceholder}
     aria-label={placeholder || i18n.t.searchAriaFallback}
+    autocomplete="off"
+    spellcheck="false"
     class="text-text-strong placeholder:text-text-muted text-small font-aux h-full w-full bg-transparent px-2 outline-none"
   />
   {#if value}

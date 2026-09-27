@@ -5,61 +5,81 @@
   import { session } from '$lib/core/state/session.svelte';
   import { reportState, type ReportTab } from '$lib/features/report/state/report.svelte';
   import { onMount, untrack } from 'svelte';
+  import { fly, fade } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { PageLayout, Button, Icon } from '$lib/components/ui';
   import { createTabRouter } from '$lib/core/router/tabRouter.svelte';
-  import { APP_NAME } from '$lib/core/types';
+  import { APP_NAME, APP_SLUG } from '$lib/core/types';
   import ExportOverlay from './ExportOverlay.svelte';
-  import { exportReportPDF, exportReportCSV } from '../export';
+  import { exportReportPDF } from '../exportPdf';
+  import { exportReportCSV } from '../exportCsv';
   import {
     computeTrendsDateRange,
     type TrendsPeriod,
     type TrendsMetric,
   } from '../state/trendsChartUtils';
   import ReportTabBar from './ReportTabBar.svelte';
+  import { REPORT_GROUPS, reportGroupOf } from '../state/reportNav';
 
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import BalanceSheet from './BalanceSheet.svelte';
   import ProfitLoss from './ProfitLoss.svelte';
-  import BudgetVsActual from './BudgetVsActual.svelte';
   import TrialBalance from './TrialBalance.svelte';
   import DebtReport from './DebtReport.svelte';
   import Trends from './Trends.svelte';
-  import Cashflow from './Cashflow.svelte';
   import FxReport from './FxReport.svelte';
+  import SpendingAnalysis from './SpendingAnalysis.svelte';
+  import CashFlow from './CashFlow.svelte';
+  import CashForecast from './CashForecast.svelte';
+  import NetWorthProgression from './NetWorthProgression.svelte';
+  import IncomeExpenseChart from './IncomeExpenseChart.svelte';
 
   const validTabs = [
+    'networth',
+    'income-exp',
     'bs',
     'pnl',
     'cashflow',
     'tb',
-    'budget-actual',
     'debt',
     'trends',
+    'spending',
+    'forecast',
     'fx',
   ] as const;
 
-  const tabRouter = createTabRouter<ReportTab>('bs', validTabs, 'tab');
+  const tabRouter = createTabRouter<ReportTab>('tb', validTabs, 'tab');
 
   let from = $state('');
   let to = $state('');
   let exportOpen = $state(false);
 
+  const activeGroupMeta = $derived(
+    REPORT_GROUPS.find((g) => g.id === reportGroupOf(tabRouter.current)) ?? REPORT_GROUPS[0]
+  );
+
   const currentTabLabel = $derived.by(() => {
     switch (tabRouter.current) {
+      case 'networth':
+        return i18n.t.networthProgressionTitle;
+      case 'income-exp':
+        return i18n.t.incomeExpChartTitle;
       case 'bs':
         return i18n.t.balanceSheetTitle;
       case 'pnl':
         return i18n.t.pnlTitle;
       case 'cashflow':
-        return i18n.t.cashflowTab;
+        return i18n.t.cashFlowTitle;
       case 'tb':
         return i18n.t.trialBalanceTitle;
-      case 'budget-actual':
-        return i18n.t.budgetVsActualTitle;
       case 'debt':
         return i18n.t.debtReportTitle;
       case 'trends':
         return i18n.t.trendsTitle;
+      case 'spending':
+        return i18n.t.spendingTitle;
+      case 'forecast':
+        return i18n.t.cashForecastTitle;
       case 'fx':
         return i18n.t.fxRevalTab;
       default:
@@ -112,7 +132,7 @@
   const historicalPoints = $derived(reportState.historicalPoints);
 
   async function exportCSV() {
-    const defaultFilename = `finnca_${tabRouter.current}_${todayString()}.csv`;
+    const defaultFilename = `${APP_SLUG}_${tabRouter.current}_${todayString()}.csv`;
     const savedPath = await exportReportCSV(
       tabRouter.current,
       historicalPoints,
@@ -120,7 +140,8 @@
       defaultFilename,
       i18n.t.dialogCsvFilter,
       reportState.balanceSheet,
-      reportState.profitLoss
+      reportState.profitLoss,
+      reportState.cashFlow
     );
 
     if (savedPath) {
@@ -144,6 +165,7 @@
       trialBalance: reportState.trialBalance,
       profitLoss: reportState.profitLoss,
       balanceSheet: reportState.balanceSheet,
+      cashFlow: reportState.cashFlow,
     });
     notificationState.addNotification({
       type: 'LEDGER_INTEGRITY',
@@ -162,9 +184,19 @@
   }
 </script>
 
-<PageLayout crumb={i18n.t.report} crumbHref="/app/reports" title={currentTabLabel}>
+<PageLayout
+  parentCrumb={i18n.t.report}
+  parentHref="/app/reports"
+  crumb={i18n.t[activeGroupMeta.labelKey]}
+  crumbAction={() => tabRouter.setTab(activeGroupMeta.defaultTab)}
+  title={currentTabLabel}
+>
   {#snippet actions()}
-    <Button variant="ghost" onclick={() => (exportOpen = true)} class="flex items-center gap-1.5">
+    <Button
+      variant="ghost"
+      onclick={() => (exportOpen = true)}
+      class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap flex items-center gap-1.5"
+    >
       {i18n.t.exportReportBtn}
       <Icon name="export" size={14} />
     </Button>
@@ -173,7 +205,7 @@
   <ExportOverlay
     bind:open={exportOpen}
     reportTitle={currentTabLabel}
-    supportsPDF={tabRouter.current !== 'trends'}
+    supportsPDF={tabRouter.current !== 'trends' && tabRouter.current !== 'income-exp'}
     onExport={handleExport}
   />
 
@@ -184,44 +216,50 @@
     bind:to
   />
 
-  <div class="flex min-h-0 flex-1 flex-col overflow-y-auto w-full">
-    {#if tabRouter.current === 'bs'}
-      <div class="flex min-h-0 flex-1 flex-col w-full">
-        <BalanceSheet asOf={to} />
+  <div class="flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
+    {#key tabRouter.current}
+      <div
+        class="flex min-h-0 flex-1 flex-col"
+        in:fly={{ y: 4, duration: 140, easing: cubicOut }}
+        out:fade={{ duration: 60 }}
+      >
+        {#if tabRouter.current === 'networth'}
+          <NetWorthProgression
+            {bs}
+            monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
+            {historicalPoints}
+            {trendsDateRange}
+            bind:trendsPeriod
+          />
+        {:else if tabRouter.current === 'income-exp'}
+          <IncomeExpenseChart {from} {to} />
+        {:else if tabRouter.current === 'bs'}
+          <BalanceSheet asOf={to} />
+        {:else if tabRouter.current === 'pnl'}
+          <ProfitLoss {from} {to} />
+        {:else if tabRouter.current === 'cashflow'}
+          <CashFlow {from} {to} />
+        {:else if tabRouter.current === 'tb'}
+          <TrialBalance asOf={to} />
+        {:else if tabRouter.current === 'debt'}
+          <DebtReport asOf={to} />
+        {:else if tabRouter.current === 'trends'}
+          <Trends
+            {bs}
+            monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
+            bind:trendsPeriod
+            bind:trendsMetric
+            {trendsDateRange}
+            {historicalPoints}
+          />
+        {:else if tabRouter.current === 'spending'}
+          <SpendingAnalysis {from} {to} />
+        {:else if tabRouter.current === 'forecast'}
+          <CashForecast />
+        {:else if tabRouter.current === 'fx'}
+          <FxReport />
+        {/if}
       </div>
-    {:else if tabRouter.current === 'pnl'}
-      <div class="flex min-h-0 flex-1 flex-col w-full">
-        <ProfitLoss {from} {to} />
-      </div>
-    {:else if tabRouter.current === 'cashflow'}
-      <div class="flex min-h-0 flex-1 flex-col w-full">
-        <Cashflow {from} {to} />
-      </div>
-    {:else if tabRouter.current === 'tb'}
-      <div class="flex min-h-0 flex-1 flex-col w-full">
-        <TrialBalance asOf={to} />
-      </div>
-    {:else if tabRouter.current === 'budget-actual'}
-      <div class="flex min-h-0 flex-1 flex-col w-full">
-        <BudgetVsActual />
-      </div>
-    {:else if tabRouter.current === 'debt'}
-      <div class="flex min-h-0 flex-1 flex-col w-full">
-        <DebtReport asOf={to} />
-      </div>
-    {:else if tabRouter.current === 'trends'}
-      <Trends
-        {bs}
-        monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
-        bind:trendsPeriod
-        bind:trendsMetric
-        {trendsDateRange}
-        {historicalPoints}
-      />
-    {:else if tabRouter.current === 'fx'}
-      <div class="flex min-h-0 flex-1 flex-col w-full">
-        <FxReport />
-      </div>
-    {/if}
+    {/key}
   </div>
 </PageLayout>

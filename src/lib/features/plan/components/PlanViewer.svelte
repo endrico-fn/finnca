@@ -2,36 +2,27 @@
   import {
     listAccountsCmd,
     listJournalEntriesCmd,
-    postJournalEntryCmd,
     type Account,
     type JournalEntryView,
-    type PostingInput,
   } from '$lib/core/ipc/bindings';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { notificationState } from '$lib/core/state/notification.svelte';
+  import { modalState } from '$lib/core/state/modal.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { buildCalendarDays, todayString, diffCalendarDays } from '$lib/core/format/date';
-  import type { Transaction } from '$lib/core/types';
-  import JournalEntryForm from '$lib/features/journal/components/JournalEntryForm.svelte';
-  import { onMount } from 'svelte';
   import {
-    Splash,
-    ErrorState,
-    PageLayout,
-    Tabs,
-    Button,
-    ModalShell,
-  } from '$lib/components/ui';
+    buildCalendarDays,
+    todayString,
+    diffCalendarDays,
+    formatMonthLabel,
+  } from '$lib/core/format/date';
+  import { onMount } from 'svelte';
+  import { Splash, ErrorState, PageLayout, Tabs, Button } from '$lib/components/ui';
   import { createTabRouter } from '$lib/core/router/tabRouter.svelte';
 
   import PlanModal from './PlanModal.svelte';
   import CalendarView from './CalendarView.svelte';
   import PlansOverview from './PlansOverview.svelte';
-  import {
-    planState,
-    buildEventsByDate,
-    type PaymentPlan,
-  } from '../state/plan.svelte';
+  import { planState, buildEventsByDate, type PaymentPlan } from '../state/plan.svelte';
 
   const validTabs = ['calendar', 'plans'] as const;
   type PlanTab = (typeof validTabs)[number];
@@ -46,14 +37,21 @@
   let recentEntries = $state<JournalEntryView[]>([]);
   const accountsById = $derived(new Map(accounts.map((a) => [a.id, a])));
 
-  onMount(async () => {
-    const [accs, entries] = await Promise.all([
+  onMount(() => {
+    Promise.all([
       listAccountsCmd().catch(() => []),
       listJournalEntriesCmd(50).catch(() => []),
       planState.load(),
-    ]);
-    accounts = accs.map((i) => i.account);
-    recentEntries = entries;
+    ]).then(([accs, entries]) => {
+      accounts = accs.map((i) => i.account);
+      recentEntries = entries;
+    });
+
+    const unsub = eventBus.on('transaction:posted', async () => {
+      recentEntries = await listJournalEntriesCmd(50).catch(() => []);
+      await planState.load();
+    });
+    return unsub;
   });
 
   let currentYear = $state(new Date().getFullYear());
@@ -62,8 +60,6 @@
   let planFilter = $state<string>('ALL');
   let planModalOpen = $state(false);
   let postingBusyId = $state<string | null>(null);
-  let quickTxOpen = $state(false);
-  let quickTxDraft = $state<Transaction | null>(null);
 
   function prevMonth() {
     if (currentMonth === 0) {
@@ -84,11 +80,7 @@
     selectedDate = todayString(d);
   }
 
-  const monthName = $derived(
-    new Date(currentYear, currentMonth, 1)
-      .toLocaleDateString(i18n.locale === 'id' ? 'id-ID' : 'en-US', { month: 'long' })
-      .toUpperCase()
-  );
+  const monthName = $derived(formatMonthLabel(currentYear, currentMonth, i18n.locale));
   const dayHeaders = $derived(i18n.t.dayHeaders);
   const calendarDays = $derived(buildCalendarDays(currentYear, currentMonth));
 
@@ -122,28 +114,31 @@
       const toAcc = accountsById.get(p.toAccountId);
       if (!fromAcc || !toAcc) return;
       if (fromAcc.currency !== toAcc.currency) throw new Error(i18n.t.planCurrencyMismatch);
-      quickTxDraft = {
-        id: crypto.randomUUID(),
-        date: selectedDate,
-        description: `${i18n.t.planInstallmentFor} ${p.title}`,
-        planId: p.id,
-        currency: (fromAcc.currency as 'IDR' | 'USD') || 'IDR',
-        splits: [
-          {
-            id: crypto.randomUUID(),
-            accountId: p.fromAccountId,
-            amount: -p.installmentAmount,
-            reconcile: 'n',
-          },
-          {
-            id: crypto.randomUUID(),
-            accountId: p.toAccountId,
-            amount: p.installmentAmount,
-            reconcile: 'n',
-          },
-        ],
-      };
-      quickTxOpen = true;
+      modalState.openQuickTx(
+        {
+          id: crypto.randomUUID(),
+          date: selectedDate,
+          description: `${i18n.t.planInstallmentFor} ${p.title}`,
+          notes: `[Plan: ${p.id}]`,
+          currency: fromAcc.currency || 'IDR',
+          fx_rate: null,
+          postings: [
+            {
+              id: crypto.randomUUID(),
+              account_id: p.fromAccountId,
+              amount: -p.installmentAmount,
+              reconcile: 'n',
+            },
+            {
+              id: crypto.randomUUID(),
+              account_id: p.toAccountId,
+              amount: p.installmentAmount,
+              reconcile: 'n',
+            },
+          ],
+        },
+        true
+      );
     } catch (e) {
       notificationState.addNotification({
         type: 'LEDGER_INTEGRITY',
@@ -161,6 +156,7 @@
   {#snippet actions()}
     <Button
       variant="primary"
+      class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
       title={i18n.t.newPlanTracker}
       ariaLabel={i18n.t.newPlanTracker}
       onclick={() => (planModalOpen = true)}
@@ -201,62 +197,9 @@
         openCreatePlan={() => (planModalOpen = true)}
       />
     {:else}
-      <PlansOverview
-        bind:planFilter
-        {accountsById}
-        openCreatePlan={() => (planModalOpen = true)}
-      />
+      <PlansOverview bind:planFilter {accountsById} openCreatePlan={() => (planModalOpen = true)} />
     {/if}
   {/if}
 
   <PlanModal bind:open={planModalOpen} {selectedDate} {accounts} />
-
-  <ModalShell
-    bind:open={quickTxOpen}
-    title={i18n.t.planTransactionPosted}
-    maxWidth="max-w-5xl"
-    onClose={() => {
-      quickTxOpen = false;
-      quickTxDraft = null;
-    }}
-  >
-    {#if quickTxDraft}
-      <JournalEntryForm
-        tx={quickTxDraft}
-        onSave={async (savedTx) => {
-          const postings: PostingInput[] = savedTx.splits.map((s) => ({
-            id: s.id || undefined,
-            account_id: s.accountId,
-            amount: Math.round(s.amount),
-            memo: s.memo || null,
-            action: null,
-            reconcile: (s.reconcile === 'y' ? 'y' : s.reconcile === 'c' ? 'c' : null) as 'c' | 'y' | null,
-          }));
-          await postJournalEntryCmd({
-            date: savedTx.date,
-            description: savedTx.description,
-            notes: savedTx.notes || null,
-            currency: savedTx.currency,
-            fx_rate: savedTx.fxRateAtTransaction || null,
-            postings,
-          });
-          eventBus.emit('transaction:posted', { id: '' });
-          eventBus.emit('accounts:changed', undefined);
-          await planState.load();
-          notificationState.addNotification({
-            type: 'LEDGER_INTEGRITY',
-            priority: 'low',
-            title: i18n.t.planTransactionPosted,
-            message: i18n.t.planInstallmentPostedMsg,
-          });
-          quickTxOpen = false;
-          quickTxDraft = null;
-        }}
-        onCancel={() => {
-          quickTxOpen = false;
-          quickTxDraft = null;
-        }}
-      />
-    {/if}
-  </ModalShell>
 </PageLayout>

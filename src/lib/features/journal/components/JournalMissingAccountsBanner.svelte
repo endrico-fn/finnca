@@ -20,7 +20,9 @@
   }
 </script>
 
-<div class="border-warning/50 bg-warning/10 my-2 flex flex-wrap items-center justify-between gap-2 border p-2.5">
+<div
+  class="border-warning/50 bg-warning/10 my-2 flex flex-wrap items-center justify-between gap-2 border p-2.5"
+>
   <div class="flex items-center gap-2">
     <Icon name="chart" size={14} />
     <span class="text-warning font-proto text-small">

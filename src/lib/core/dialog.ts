@@ -12,3 +12,10 @@ export async function pickSaveFile(
   const filePath = await save({ defaultPath, filters });
   return typeof filePath === 'string' ? filePath : null;
 }
+
+export async function pickOpenFile(
+  filters?: Array<{ name: string; extensions: string[] }>
+): Promise<string | null> {
+  const selected = await open({ multiple: false, filters });
+  return typeof selected === 'string' ? selected : null;
+}

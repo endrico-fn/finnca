@@ -1,4 +1,5 @@
 import { invokeIpc } from '$lib/core/ipc/client';
+import { todayString } from '$lib/core/format/date';
 
 export interface EnvelopeView {
   account_id: string;
@@ -34,7 +35,7 @@ export interface MonthCalculation {
 }
 
 class BudgetState {
-  selectedMonth = $state(new Date().toISOString().slice(0, 7));
+  selectedMonth = $state(todayString().slice(0, 7));
   loading = $state(false);
   error = $state<string | null>(null);
   summary = $state<BudgetMonthSummary | null>(null);

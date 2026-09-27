@@ -1,5 +1,3 @@
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-
 export type AppEventPayloads = {
   'vault:unlocked': { vaultName: string; username: string };
   'vault:locked': void;
@@ -46,39 +44,6 @@ class EventBus {
         console.error(`[EventBus] Error in handler for event "${String(event)}":`, err);
       }
     }
-  }
-
-  async listenTauri<T>(eventName: string, handler: (payload: T) => void): Promise<UnlistenFn> {
-    try {
-      return await listen<T>(eventName, (event) => {
-        handler(event.payload);
-      });
-    } catch {
-      return () => {};
-    }
-  }
-
-  createEventSource<T>(tauriEventName: string, initialValue: T) {
-    let current = $state<T>(initialValue);
-    let unlisten: UnlistenFn | null = null;
-
-    this.listenTauri<T>(tauriEventName, (payload) => {
-      current = payload;
-    }).then((fn) => {
-      unlisten = fn;
-    });
-
-    return {
-      get value() {
-        return current;
-      },
-      destroy() {
-        if (unlisten) {
-          unlisten();
-          unlisten = null;
-        }
-      },
-    };
   }
 }
 

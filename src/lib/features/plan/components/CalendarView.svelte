@@ -33,12 +33,7 @@
 </script>
 
 <div class="grid min-h-0 flex-1 grid-cols-12 gap-2 overflow-hidden">
-  <CalendarGrid
-    {calendarDays}
-    {eventsByDate}
-    bind:selectedDate
-    {nav}
-  />
+  <CalendarGrid {calendarDays} {eventsByDate} bind:selectedDate {nav} />
 
   <CalendarAgenda
     {selectedDate}

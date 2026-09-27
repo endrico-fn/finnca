@@ -13,9 +13,10 @@
       <input
         id="username-input"
         type="text"
-        class="sharp-input text-small w-full px-2.5 py-1.5"
+        class="sharp-input text-small h-8 w-full px-2.5"
         bind:value={generalSettingsState.username}
-        onkeydown={(e) => e.key === 'Enter' && generalSettingsState.canSave && generalSettingsState.save()}
+        onkeydown={(e) =>
+          e.key === 'Enter' && generalSettingsState.canSave && generalSettingsState.save()}
       />
       {#if generalSettingsState.error}
         <p class="text-expense font-proto text-smaller mt-1">{generalSettingsState.error}</p>
@@ -26,9 +27,7 @@
       <span class="label-xs text-text-muted mb-1 block">
         {i18n.t.role}
       </span>
-      <div
-        class="border-line bg-bg-app flex h-8 w-full items-center justify-between border px-2.5"
-      >
+      <div class="border-line bg-bg-app flex h-8 w-full items-center justify-between border px-2.5">
         <span class="text-text-muted font-aux text-smaller truncate">
           {i18n.t.roleOwner}
         </span>

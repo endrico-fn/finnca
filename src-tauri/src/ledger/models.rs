@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 pub enum ReconcileState {
     #[serde(rename = "n")]
     None,
@@ -34,18 +34,21 @@ impl FromStr for ReconcileState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, specta::Type)]
 pub struct JournalEntry {
     pub id: String,
     pub date: String,
     pub description: String,
     pub notes: Option<String>,
+    pub reference_no: Option<String>,
+    pub due_date: Option<String>,
+    pub plan_id: Option<String>,
     pub currency: String,
     pub fx_rate: i64,
     pub posted_at: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, specta::Type)]
 pub struct Posting {
     pub id: String,
     pub entry_id: String,
@@ -55,4 +58,7 @@ pub struct Posting {
     pub action: Option<String>,
     pub reconcile: ReconcileState,
     pub reconciled_at: Option<i64>,
+    pub currency: String,
+    pub fx_rate: Option<i64>,
+    pub cost_amount: Option<i64>,
 }

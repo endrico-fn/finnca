@@ -27,6 +27,13 @@
   let importInspection = $state<VaultInspectionResult | null>(null);
   let busy = $state(false);
   let error = $state('');
+  let isCapsLock = $state(false);
+
+  function checkCapsLock(e: KeyboardEvent) {
+    if (typeof e.getModifierState === 'function') {
+      isCapsLock = e.getModifierState('CapsLock');
+    }
+  }
 
   async function pickImportFolder() {
     const dir = await pickDirectory();
@@ -96,7 +103,7 @@
       <button
         type="button"
         onclick={pickImportFolder}
-        class="sharp-input h-10 hover:border-teal/50 text-small flex w-full cursor-pointer items-center justify-between px-3.5 transition-colors"
+        class="sharp-input hover:border-teal/50 text-small flex h-8 w-full cursor-pointer items-center justify-between px-3 transition-colors"
       >
         <span class="truncate {importPath ? 'text-text-strong' : 'text-text-dim'}">
           {importPath || i18n.t.chooseDirectory}
@@ -158,9 +165,16 @@
       <input
         bind:value={importPass}
         type="password"
-        class="sharp-input text-small w-full h-10 px-3.5"
+        onkeydown={checkCapsLock}
+        onkeyup={checkCapsLock}
+        class="sharp-input text-small h-8 w-full px-3"
         placeholder={i18n.t.passwordPlaceholder}
       />
+      {#if isCapsLock}
+        <span class="text-warning font-proto text-smaller mt-1 block font-bold tracking-wider">
+          {i18n.t.capsLockActive}
+        </span>
+      {/if}
       <p class="text-text-muted font-proto text-smaller mt-1 leading-relaxed">
         {i18n.t.legacyVaultPasswordHint}
       </p>
@@ -174,11 +188,7 @@
   </div>
 
   <div class="border-line mt-6 flex items-center justify-between border-t pt-4">
-    <Button
-      type="button"
-      variant="ghost"
-      onclick={onCancel}
-    >
+    <Button type="button" variant="ghost" onclick={onCancel}>
       <span class="font-proto">{i18n.t.cancelBtn}</span>
     </Button>
     <Button

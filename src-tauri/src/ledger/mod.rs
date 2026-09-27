@@ -1,3 +1,4 @@
+pub mod beancount_export;
 pub mod commands;
 pub mod currency;
 pub mod dto;

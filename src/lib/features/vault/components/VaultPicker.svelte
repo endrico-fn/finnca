@@ -138,7 +138,7 @@
 
   {#if open}
     <div
-      class="sharp-card border-line bg-bg-card anim-enter absolute top-[calc(100%+4px)] right-0 left-0 z-50 border p-2"
+      class="sharp-card border-line bg-bg-card anim-enter absolute top-full right-0 left-0 z-50 mt-1 border p-2"
       role="listbox"
     >
       <!-- Popover Header -->
@@ -179,7 +179,7 @@
               </div>
             </div>
             {#if isActive}
-              <span class="text-income ml-1 shrink-0 inline-flex items-center">
+              <span class="text-income ml-1 inline-flex shrink-0 items-center">
                 <Icon name="check" size={11} />
               </span>
             {/if}

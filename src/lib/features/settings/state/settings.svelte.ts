@@ -1,4 +1,3 @@
-import { getPref, setPref } from '$lib/core/state/prefs';
 import { eventBus } from '$lib/core/events/eventBus.svelte';
 import { session } from '$lib/core/state/session.svelte';
 import { renameUser, renameVault } from '$lib/core/ipc/bindings';
@@ -7,36 +6,7 @@ import { notificationState } from '$lib/core/state/notification.svelte';
 
 export type SettingsTab = 'general' | 'finance' | 'security' | 'data';
 
-export interface FxHistoryEntry {
-  date: string;
-  rate: number;
-}
-
-class FxStore {
-  rate = $state<number>(16000);
-  history = $state<FxHistoryEntry[]>([]);
-
-  constructor() {
-    this.loadFromStorage();
-  }
-
-  loadFromStorage() {
-    this.rate = getPref('finnca_fx_rate', 16000);
-    this.history = getPref('finnca_fx_history', []);
-  }
-
-  setRate(newRate: number) {
-    this.rate = newRate;
-    setPref('finnca_fx_rate', newRate);
-    const today = new Date().toISOString().slice(0, 10);
-    const filtered = this.history.filter((h) => h.date !== today);
-    this.history = [...filtered, { date: today, rate: newRate }];
-    setPref('finnca_fx_history', this.history);
-    eventBus.emit('fx:rate_changed', { rate: newRate });
-  }
-}
-
-export const fxState = new FxStore();
+export { fxState, DEFAULT_FX_RATE, type FxHistoryEntry } from '$lib/core/state/fx.svelte';
 
 class GeneralSettingsState {
   username = $state('');

@@ -9,7 +9,14 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { formatMinorToDisplay } from '$lib/core/format/currency';
   import DebtSimulator from './DebtSimulator.svelte';
-  import { KpiCard, Card, Badge, EmptyState } from '$lib/components/ui';
+  import {
+    KpiCard,
+    Card,
+    Badge,
+    EmptyState,
+    ProgressBar,
+    AnimatedCounter,
+  } from '$lib/components/ui';
 
   let { asOf = '' }: { asOf?: string } = $props();
 
@@ -27,10 +34,13 @@
 
   const fmt = (n: number) => formatMinorToDisplay(n, 'IDR');
 
+  function formatNetSigned(n: number): string {
+    const prefix = n >= 0 ? '+' : '';
+    return `${prefix}${fmt(n)}`;
+  }
+
   const debtReportStats = $derived.by(() => {
-    const plansWithProgress = asOf
-      ? plans.filter((p) => p.plan.start_date <= asOf)
-      : plans;
+    const plansWithProgress = asOf ? plans.filter((p) => p.plan.start_date <= asOf) : plans;
     const receivableTotal = plansWithProgress
       .filter((p) => p.plan.plan_type === 'RECEIVABLE')
       .reduce((a, c) => a + c.plan.total_amount, 0);
@@ -54,6 +64,7 @@
       payableRemaining,
       settledCount,
       activeCount,
+      netCommitment: receivableRemaining - payableRemaining,
     };
   });
 
@@ -69,23 +80,30 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col space-y-2">
-  <!-- TOP SUMMARY KPI CARDS -->
   <div class="grid shrink-0 grid-cols-4 gap-2">
     <KpiCard
       label={i18n.t.totalScheduledReceivables}
       labelClass="text-income"
-      value={fmt(debtReportStats.receivableTotal)}
-      valueClass="text-income"
       subValue={`${i18n.t.remainingReceivables}: ${fmt(debtReportStats.receivableRemaining)}`}
-    />
+    >
+      <AnimatedCounter
+        value={debtReportStats.receivableTotal}
+        currency="IDR"
+        class="text-medium text-income block leading-tight font-bold"
+      />
+    </KpiCard>
 
     <KpiCard
       label={i18n.t.totalDebtPayables}
       labelClass="text-expense"
-      value={fmt(debtReportStats.payableTotal)}
-      valueClass="text-expense"
       subValue={`${i18n.t.remainingPayables}: ${fmt(debtReportStats.payableRemaining)}`}
-    />
+    >
+      <AnimatedCounter
+        value={debtReportStats.payableTotal}
+        currency="IDR"
+        class="text-medium text-expense block leading-tight font-bold"
+      />
+    </KpiCard>
 
     <KpiCard label={i18n.t.commitmentStatus}>
       <span class="font-proto flex items-baseline gap-2 leading-tight font-bold tabular-nums">
@@ -105,17 +123,21 @@
     <KpiCard
       label={i18n.t.netCommitmentBalance}
       labelClass="text-teal"
-      value={`${debtReportStats.receivableRemaining >= debtReportStats.payableRemaining ? '+' : ''}${fmt(debtReportStats.receivableRemaining - debtReportStats.payableRemaining)}`}
-      valueClass={debtReportStats.receivableRemaining >= debtReportStats.payableRemaining
-        ? 'text-income'
-        : 'text-expense'}
-      subValue={debtReportStats.receivableRemaining >= debtReportStats.payableRemaining
+      subValue={debtReportStats.netCommitment >= 0
         ? i18n.t.netReceivableSurplus
         : i18n.t.netPayableDeficit}
-    />
+    >
+      <AnimatedCounter
+        value={debtReportStats.netCommitment}
+        currency="IDR"
+        formatFn={formatNetSigned}
+        class="text-medium block leading-tight font-bold {debtReportStats.netCommitment >= 0
+          ? 'text-income'
+          : 'text-expense'}"
+      />
+    </KpiCard>
   </div>
 
-  <!-- DETAILED AMORTIZATION & COMMITMENT LIST -->
   <Card divided title={i18n.t.amortizationSchedule} class="flex-1">
     {#snippet header()}
       <span class="font-proto text-text-muted text-smaller uppercase">
@@ -157,7 +179,6 @@
               {/if}
             </div>
 
-            <!-- Progress Bar -->
             <div class="space-y-1">
               <div class="text-text-dim text-smaller flex justify-between">
                 <span>{i18n.t.paidLabel}: {fmt(item.paid_amount)} / {fmt(p.total_amount)}</span>
@@ -169,14 +190,12 @@
                   {i18n.t.installmentsCountLabel})</span
                 >
               </div>
-              <div class="bg-bg-card border-line h-2 w-full overflow-hidden border">
-                <div
-                  class="h-full transition-all {p.plan_type === 'RECEIVABLE'
-                    ? 'bg-income'
-                    : 'bg-expense'}"
-                  style="width: {Math.min(100, item.progress_percent)}%"
-                ></div>
-              </div>
+              <ProgressBar
+                value={item.progress_percent}
+                tone={p.plan_type === 'RECEIVABLE' ? 'income' : 'expense'}
+                track="card"
+                size="m"
+              />
             </div>
 
             <div

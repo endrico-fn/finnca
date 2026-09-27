@@ -1,9 +1,5 @@
 <script lang="ts">
-  import {
-    ACCOUNT_TYPES,
-    accountTypeLabel,
-    ACCOUNT_TYPE_BG,
-  } from '../state/accounts.svelte';
+  import { ACCOUNT_TYPES, accountTypeLabel, ACCOUNT_TYPE_BG } from '../state/accounts.svelte';
 </script>
 
 <div class="border-line bg-bg-card flex shrink-0 flex-wrap gap-1.5 border-t px-3 py-1.5">

@@ -36,6 +36,14 @@ export default ts.config(
     },
   },
   {
-    ignores: ['build/', '.svelte-kit/', 'src-tauri/target/', 'node_modules/'],
+    ignores: [
+      'build/',
+      '.svelte-kit/',
+      'src-tauri/target/',
+      'target/',
+      '**/target/**',
+      'node_modules/',
+      'src/lib/core/ipc/bindings.gen.ts',
+    ],
   }
 );

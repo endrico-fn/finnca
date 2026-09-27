@@ -1,12 +1,12 @@
-import { getPref } from '$lib/core/state/prefs';
+import { fxState } from '$lib/core/state/fx.svelte';
 import {
   getFxRevaluationReportCmd,
   getHistoricalTrendsReportCmd,
   getProfitLossReportCmd,
   getBalanceSheetReportCmd,
-  getCashFlowReportCmd,
   getTrialBalanceReportCmd,
-  getBudgetSummaryCmd,
+  getCashFlowReportCmd,
+  getMonthlyCashflowSummaryCmd,
   type FxRevaluationItem,
   type FxRevaluationReport,
   type DailyTrendPoint,
@@ -14,11 +14,11 @@ import {
   type AccountReportRow,
   type ProfitLossReport,
   type BalanceSheetReport,
-  type CashFlowActivityRow,
-  type CashFlowReport,
   type TrialBalanceRow,
   type TrialBalanceReport,
-  type BudgetMonthSummary,
+  type CashFlowReport,
+  type CashFlowActivityRow,
+  type MonthlyCashflowPoint,
 } from '$lib/core/ipc/bindings';
 
 export type {
@@ -29,11 +29,11 @@ export type {
   AccountReportRow,
   ProfitLossReport,
   BalanceSheetReport,
-  CashFlowActivityRow,
-  CashFlowReport,
   TrialBalanceRow,
   TrialBalanceReport,
-  BudgetMonthSummary,
+  CashFlowReport,
+  CashFlowActivityRow,
+  MonthlyCashflowPoint,
 };
 
 export type ReportTab =
@@ -41,12 +41,22 @@ export type ReportTab =
   | 'pnl'
   | 'cashflow'
   | 'tb'
-  | 'budget-actual'
   | 'debt'
   | 'trends'
-  | 'fx';
+  | 'spending'
+  | 'forecast'
+  | 'fx'
+  | 'networth'
+  | 'income-exp';
 
-export type ReportGroup = 'statements' | 'budget-debt' | 'analysis';
+export type ReportGroup =
+  | 'statements'
+  | 'liquidity'
+  | 'forecast-debt'
+  | 'intelligence'
+  | 'budget-debt'
+  | 'analysis'
+  | 'overview';
 
 export interface DailyDataPoint {
   date: string;
@@ -68,10 +78,10 @@ class ReportState {
   trialBalance = $state<TrialBalanceReport | null>(null);
   profitLoss = $state<ProfitLossReport | null>(null);
   balanceSheet = $state<BalanceSheetReport | null>(null);
-  cashFlow = $state<CashFlowReport | null>(null);
   fxRevaluation = $state<FxRevaluationReport | null>(null);
   historicalTrends = $state<HistoricalTrendsReport | null>(null);
-  budgetSummary = $state<BudgetMonthSummary | null>(null);
+  cashFlow = $state<CashFlowReport | null>(null);
+  monthlyCashflow = $state<MonthlyCashflowPoint[]>([]);
 
   historicalPoints = $derived<DailyDataPoint[]>(
     (this.historicalTrends?.points ?? []).map((p) => ({
@@ -128,23 +138,14 @@ class ReportState {
     this.loading = true;
     this.error = null;
     try {
-      this.cashFlow = await getCashFlowReportCmd(
-        fromDate ?? (this.startDate || null),
-        toDate ?? (this.endDate || null)
-      );
-    } catch (e) {
-      this.error = e instanceof Error ? e.message : String(e);
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  async loadBudgetSummary(month?: string): Promise<void> {
-    this.loading = true;
-    this.error = null;
-    try {
-      const targetMonth = month || new Date().toISOString().slice(0, 7);
-      this.budgetSummary = await getBudgetSummaryCmd(targetMonth);
+      const from = fromDate ?? (this.startDate || null);
+      const to = toDate ?? (this.endDate || null);
+      const [report, monthly] = await Promise.all([
+        getCashFlowReportCmd(from, to),
+        getMonthlyCashflowSummaryCmd(6),
+      ]);
+      this.cashFlow = report;
+      this.monthlyCashflow = monthly;
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -156,7 +157,7 @@ class ReportState {
     this.loading = true;
     this.error = null;
     try {
-      const activeRate = fxRate ?? getPref('finnca_fx_rate', 16000);
+      const activeRate = fxRate ?? fxState.rate;
       this.fxRevaluation = await getFxRevaluationReportCmd(
         asOfDate ?? (this.asOfDate || null),
         activeRate
@@ -168,15 +169,11 @@ class ReportState {
     }
   }
 
-  async loadHistoricalTrends(
-    fromDate?: string,
-    toDate?: string,
-    fxRate?: number
-  ): Promise<void> {
+  async loadHistoricalTrends(fromDate?: string, toDate?: string, fxRate?: number): Promise<void> {
     this.loading = true;
     this.error = null;
     try {
-      const activeRate = fxRate ?? getPref('finnca_fx_rate', 16000);
+      const activeRate = fxRate ?? fxState.rate;
       this.historicalTrends = await getHistoricalTrendsReportCmd(
         fromDate ?? this.startDate,
         toDate ?? this.endDate,
@@ -186,6 +183,16 @@ class ReportState {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
       this.loading = false;
+    }
+  }
+
+  async loadMonthlyCashflow(from?: string, to?: string): Promise<void> {
+    try {
+      const months = from && to ? undefined : 12;
+      const data = await getMonthlyCashflowSummaryCmd(months);
+      this.monthlyCashflow = data;
+    } catch {
+      this.monthlyCashflow = [];
     }
   }
 

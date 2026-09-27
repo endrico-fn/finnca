@@ -1,18 +1,8 @@
 <script lang="ts">
   import type { AccountType } from '$lib/core/ipc/bindings';
-  import {
-    ACCOUNT_TYPES,
-    accountTypeLabel,
-    ACCOUNT_TYPE_BG,
-  } from '../state/accounts.svelte';
+  import { ACCOUNT_TYPES, accountTypeLabel, ACCOUNT_TYPE_BG } from '../state/accounts.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import {
-    SearchBar,
-    FilterMenu,
-    FilterSection,
-    FilterOption,
-    Button,
-  } from '$lib/components/ui';
+  import { SearchBar, FilterMenu, FilterSection, FilterOption, Button } from '$lib/components/ui';
 
   let {
     searchQuery = $bindable(''),
@@ -59,7 +49,7 @@
     label={filterButtonLabel}
     active={isFilterActive}
     count={activeFilterCount}
-    onReset={onReset}
+    {onReset}
     resetLabel={i18n.t.reset}
     resetDisabled={!isFilterActive}
   >

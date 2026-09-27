@@ -3,11 +3,11 @@
   import { reconcileState } from '../state/reconcile.svelte';
   import { formatMinorToDisplay } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Button, Icon, SelectDropdown } from '$lib/components/ui';
+  import { Button, Icon, AccountSelectDropdown, SelectDropdown } from '$lib/components/ui';
 
   let {
     account = null,
-    accountOptions = [],
+    accounts = [],
     onSelectAccount,
     effectiveStartingBalance,
     effectiveClearedBalance,
@@ -15,7 +15,7 @@
     onUploadCsv,
   }: {
     account?: Account | null;
-    accountOptions: { value: string; label: string }[];
+    accounts: Account[];
     onSelectAccount: (id: string) => void;
     effectiveStartingBalance: number;
     effectiveClearedBalance: number;
@@ -34,12 +34,12 @@
     >
       {i18n.t.reconcileSelectAccount}
     </label>
-    <SelectDropdown
+    <AccountSelectDropdown
       value={reconcileState.selectedAccountId}
-      searchable
-      onSelect={onSelectAccount}
+      {accounts}
+      filterType={['ASSET', 'LIABILITY']}
+      onSelect={(acc) => onSelectAccount(acc.id)}
       placeholder={i18n.t.reconcileChooseAccount}
-      options={accountOptions}
       class="w-full"
     />
   </div>
@@ -63,13 +63,13 @@
           type="text"
           inputmode="decimal"
           bind:value={reconcileState.targetBalanceStr}
+          autocomplete="off"
           class="sharp-input font-proto bg-bg-app border-line focus:border-teal text-small h-9 w-full border px-2 pl-12 font-bold"
           placeholder={i18n.t.reconcileAmountPlaceholder}
         />
       </div>
     </div>
 
-    <!-- Telemetry Balance Status -->
     <div class="sharp-card border-line flex flex-col gap-2.5 border px-3 pt-2 pb-2.5">
       <div class="font-proto text-smaller flex items-center justify-between">
         <span class="text-text-muted uppercase">{i18n.t.reconcileStartingBalance}</span>
@@ -125,7 +125,7 @@
         </label>
         <SelectDropdown
           value={bankPreset}
-          onSelect={(v) => (bankPreset = v as typeof bankPreset)}
+          onSelect={(v: string) => (bankPreset = v as typeof bankPreset)}
           options={[
             { value: 'AUTO', label: i18n.t.bankPresetCustom },
             { value: 'BCA', label: i18n.t.bankPresetBca },

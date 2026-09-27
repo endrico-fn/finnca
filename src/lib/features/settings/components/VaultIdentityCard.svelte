@@ -3,14 +3,14 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { openVaultFolder } from '$lib/core/ipc/bindings';
   import { Card, Icon } from '$lib/components/ui';
-  import { APP_NAME } from '$lib/core/types';
+  import { APP_SLUG } from '$lib/core/types';
   import { generalSettingsState } from '../state/settings.svelte';
 
   const vaultLocationDisplay = $derived(
     session.vaultPath ||
       (session.currentVault
-        ? `${APP_NAME.toLowerCase()}-${session.currentVault.toLowerCase().replace(/\s+/g, '-')}`
-        : `${APP_NAME.toLowerCase()}-vault`)
+        ? `${APP_SLUG}-${session.currentVault.toLowerCase().replace(/\s+/g, '-')}`
+        : `${APP_SLUG}-vault`)
   );
 
   async function handleOpenVaultFolder() {
@@ -31,9 +31,10 @@
       <input
         id="vault-name-input"
         type="text"
-        class="sharp-input text-small w-full px-2.5 py-1.5"
+        class="sharp-input text-small h-8 w-full px-2.5"
         bind:value={generalSettingsState.vaultName}
-        onkeydown={(e) => e.key === 'Enter' && generalSettingsState.canSave && generalSettingsState.save()}
+        onkeydown={(e) =>
+          e.key === 'Enter' && generalSettingsState.canSave && generalSettingsState.save()}
       />
     </div>
 
@@ -41,17 +42,12 @@
       <p class="label-xs text-text-muted mb-1 block">
         {i18n.t.vaultPathLabel}
       </p>
-      <div
-        class="border-line bg-bg-app flex h-8 w-full items-center justify-between border px-2.5"
-      >
+      <div class="border-line bg-bg-app flex h-8 w-full items-center justify-between border px-2.5">
         <div class="flex min-w-0 items-center gap-2">
           <span class="text-teal inline-flex shrink-0">
             <Icon name="folder" size={13} />
           </span>
-          <span
-            class="text-text-muted font-aux text-smaller truncate"
-            title={vaultLocationDisplay}
-          >
+          <span class="text-text-muted font-aux text-smaller truncate" title={vaultLocationDisplay}>
             {vaultLocationDisplay}
           </span>
         </div>

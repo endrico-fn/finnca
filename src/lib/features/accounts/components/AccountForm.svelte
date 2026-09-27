@@ -109,7 +109,7 @@
 </script>
 
 {#if error}
-  <div class="badge-err text-small px-2.5 py-1.5">{error}</div>
+  <div class="badge-err font-proto text-small px-2.5 py-1.5">{error}</div>
 {/if}
 
 <div class="bg-bg-card border-line sticky top-0 z-10 mb-1 flex gap-1 border-b pt-1 pr-2 pb-1">
@@ -148,7 +148,7 @@
             <button
               type="button"
               onclick={() => (form.code = codeSuggestion)}
-              class="text-text-muted font-proto text-smaller mt-1 cursor-pointer underline underline-offset-2 hover:text-teal"
+              class="text-text-muted font-proto text-smaller hover:text-teal mt-1 cursor-pointer underline underline-offset-2"
             >
               {i18n.t.codeSuggestUse.replace('{code}', codeSuggestion)}
             </button>
@@ -317,7 +317,7 @@
             {/if}
           </p>
           {#if equityPreview}
-            <p class="font-proto text-smaller mt-1 text-teal">{equityPreview}</p>
+            <p class="font-proto text-smaller text-teal mt-1">{equityPreview}</p>
           {/if}
         </div>
       </div>

@@ -2,8 +2,7 @@
   import {
     notificationState,
     type AppNotification,
-    type NotificationType,
-    getNotificationAccent,
+    getNotificationBorderClass,
   } from '$lib/core/state/notification.svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
@@ -41,10 +40,6 @@
     })
   );
 
-  function getAccent(type: NotificationType): string {
-    return getNotificationAccent(type);
-  }
-
   function handleAction(notif: AppNotification) {
     notificationState.markAsRead(notif.id);
     notificationState.closeDrawer();
@@ -67,16 +62,16 @@
 </script>
 
 {#if notificationState.drawerOpen}
-  <!-- Backdrop -->
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div onclick={() => notificationState.closeDrawer()} class="bg-overlay fixed inset-0 z-40"></div>
+  <button
+    type="button"
+    aria-label={i18n.t.closeBtn}
+    onclick={() => notificationState.closeDrawer()}
+    class="bg-overlay fixed inset-0 z-40 cursor-default"
+  ></button>
 
-  <!-- Drawer Panel -->
   <aside
     class="border-line bg-bg-card anim-drawer fixed top-0 right-0 z-50 flex h-full w-95 flex-col border-l"
   >
-    <!-- Header -->
     <div class="bg-bg-app flex items-center justify-between px-4 py-3">
       <div class="flex items-center gap-2">
         <span class="label-title">{i18n.t.notifications}</span>
@@ -105,7 +100,6 @@
       </div>
     </div>
 
-    <!-- Filter Tabs -->
     <div class="bg-bg-app border-line border-b px-3 py-2">
       <Tabs
         variant="pill"
@@ -121,15 +115,13 @@
       />
     </div>
 
-    <!-- List -->
     <div class="flex-1 space-y-2.5 overflow-y-auto p-3">
       {#each filtered as n (n.id)}
-        {@const accent = getAccent(n.type)}
+        {@const borderClass = getNotificationBorderClass(n.type)}
         <div
-          class="bg-bg-app border-line hover:border-text-muted/60 border p-3 transition-colors {n.read
+          class="bg-bg-app border-line {borderClass} hover:border-text-muted/60 border border-l-2 p-3 transition-colors {n.read
             ? 'opacity-70'
             : ''}"
-          style="border-left: 3px solid {accent};"
         >
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-1.5">

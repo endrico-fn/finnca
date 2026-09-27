@@ -32,6 +32,7 @@ fn map_row(row: &Row<'_>) -> rusqlite::Result<PaymentPlan> {
     })?;
 
     let day_of_month: Option<i64> = row.get(9)?;
+    let auto_post_int: i64 = row.get(15)?;
 
     Ok(PaymentPlan {
         id: row.get(0)?,
@@ -48,6 +49,8 @@ fn map_row(row: &Row<'_>) -> rusqlite::Result<PaymentPlan> {
         to_account_id: row.get(11)?,
         notes: row.get(12)?,
         created_at: row.get(13)?,
+        last_posted_date: row.get(14)?,
+        auto_post: auto_post_int != 0,
     })
 }
 
@@ -56,8 +59,8 @@ pub fn insert(conn: &Connection, plan: &PaymentPlan) -> Result<(), AppError> {
         "INSERT INTO plans (
             id, title, type, status, total_amount, installment_amount,
             frequency, start_date, due_date, day_of_month, from_account_id,
-            to_account_id, notes, created_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14);",
+            to_account_id, notes, created_at, last_posted_date, auto_post
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16);",
         params![
             plan.id,
             plan.title,
@@ -73,6 +76,8 @@ pub fn insert(conn: &Connection, plan: &PaymentPlan) -> Result<(), AppError> {
             plan.to_account_id,
             plan.notes,
             plan.created_at,
+            plan.last_posted_date,
+            if plan.auto_post { 1 } else { 0 },
         ],
     )?;
     Ok(())
@@ -92,7 +97,9 @@ pub fn update(conn: &Connection, plan: &PaymentPlan) -> Result<(), AppError> {
             day_of_month = ?10,
             from_account_id = ?11,
             to_account_id = ?12,
-            notes = ?13
+            notes = ?13,
+            last_posted_date = ?14,
+            auto_post = ?15
          WHERE id = ?1;",
         params![
             plan.id,
@@ -108,6 +115,8 @@ pub fn update(conn: &Connection, plan: &PaymentPlan) -> Result<(), AppError> {
             plan.from_account_id,
             plan.to_account_id,
             plan.notes,
+            plan.last_posted_date,
+            if plan.auto_post { 1 } else { 0 },
         ],
     )?;
 
@@ -115,6 +124,17 @@ pub fn update(conn: &Connection, plan: &PaymentPlan) -> Result<(), AppError> {
         return Err(AppError::NotFound(format!("plan id={}", plan.id)));
     }
 
+    Ok(())
+}
+
+pub fn update_last_posted_date(conn: &Connection, id: &str, date: &str) -> Result<(), AppError> {
+    let affected = conn.execute(
+        "UPDATE plans SET last_posted_date = ?2 WHERE id = ?1;",
+        params![id, date],
+    )?;
+    if affected == 0 {
+        return Err(AppError::NotFound(format!("plan id={id}")));
+    }
     Ok(())
 }
 
@@ -130,7 +150,7 @@ pub fn get_by_id(conn: &Connection, id: &str) -> Result<Option<PaymentPlan>, App
     let mut stmt = conn.prepare(
         "SELECT id, title, type, status, total_amount, installment_amount,
                 frequency, start_date, due_date, day_of_month, from_account_id,
-                to_account_id, notes, created_at
+                to_account_id, notes, created_at, last_posted_date, auto_post
          FROM plans WHERE id = ?1;",
     )?;
 
@@ -146,7 +166,7 @@ pub fn list_all(conn: &Connection) -> Result<Vec<PaymentPlan>, AppError> {
     let mut stmt = conn.prepare(
         "SELECT id, title, type, status, total_amount, installment_amount,
                 frequency, start_date, due_date, day_of_month, from_account_id,
-                to_account_id, notes, created_at
+                to_account_id, notes, created_at, last_posted_date, auto_post
          FROM plans ORDER BY created_at DESC;",
     )?;
 

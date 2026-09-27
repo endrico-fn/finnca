@@ -51,7 +51,6 @@
 <div class="grid grid-cols-1 gap-2 select-none lg:grid-cols-2">
   <AutoLockSettings />
 
-  <!-- RIGHT COLUMN: CHANGE MASTER PASSWORD -->
   <Card title={i18n.t.changePasswordTitle} badge={i18n.t.securityKeyBadge} class="justify-between">
     <div>
       <p class="text-text-dim text-small font-aux mb-3">{i18n.t.changePasswordNotice}</p>
@@ -100,7 +99,7 @@
       </div>
 
       <div class="border-line/40 mt-3 flex items-center justify-between gap-2 border-t pt-2.5">
-        <div class="min-h-5 flex items-center">
+        <div class="flex min-h-5 items-center">
           {#if pwdError}<p class="text-expense font-proto text-smaller">{pwdError}</p>{/if}
           {#if pwdSuccess}<p class="text-income font-proto text-smaller">{pwdSuccess}</p>{/if}
         </div>

@@ -2,33 +2,28 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { accountsState } from '$lib/features/accounts/state/accounts.svelte';
-  import { journalState, type Transaction } from '$lib/features/journal/state/journalDraft.svelte';
+  import { journalState } from '$lib/features/journal/state/journalDraft.svelte';
+  import type { CreateJournalEntryInput } from '$lib/core/ipc/bindings';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { searchPalette, type NavItem } from './commandPaletteSearch';
+  import { getAppNavItems } from '$lib/core/router/nav';
+  import { searchPalette } from './commandPaletteSearch';
 
   let {
     open = $bindable(false),
     onQuickTxDraft = () => {},
     onLock = () => {},
+    onTransfer = () => {},
   }: {
     open: boolean;
-    onQuickTxDraft?: (tx: Transaction) => void;
+    onQuickTxDraft?: (draft: CreateJournalEntryInput) => void;
     onLock?: () => void;
+    onTransfer?: () => void;
   } = $props();
 
   let paletteQuery = $state('');
   let selectedPaletteIdx = $state(0);
 
-  const nav = $derived<NavItem[]>([
-    { href: '/app', label: i18n.t.dashboard },
-    { href: '/app/accounts', label: i18n.t.account },
-    { href: '/app/journal', label: i18n.t.journal },
-    { href: '/app/budget', label: i18n.t.budget },
-    { href: '/app/reports', label: i18n.t.report },
-    { href: '/app/reconcile', label: i18n.t.reconcile },
-    { href: '/app/plan', label: i18n.t.plan },
-    { href: '/app/setting', label: i18n.t.settings },
-  ]);
+  const nav = $derived(getAppNavItems(i18n.t));
 
   function handleNavigate(href: string, params?: Record<string, string>) {
     if (params && href === '/app/accounts/[code]') {
@@ -45,9 +40,9 @@
       accounts: accountsState.accounts,
       entries: journalState.entries,
       t: i18n.t,
-      locale: i18n.locale,
       onQuickTxDraft,
       onLock,
+      onTransfer,
       onNavigate: handleNavigate,
       onClose: () => (open = false),
     })
@@ -63,6 +58,8 @@
         <input
           bind:value={paletteQuery}
           placeholder={i18n.t.cmdPalettePlaceholder}
+          autocomplete="off"
+          spellcheck="false"
           class="text-text-strong placeholder:text-text-muted text-medium w-full bg-transparent focus:outline-none"
           autofocus
           onkeydown={(e) => {
@@ -105,7 +102,7 @@
             >
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="bg-line text-text-base text-smaller font-proto px-1 font-bold">
+                  <span class="bg-bg-btn text-text-base text-smaller font-proto px-1 font-bold">
                     {item.category}
                   </span>
                   <span

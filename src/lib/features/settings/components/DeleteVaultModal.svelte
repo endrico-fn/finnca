@@ -70,11 +70,7 @@
 </script>
 
 {#if open}
-  <ModalShell
-    bind:open
-    title={i18n.t.confirmVaultDeletionTitle}
-    onClose={handleClose}
-  >
+  <ModalShell bind:open title={i18n.t.confirmVaultDeletionTitle} tone="err" onClose={handleClose}>
     <p class="text-text-base text-small font-aux py-3 leading-relaxed">
       {i18n.t.enterPasswordToConfirm}
     </p>
@@ -92,11 +88,7 @@
       {/if}
     </div>
     <div class="border-line flex justify-end gap-2 border-t pt-3">
-      <Button
-        variant="ghost"
-        onclick={handleClose}
-        disabled={deleteBusy}
-      >
+      <Button variant="ghost" onclick={handleClose} disabled={deleteBusy}>
         {i18n.t.cancelBtn}
       </Button>
       <Button variant="danger" onclick={handleDeleteVault} disabled={deleteBusy}>

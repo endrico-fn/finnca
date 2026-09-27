@@ -3,7 +3,7 @@
   import {
     notificationState,
     type AppNotification,
-    getNotificationAccent,
+    getNotificationBorderClass,
   } from '$lib/core/state/notification.svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
@@ -61,10 +61,11 @@
 
 <div class="pointer-events-none fixed top-12 right-6 z-50 flex max-w-95 flex-col gap-2.5">
   {#each notificationState.activeToasts as notif (notif.id)}
-    {@const accent = getNotificationAccent(notif.type)}
+    {@const borderClass = getNotificationBorderClass(notif.type)}
     <div
-      class="{dismissingIds.has(notif.id) ? 'anim-toast-exit' : 'anim-toast'} bg-bg-card border-line pointer-events-auto border p-3.5"
-      style="border-left: 3px solid {accent};"
+      class="{dismissingIds.has(notif.id)
+        ? 'anim-toast-exit'
+        : 'anim-toast'} bg-bg-card border-line {borderClass} pointer-events-auto border border-l-2 p-3.5"
     >
       <div class="flex items-start justify-between gap-2.5">
         <div class="flex items-center gap-2">
@@ -75,18 +76,15 @@
             {notif.title}
           </p>
         </div>
-        <CloseButton
-          onclick={() => scheduleDismiss(notif.id)}
-          label={i18n.t.notifClose}
-        />
+        <CloseButton onclick={() => scheduleDismiss(notif.id)} label={i18n.t.notifClose} />
       </div>
 
-      <p class="text-text-base text-small mt-1 leading-relaxed">
+      <p class="text-text-base text-small mt-1 leading-relaxed tabular-nums">
         {notif.message}
       </p>
 
       {#if notif.detail}
-        <p class="text-text-muted text-smaller mt-1 leading-normal">
+        <p class="text-text-muted text-smaller mt-1 leading-normal tabular-nums">
           {notif.detail}
         </p>
       {/if}

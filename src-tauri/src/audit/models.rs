@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct AuditEntry {
     pub id: String,
     pub actor: String,
@@ -9,6 +9,16 @@ pub struct AuditEntry {
     pub entity_id: String,
     pub detail: Option<String>,
     pub created_at: i64,
+    pub prev_hash: Option<String>,
+    pub hash: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+pub struct AuditIntegrityReport {
+    pub is_valid: bool,
+    pub total_verified: i64,
+    pub broken_index: Option<i64>,
+    pub error_message: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,6 +37,7 @@ pub enum AuditAction {
     ReconcileAccount,
     VaultUnlocked,
     VaultLocked,
+    UpdateClosingDate,
 }
 
 impl AuditAction {
@@ -46,6 +57,7 @@ impl AuditAction {
             AuditAction::ReconcileAccount => "RECONCILE_ACCOUNT",
             AuditAction::VaultUnlocked => "VAULT_UNLOCKED",
             AuditAction::VaultLocked => "VAULT_LOCKED",
+            AuditAction::UpdateClosingDate => "UPDATE_CLOSING_DATE",
         }
     }
 }

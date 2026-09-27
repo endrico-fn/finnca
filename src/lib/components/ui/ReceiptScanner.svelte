@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Tesseract from 'tesseract.js';
   import { Icon } from '$lib/components/ui';
+  import { formatMinorGrouping } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { notificationState } from '$lib/core/state/notification.svelte';
 
@@ -41,43 +41,49 @@
     detectedAmount = null;
 
     try {
-      const worker = await Tesseract.createWorker('eng', 1, {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            progress = Math.round(m.progress * 100);
-          }
-        },
-      });
+      if (
+        file.type.startsWith('text/') ||
+        file.name.endsWith('.txt') ||
+        file.name.endsWith('.csv') ||
+        file.name.endsWith('.tsv')
+      ) {
+        progress = 50;
+        const text = await file.text();
+        progress = 100;
+        scanResultText = text;
 
-      const ret = await worker.recognize(file);
-      await worker.terminate();
+        const lines = scanResultText.split('\n');
+        let maxAmount = 0;
 
-      scanResultText = ret.data.text;
-
-      const lines = scanResultText.split('\n');
-      let maxAmount = 0;
-
-      for (const line of lines) {
-        const matches = line.match(/\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\b/g);
-        if (matches) {
-          for (const match of matches) {
-            const cleanStr = match.replace(/[^\d]/g, '');
-            const val = parseInt(cleanStr, 10);
-            if (!isNaN(val) && val > maxAmount && val < 1000000000) {
-              maxAmount = val;
+        for (const line of lines) {
+          const matches = line.match(/\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\b/g);
+          if (matches) {
+            for (const match of matches) {
+              const cleanStr = match.replace(/[^\d]/g, '');
+              const val = parseInt(cleanStr, 10);
+              if (!isNaN(val) && val > maxAmount && val < 1000000000) {
+                maxAmount = val;
+              }
             }
           }
         }
-      }
 
-      if (maxAmount > 0) {
-        detectedAmount = maxAmount;
-      }
+        if (maxAmount > 0) {
+          detectedAmount = maxAmount;
+        }
 
-      onScanComplete?.({
-        text: scanResultText,
-        amount: detectedAmount,
-      });
+        onScanComplete?.({
+          text: scanResultText,
+          amount: detectedAmount,
+        });
+      } else {
+        notificationState.addNotification({
+          type: 'LEDGER_INTEGRITY',
+          priority: 'medium',
+          title: i18n.t.receiptScannerTitle,
+          message: i18n.t.receiptOcrFailed,
+        });
+      }
     } catch {
       notificationState.addNotification({
         type: 'LEDGER_INTEGRITY',
@@ -97,7 +103,7 @@
   >
     <input
       type="file"
-      accept="image/*"
+      accept="text/*,.txt,.csv,.tsv"
       class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
       onchange={handleFileSelect}
       disabled={isScanning}
@@ -139,14 +145,14 @@
         >
           {i18n.t.receiptTotalDetected.replace(
             '{amount}',
-            detectedAmount.toLocaleString(i18n.locale === 'id' ? 'id-ID' : 'en-US')
+            detectedAmount !== null ? formatMinorGrouping(detectedAmount, 'IDR') : ''
           )}
         </span>
       {/if}
     </div>
 
     <div
-      class="text-text-dim bg-bg-app border-line text-smaller max-h-32 overflow-y-auto border p-2 font-mono whitespace-pre-wrap"
+      class="text-text-dim bg-bg-app border-line text-smaller max-h-32 overflow-y-auto border p-2 font-aux whitespace-pre-wrap"
     >
       {scanResultText}
     </div>

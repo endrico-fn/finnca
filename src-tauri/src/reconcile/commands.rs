@@ -1,7 +1,8 @@
 use super::dto::{
-    MatchStatementOutput, PostingReconcileView, ReconciliationStatusView, StatementRow,
+    CreateReconcileRuleInput, MatchStatementOutput, PostingReconcileView, ReconcileRuleWithAccount,
+    ReconciliationStatusView, StatementRow,
 };
-use super::matcher;
+use super::{matcher, rules};
 use crate::audit::{self, models::AuditAction};
 use crate::shared::AppError;
 use crate::state::AppState;
@@ -86,6 +87,7 @@ pub fn get_account_reconciliation_status(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_reconciliation_status_cmd(
     state: State<'_, AppState>,
     account_id: String,
@@ -96,6 +98,7 @@ pub fn get_reconciliation_status_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn set_posting_reconciled_cmd(
     state: State<'_, AppState>,
     posting_id: String,
@@ -129,6 +132,7 @@ pub fn set_posting_reconciled_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn bulk_set_postings_reconciled_cmd(
     state: State<'_, AppState>,
     posting_ids: Vec<String>,
@@ -163,6 +167,7 @@ pub fn bulk_set_postings_reconciled_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn finish_reconciliation_cmd(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -205,6 +210,7 @@ pub fn finish_reconciliation_cmd(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn match_statement_cmd(
     state: State<'_, AppState>,
     account_id: String,
@@ -215,8 +221,11 @@ pub fn match_statement_cmd(
     let mut conn = db.lock().map_err(|_| AppError::VaultLocked)?;
 
     let status = get_account_reconciliation_status(&conn, &account_id)?;
-    let result =
+    let mut result =
         matcher::match_statements_against_postings(&statements, &status.uncleared_postings, 4);
+
+    let active_rules = rules::list_rules(&conn)?;
+    rules::apply_rules_to_unmatched_statements(&mut result.unmatched_statement_rows, &active_rules);
 
     if auto_clear && !result.matches.is_empty() {
         let tx = conn.transaction()?;
@@ -234,9 +243,55 @@ pub fn match_statement_cmd(
     Ok(result)
 }
 
+#[tauri::command]
+#[specta::specta]
+pub fn list_reconcile_rules_cmd(
+    state: State<'_, AppState>,
+) -> Result<Vec<ReconcileRuleWithAccount>, AppError> {
+    let db = state.get_db()?;
+    let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    rules::list_rules(&conn)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn create_reconcile_rule_cmd(
+    state: State<'_, AppState>,
+    input: CreateReconcileRuleInput,
+) -> Result<ReconcileRuleWithAccount, AppError> {
+    let db = state.get_db()?;
+    let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    rules::create_rule(&conn, &input)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn delete_reconcile_rule_cmd(
+    state: State<'_, AppState>,
+    rule_id: String,
+) -> Result<(), AppError> {
+    let db = state.get_db()?;
+    let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    rules::delete_rule(&conn, &rule_id)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn evaluate_reconcile_rules_cmd(
+    state: State<'_, AppState>,
+    mut statements: Vec<StatementRow>,
+) -> Result<Vec<StatementRow>, AppError> {
+    let db = state.get_db()?;
+    let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    let rules = rules::list_rules(&conn)?;
+    rules::apply_rules_to_unmatched_statements(&mut statements, &rules);
+    Ok(statements)
+}
+
 const MAX_STATEMENT_FILE_BYTES: u64 = 5 * 1024 * 1024;
 
 #[tauri::command]
+#[specta::specta]
 pub fn read_statement_file_cmd(
     state: State<'_, AppState>,
     path: String,

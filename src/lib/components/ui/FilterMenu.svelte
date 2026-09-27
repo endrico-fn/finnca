@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import Icon from './Icon.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
 
   let {
     open = $bindable(false),
@@ -11,6 +12,8 @@
     resetLabel = '',
     resetDisabled = false,
     panelClass = 'w-64',
+    align = 'right',
+    onOpenChange = null,
     class: className = '',
     children,
   }: {
@@ -22,15 +25,28 @@
     resetLabel?: string;
     resetDisabled?: boolean;
     panelClass?: string;
+    align?: 'left' | 'right';
+    onOpenChange?: ((open: boolean) => void) | null;
     class?: string;
     children: Snippet;
   } = $props();
+
+  function toggle() {
+    const next = !open;
+    if (onOpenChange) onOpenChange(next);
+    else open = next;
+  }
+
+  function setClosed() {
+    if (onOpenChange) onOpenChange(false);
+    else open = false;
+  }
 </script>
 
 <div class="relative shrink-0 {className}">
   <button
     type="button"
-    onclick={() => (open = !open)}
+    onclick={toggle}
     aria-haspopup="listbox"
     aria-expanded={open}
     class="font-proto text-smaller inline-flex h-7 cursor-pointer items-center gap-2 border px-2.5 uppercase transition-colors select-none {open ||
@@ -51,11 +67,16 @@
   </button>
 
   {#if open}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="fixed inset-0 z-40" onclick={() => (open = false)}></div>
+    <button
+      type="button"
+      aria-label={i18n.t.closeBtn}
+      class="fixed inset-0 z-40 cursor-default"
+      onclick={setClosed}
+    ></button>
     <div
-      class="border-line bg-bg-card font-proto absolute right-0 z-50 mt-1 border select-none {panelClass}"
+      class="border-line bg-bg-card font-proto absolute {align === 'left'
+        ? 'left-0'
+        : 'right-0'} z-50 mt-1 border select-none {panelClass}"
     >
       {@render children()}
       {#if onReset}

@@ -3,9 +3,11 @@
   import { formatIDR, formatMinorToDisplay } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { planState, type PaymentPlan } from '../state/plan.svelte';
-  import { Badge, EmptyState, KpiCard, CloseButton } from '$lib/components/ui';
+  import { Badge, EmptyState, KpiCard, CloseButton, ProgressBar, Icon } from '$lib/components/ui';
   import { FilterMenu, FilterSection, FilterOption } from '$lib/components/ui';
-  import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
+  import { modalState } from '$lib/core/state/modal.svelte';
+  import { notificationState } from '$lib/core/state/notification.svelte';
+  import RecurringRunnerModal from './RecurringRunnerModal.svelte';
 
   let {
     planFilter = $bindable('ALL'),
@@ -17,7 +19,44 @@
     openCreatePlan: () => void;
   }>();
 
-  let confirmDeletePlan: PaymentPlan | null = $state(null);
+  function promptDeletePlan(plan: PaymentPlan) {
+    modalState.confirm({
+      title: i18n.t.planConfirmDeleteTitle,
+      message: i18n.t.planConfirmDeleteMsg.replace('{title}', plan.title),
+      confirmLabel: i18n.t.deletePlan,
+      cancelLabel: i18n.t.cancelBtn,
+      danger: true,
+      onConfirm: async () => {
+        await planState.deletePlan(plan.id);
+      },
+    });
+  }
+
+  function handlePayInstallment(plan: PaymentPlan) {
+    const fromAcc = accountsById.get(plan.fromAccountId);
+    const toAcc = accountsById.get(plan.toAccountId);
+    const curr = fromAcc?.currency || toAcc?.currency || 'IDR';
+    const amount =
+      plan.installmentAmount > 0
+        ? plan.installmentAmount
+        : (planState.getProgress(plan.id)?.remainingAmount ?? 0);
+
+    modalState.confirm({
+      title: i18n.t.recordInstallmentTitle,
+      message: `${plan.title}: ${formatMinorToDisplay(amount, curr)} (${fromAcc?.name ?? '—'} → ${toAcc?.name ?? '—'})`,
+      confirmLabel: i18n.t.recordInstallmentBtn,
+      cancelLabel: i18n.t.cancelBtn,
+      onConfirm: async () => {
+        await planState.recordInstallment(plan.id, amount);
+        notificationState.addNotification({
+          type: 'INFO',
+          priority: 'low',
+          title: i18n.t.recordInstallmentTitle,
+          message: i18n.t.recordInstallmentSuccess,
+        });
+      },
+    });
+  }
 
   const totalReceivableAmount = $derived(
     planState.plans.filter((p) => p.type === 'RECEIVABLE').reduce((a, c) => a + c.totalAmount, 0)
@@ -29,6 +68,9 @@
     planState.plans.filter((p) => p.type === 'RECEIVABLE').length
   );
   const payablePlansCount = $derived(planState.plans.filter((p) => p.type === 'PAYABLE').length);
+  const recurringPlansCount = $derived(
+    planState.plans.filter((p) => p.type === 'RECURRING').length
+  );
 
   const filteredPlans = $derived(
     planState.plans.filter((p) => planFilter === 'ALL' || p.type === planFilter)
@@ -38,6 +80,7 @@
     { id: 'ALL', label: i18n.t.planFilterAll, count: planState.plans.length },
     { id: 'RECEIVABLE', label: i18n.t.planFilterReceivable, count: receivablePlansCount },
     { id: 'PAYABLE', label: i18n.t.planFilterPayable, count: payablePlansCount },
+    { id: 'RECURRING', label: i18n.t.planFilterRecurring, count: recurringPlansCount },
   ]);
 
   let planFilterOpen = $state(false);
@@ -71,7 +114,7 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-  <div class="grid shrink-0 grid-cols-2 gap-2">
+  <div class="grid shrink-0 grid-cols-1 gap-2 md:grid-cols-3">
     <KpiCard
       label={i18n.t.planTotalReceivable}
       labelClass="text-income"
@@ -84,10 +127,18 @@
       value={formatIDR(totalPayableAmount)}
       valueClass="text-expense"
     />
+    <KpiCard
+      label={i18n.t.recurringTotalActive}
+      labelClass="text-teal"
+      value={String(recurringPlansCount)}
+      subValue={i18n.t.recurringRunnerTitle}
+    />
   </div>
 
   <div class="sharp-card flex min-h-0 flex-1 flex-col overflow-hidden">
-    <div class="border-line flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2.5">
+    <div
+      class="border-line flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-2.5"
+    >
       <FilterMenu
         bind:open={planFilterOpen}
         label={planFilterLabel}
@@ -112,6 +163,28 @@
           {/each}
         </FilterSection>
       </FilterMenu>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="border-line bg-teal/15 text-teal hover:bg-teal hover:text-bg-app font-proto text-smaller flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 font-bold tracking-wider uppercase transition-colors"
+          onclick={() => planState.openRunnerModal()}
+        >
+          <Icon name="refresh" size={12} />
+          <span>{i18n.t.recurringRunnerTitle}</span>
+          {#if planState.duePlans.length > 0}
+            <span class="bg-teal text-bg-app text-micro px-1">{planState.duePlans.length}</span>
+          {/if}
+        </button>
+        <button
+          type="button"
+          onclick={openCreatePlan}
+          class="sharp-btn btn-primary font-proto text-smaller inline-flex cursor-pointer items-center gap-1 px-2.5 py-1 font-bold tracking-wider uppercase"
+        >
+          <Icon name="plus" size={12} />
+          <span>{i18n.t.newPlanTracker}</span>
+        </button>
+      </div>
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 pt-2 pb-2.5">
@@ -142,66 +215,104 @@
               progressPercent: 0,
               installmentsPaidCount: 0,
             }}
+            {@const isRecurring = p.type === 'RECURRING'}
             {@const status = p.status ?? 'ACTIVE'}
+            {@const titleColor =
+              p.type === 'RECEIVABLE'
+                ? 'text-income'
+                : p.type === 'PAYABLE'
+                  ? 'text-expense'
+                  : 'text-teal'}
             <div
               class="border-line/40 hover:border-text-dim flex flex-col gap-2 border p-3 transition-colors"
             >
               <div class="flex items-start justify-between">
                 <div class="flex items-center gap-2">
-                  <h4
-                    class="font-proto text-medium font-semibold {p.type === 'RECEIVABLE'
-                      ? 'text-income'
-                      : 'text-expense'}"
-                  >
+                  <h4 class="font-proto text-medium font-semibold {titleColor}">
                     {p.title}
                   </h4>
                   <Badge size="m" tone={statusTone(status)}>{statusLabel(status)}</Badge>
+                  {#if isRecurring && p.autoPost}
+                    <Badge size="s" tone="ok">{i18n.t.commonAuto}</Badge>
+                  {/if}
                 </div>
                 <div class="flex items-center gap-1">
-                  {#if prog.progressPercent >= 100}
+                  {#if !isRecurring && prog.progressPercent >= 100}
                     <Badge size="m" tone="ok">{i18n.t.planSettled}</Badge>
                   {/if}
-                  <CloseButton onclick={() => (confirmDeletePlan = p)} label={i18n.t.deletePlan} />
-                </div>
-              </div>
-
-              <p class="text-text-muted font-proto text-smaller mt-0.5 tracking-widest">
-                {planFreqLabel(p.frequency)} • {formatMinorToDisplay(p.totalAmount, curr)}
-              </p>
-
-              <div class="mt-1">
-                <div class="font-proto text-smaller mb-1 flex justify-between">
-                  <span>{i18n.t.planPaid}: {formatMinorToDisplay(prog.paidAmount, curr)}</span>
-                  <span
-                    >{prog.progressPercent}% ({i18n.t.planCountShort.replace(
-                      '{n}',
-                      String(prog.installmentsPaidCount)
-                    )})</span
+                  <button
+                    type="button"
+                    onclick={() => planState.openEdit(p)}
+                    class="sharp-btn btn-ghost font-proto text-text-dim hover:text-text-white text-smaller inline-flex cursor-pointer items-center p-1"
+                    title={i18n.t.editPlan}
+                    aria-label={i18n.t.editPlan}
                   >
-                </div>
-                <div class="bg-bg-card border-line h-1.5 w-full overflow-hidden border">
-                  <div
-                    class="h-full transition-all {p.type === 'RECEIVABLE'
-                      ? 'bg-income'
-                      : 'bg-expense'}"
-                    style="width: {Math.min(100, prog.progressPercent)}%"
-                  ></div>
+                    <Icon name="pencil" size={13} />
+                  </button>
+                  <CloseButton onclick={() => promptDeletePlan(p)} label={i18n.t.deletePlan} />
                 </div>
               </div>
 
-              <div
-                class="text-text-muted font-proto text-smaller flex items-center justify-between"
-              >
-                <span>
-                  {i18n.t.planTargetPer}:
-                  <strong class="text-text-strong"
-                    >{formatMinorToDisplay(p.installmentAmount, curr)}</strong
-                  >
-                </span>
-                <span class="text-text-dim">
-                  {i18n.t.planLeft}: {formatMinorToDisplay(prog.remainingAmount, curr)}
-                </span>
-              </div>
+              {#if isRecurring}
+                <p class="text-text-muted font-proto text-smaller mt-0.5 tracking-widest">
+                  {planFreqLabel(p.frequency)}
+                  {#if p.dayOfMonth}
+                    • {i18n.t.planDayOfMonthLabel.split(' ')[0]} {p.dayOfMonth}
+                  {/if}
+                  • {formatMinorToDisplay(p.installmentAmount, curr)}
+                </p>
+
+                <div class="bg-bg-app border-line/40 mt-1 flex flex-col gap-1 border p-2">
+                  <div class="font-proto text-smaller flex justify-between">
+                    <span class="text-text-muted">{i18n.t.recurringLastPosted}:</span>
+                    <span class="text-text-strong font-semibold"
+                      >{p.lastPostedDate ?? i18n.t.recurringNeverPosted}</span
+                    >
+                  </div>
+                  <div class="font-proto text-smaller flex justify-between">
+                    <span class="text-text-muted">{i18n.t.planPerInstallmentLabel}:</span>
+                    <span class="text-teal font-semibold"
+                      >{formatMinorToDisplay(p.installmentAmount, curr)}</span
+                    >
+                  </div>
+                </div>
+              {:else}
+                <p class="text-text-muted font-proto text-smaller mt-0.5 tracking-widest">
+                  {planFreqLabel(p.frequency)} • {formatMinorToDisplay(p.totalAmount, curr)}
+                </p>
+
+                <div class="mt-1">
+                  <div class="font-proto text-smaller mb-1 flex justify-between">
+                    <span>{i18n.t.planPaid}: {formatMinorToDisplay(prog.paidAmount, curr)}</span>
+                    <span
+                      >{prog.progressPercent}% ({i18n.t.planCountShort.replace(
+                        '{n}',
+                        String(prog.installmentsPaidCount)
+                      )})</span
+                    >
+                  </div>
+                  <ProgressBar
+                    value={prog.progressPercent}
+                    tone={p.type === 'RECEIVABLE' ? 'income' : 'expense'}
+                    track="card"
+                    size="s"
+                  />
+                </div>
+
+                <div
+                  class="text-text-muted font-proto text-smaller flex items-center justify-between"
+                >
+                  <span>
+                    {i18n.t.planTargetPer}:
+                    <strong class="text-text-strong"
+                      >{formatMinorToDisplay(p.installmentAmount, curr)}</strong
+                    >
+                  </span>
+                  <span class="text-text-dim">
+                    {i18n.t.planLeft}: {formatMinorToDisplay(prog.remainingAmount, curr)}
+                  </span>
+                </div>
+              {/if}
 
               {#if fromAcc || toAcc}
                 <div class="text-text-dim font-proto text-smaller truncate">
@@ -214,30 +325,30 @@
                   "{p.notes}"
                 </div>
               {/if}
+
+              {#if isRecurring || prog.remainingAmount > 0}
+                <div class="border-line/40 mt-1.5 flex items-center justify-between border-t pt-2">
+                  <span class="text-text-dim font-proto text-smaller">
+                    {formatMinorToDisplay(p.installmentAmount, curr)} / {planFreqLabel(p.frequency)}
+                  </span>
+                  <button
+                    type="button"
+                    onclick={() => handlePayInstallment(p)}
+                    class="sharp-btn btn-ghost font-proto text-teal hover:bg-teal/10 text-smaller inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 font-bold tracking-wider uppercase"
+                  >
+                    <Icon name="check" size={11} />
+                    <span
+                      >{isRecurring ? i18n.t.recurringRecordNow : i18n.t.recordInstallmentBtn}</span
+                    >
+                  </button>
+                </div>
+              {/if}
             </div>
           {/each}
         </div>
       {/if}
     </div>
   </div>
-</div>
 
-{#if confirmDeletePlan}
-  {@const plan = confirmDeletePlan}
-  <ConfirmDialog
-    bind:open={
-      () => !!confirmDeletePlan,
-      (v) => {
-        if (!v) confirmDeletePlan = null;
-      }
-    }
-    title={i18n.t.planConfirmDeleteTitle}
-    message={i18n.t.planConfirmDeleteMsg.replace('{title}', plan.title)}
-    confirmLabel={i18n.t.deletePlan}
-    onConfirm={async () => {
-      await planState.deletePlan(plan.id);
-      confirmDeletePlan = null;
-    }}
-    onCancel={() => (confirmDeletePlan = null)}
-  />
-{/if}
+  <RecurringRunnerModal bind:open={planState.runnerModalOpen} />
+</div>

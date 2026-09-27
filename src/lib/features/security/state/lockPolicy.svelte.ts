@@ -1,15 +1,22 @@
-import { getAppState } from '$lib/core/ipc/bindings';
+import { getAppState, getBootId } from '$lib/core/ipc/bindings';
 import { getPref, setPref } from '$lib/core/state/prefs';
+import { eventBus } from '$lib/core/events/eventBus.svelte';
 import type { Settings } from '$lib/core/types';
 
 export class LockPolicyStore {
   lastActivity = $state(Date.now());
   timeoutMinutes = $state('15');
   mode = $state<Settings['auto_lock_mode']>('always');
-  private bootIdChecked = false;
+  private fastUnlockResult: boolean | null = null;
 
   constructor() {
     this.loadFromStorage();
+    eventBus.on('vault:locked', () => {
+      this.resetBootIdCheck();
+    });
+    eventBus.on('vault:unlocked', () => {
+      this.resetBootIdCheck();
+    });
   }
 
   loadFromStorage() {
@@ -32,19 +39,36 @@ export class LockPolicyStore {
   }
 
   async checkBootIdFastUnlock(savedBootId?: string | null): Promise<boolean> {
-    if (this.bootIdChecked || !savedBootId || this.mode !== 'on-reboot') return true;
-    this.bootIdChecked = true;
+    if (this.mode !== 'on-reboot') return true;
+    if (this.fastUnlockResult !== null) return this.fastUnlockResult;
+
+    let expectedBootId = savedBootId;
+    if (!expectedBootId) {
+      try {
+        const state = await getAppState();
+        expectedBootId = state.settings.boot_id;
+      } catch {
+        this.fastUnlockResult = false;
+        return false;
+      }
+    }
+    if (!expectedBootId || expectedBootId.trim().length === 0) {
+      this.fastUnlockResult = false;
+      return false;
+    }
     try {
-      const state = await getAppState();
-      const currentBootId = state.settings.boot_id ?? '';
-      return currentBootId.trim() === savedBootId.trim();
+      const currentBootId = await getBootId();
+      const matches = currentBootId.trim() === expectedBootId.trim();
+      this.fastUnlockResult = matches;
+      return matches;
     } catch {
-      return true;
+      this.fastUnlockResult = false;
+      return false;
     }
   }
 
   resetBootIdCheck() {
-    this.bootIdChecked = false;
+    this.fastUnlockResult = null;
   }
 
   initInactivityWatcher(onTimeout: () => void | Promise<void>): () => void {

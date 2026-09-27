@@ -6,7 +6,7 @@
   } from '$lib/features/report/state/report.svelte';
   import { formatIDR } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Card } from '$lib/components/ui';
+  import { Card, Tabs } from '$lib/components/ui';
   import type { Account } from '$lib/core/ipc/bindings';
   import {
     getPointValue,
@@ -16,6 +16,7 @@
     type TrendsPeriod,
   } from '../state/trendsChartUtils';
   import TrendsChart from './TrendsChart.svelte';
+  import TrendsBars from './TrendsBars.svelte';
   import TrendsMetricCards from './TrendsMetricCards.svelte';
   import TrendsHealthCards from './TrendsHealthCards.svelte';
 
@@ -42,6 +43,22 @@
   }>();
 
   let hoveredIndex = $state<number | null>(null);
+  let chartMode = $state<'line' | 'bars'>('line');
+
+  const flowBars = $derived(
+    historicalPoints.map((p: DailyDataPoint, i: number) => ({
+      date: p.date,
+      value:
+        i === 0
+          ? 0
+          : getPointValue(p, trendsMetric) - getPointValue(historicalPoints[i - 1], trendsMetric),
+    }))
+  );
+
+  const modeTabs = $derived([
+    { id: 'line', label: i18n.t.trendsViewLine },
+    { id: 'bars', label: i18n.t.trendsViewBars },
+  ]);
 
   const activePoint = $derived.by(() => {
     if (historicalPoints.length === 0) return null;
@@ -147,10 +164,15 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto pr-3">
-  <!-- HERO CARD: FINANCIAL TREND LINE CHART -->
   <Card title={heroTitle} class="relative shrink-0">
     {#snippet header()}
       <div class="flex items-center gap-3">
+        <Tabs
+          variant="outline"
+          tabs={modeTabs}
+          active={chartMode}
+          onSelect={(id) => (chartMode = id as 'line' | 'bars')}
+        />
         <span
           class="border-line bg-bg-app text-text-muted font-proto text-smaller inline-flex items-center justify-center border px-1.5 py-0.5 leading-none tracking-wider uppercase transition-opacity {hoveredCoord
             ? 'opacity-100'
@@ -172,7 +194,6 @@
       </div>
     {/snippet}
 
-    <!-- Hero Balance & Period Delta -->
     <div>
       <div
         class="text-text-strong font-proto text-largest leading-none font-bold tracking-tight tabular-nums"
@@ -201,20 +222,30 @@
       </div>
     </div>
 
-    <!-- Interactive SVG Chart Component -->
-    <TrendsChart
-      {chartCoords}
-      {chartWidth}
-      {chartHeight}
-      {padX}
-      {neonColor}
-      {zeroLineY}
-      onHoverChange={(idx) => (hoveredIndex = idx)}
-      {hoveredCoord}
-      hasHistoricalData={historicalPoints.length > 0}
-    />
+    {#if chartMode === 'line'}
+      <TrendsChart
+        {chartCoords}
+        {chartWidth}
+        {chartHeight}
+        {padX}
+        {neonColor}
+        {zeroLineY}
+        onHoverChange={(idx) => (hoveredIndex = idx)}
+        {hoveredCoord}
+        hasHistoricalData={historicalPoints.length > 0}
+      />
+    {:else}
+      <TrendsBars
+        bars={flowBars}
+        {chartWidth}
+        {chartHeight}
+        {padX}
+        {hoveredIndex}
+        onHoverChange={(idx) => (hoveredIndex = idx)}
+        hasHistoricalData={historicalPoints.length > 0}
+      />
+    {/if}
 
-    <!-- Period Selector Segmented Buttons -->
     <div class="border-line/60 mt-1 flex shrink-0 items-center justify-between border-t pt-2.5">
       <div class="flex items-center gap-1">
         {#each ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'] as p (p)}
@@ -237,7 +268,6 @@
     </div>
   </Card>
 
-  <!-- Interactive Metric Switchers -->
   <TrendsMetricCards
     {bs}
     {activePoint}
@@ -247,11 +277,5 @@
     bind:trendsMetric
   />
 
-  <!-- Bottom: Top Asset Allocation & Financial Health Ratios -->
-  <TrendsHealthCards
-    {topAssetAccounts}
-    {debtRatio}
-    {debtStatus}
-    {runwayMonths}
-  />
+  <TrendsHealthCards {topAssetAccounts} {debtRatio} {debtStatus} {runwayMonths} />
 </div>

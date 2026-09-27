@@ -24,12 +24,12 @@
   <div class="flex flex-col items-center gap-4">
     <LoadingSpinner />
     {#if label}
-      <p class="font-proto text-text-base text-small tracking-[0.08em] uppercase">
+      <p class="font-proto text-text-base text-small tracking-section uppercase">
         {label}
       </p>
     {/if}
     {#if error}
-      <p class="badge-err text-small max-w-sm px-3 py-2 text-center">
+      <p class="badge-err font-proto text-small max-w-sm px-3 py-2 text-center">
         {error}
       </p>
       {#if onRetry}

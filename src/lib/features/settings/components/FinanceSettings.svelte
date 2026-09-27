@@ -1,16 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fxState } from '$lib/features/settings/state/settings.svelte';
-  import { fetchLiveFxRate } from '$lib/features/settings/fxService';
+  import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
+  import { modalState } from '$lib/core/state/modal.svelte';
+  import { notificationState } from '$lib/core/state/notification.svelte';
+  import { fetchLiveFxRate } from '$lib/features/settings/fxSync';
   import { i18n } from '$lib/core/i18n.svelte';
   import { getPref, setPref } from '$lib/core/state/prefs';
   import { formatIDR } from '$lib/core/format/currency';
+  import { todayString } from '$lib/core/format/date';
   import { Badge, Card, Button } from '$lib/components/ui';
 
   let syncing = $state(false);
   let syncMsg = $state<{ text: string; type: 'ok' | 'err' } | null>(null);
   let lastSyncStr = $state<string>('');
   let isOnline = $state(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  let selectedLockDate = $state(todayString());
 
   const currentVaultRate = $derived(fxState.rate);
 
@@ -74,6 +79,7 @@
 
   onMount(() => {
     refreshSyncTime();
+    closingBooksState.load();
     const handleOnline = () => {
       isOnline = true;
     };
@@ -87,12 +93,49 @@
       window.removeEventListener('offline', handleOffline);
     };
   });
+
+  function promptLockBooks() {
+    if (!selectedLockDate) return;
+    modalState.confirm({
+      title: i18n.t.confirmLockDateTitle,
+      message: i18n.t.confirmLockDateMsg.replace('{date}', selectedLockDate),
+      confirmLabel: i18n.t.lockDateAction,
+      cancelLabel: i18n.t.cancelBtn,
+      danger: true,
+      onConfirm: async () => {
+        await closingBooksState.setClosingDate(selectedLockDate);
+        notificationState.addNotification({
+          type: 'INFO',
+          priority: 'low',
+          title: i18n.t.closingBooksTitle,
+          message: i18n.t.closingDateUpdatedSuccess,
+        });
+      },
+    });
+  }
+
+  function promptUnlockBooks() {
+    modalState.confirm({
+      title: i18n.t.confirmUnlockTitle,
+      message: i18n.t.confirmUnlockMsg,
+      confirmLabel: i18n.t.unlockDateAction,
+      cancelLabel: i18n.t.cancelBtn,
+      danger: true,
+      onConfirm: async () => {
+        await closingBooksState.setClosingDate(null);
+        notificationState.addNotification({
+          type: 'INFO',
+          priority: 'low',
+          title: i18n.t.closingBooksTitle,
+          message: i18n.t.closingDateUpdatedSuccess,
+        });
+      },
+    });
+  }
 </script>
 
 <div class="grid grid-cols-1 gap-2 select-none lg:grid-cols-2">
-  <!-- LEFT COLUMN: LIVE FX & ONE-SHOT SYNC -->
   <div class="flex flex-col gap-2">
-    <!-- HERO FX CARD -->
     <Card title={i18n.t.usdExchangeRateTitle} class="gap-2">
       {#snippet header()}
         <Badge size="m" tone="neutral">{i18n.t.fxOneShotBadge}</Badge>
@@ -129,7 +172,7 @@
 
         <Button
           variant="primary"
-          class="font-proto text-small h-8 px-3 font-bold tracking-wider shrink-0"
+          class="font-proto text-small h-8 shrink-0 px-3 font-bold tracking-wider"
           disabled={syncing}
           onclick={handleOneShotSync}
         >
@@ -137,7 +180,6 @@
         </Button>
       </div>
 
-      <!-- Metadata Row -->
       <div
         class="border-line/40 font-proto text-text-muted text-smaller mt-auto flex items-center justify-between border-t pt-2.5"
       >
@@ -160,7 +202,6 @@
       {/if}
     </Card>
 
-    <!-- FX ALERTS & POLICY CARD -->
     <Card
       title={i18n.t.notifFxAlertsLabel}
       badge={i18n.t.activeStatusWord}
@@ -177,7 +218,6 @@
     </Card>
   </div>
 
-  <!-- RIGHT COLUMN: AUDIT LOG & RECENT MOVEMENTS -->
   <Card title={i18n.t.fxHistoryTitle} badge={i18n.t.fxAuditLogBadge} class="justify-between">
     <div>
       {#if recentHistory.length > 1}
@@ -225,5 +265,67 @@
     <p class="text-text-dim border-line/30 text-smaller font-aux mt-auto border-t pt-2">
       {i18n.t.fxConversionNote}
     </p>
+  </Card>
+
+  <Card
+    title={i18n.t.closingBooksTitle}
+    description={i18n.t.closingBooksDesc}
+    badge={closingBooksState.closingDate ? i18n.t.lockedPeriodBadge : i18n.t.openPeriodBadge}
+    badgeTone={closingBooksState.closingDate ? 'warn' : 'ok'}
+    class="gap-3 lg:col-span-2"
+  >
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div class="flex flex-col gap-1">
+        <span class="font-proto text-text-dim text-smaller tracking-wider uppercase">
+          {i18n.t.currentLockDate}
+        </span>
+        <div class="flex items-center gap-2">
+          {#if closingBooksState.closingDate}
+            <span class="font-proto text-text-white text-medium font-bold tabular-nums">
+              {closingBooksState.closingDate}
+            </span>
+            <Badge size="m" tone="warn">
+              {i18n.t.lockedPeriodBadge}
+            </Badge>
+          {:else}
+            <span class="font-proto text-text-muted text-small">
+              {i18n.t.noClosingDateSet}
+            </span>
+            <Badge size="m" tone="ok">
+              {i18n.t.openPeriodBadge}
+            </Badge>
+          {/if}
+        </div>
+        <p class="font-aux text-text-muted text-smaller mt-0.5 max-w-lg">
+          {i18n.t.confirmLockDateMsg.replace('{date}', closingBooksState.closingDate || selectedLockDate)}
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <input
+          type="date"
+          bind:value={selectedLockDate}
+          class="sharp-input font-proto text-small h-8 px-2"
+        />
+        <Button
+          variant="primary"
+          class="font-proto text-small h-8 px-3 font-bold tracking-wider"
+          disabled={closingBooksState.saving || !selectedLockDate}
+          onclick={promptLockBooks}
+        >
+          {i18n.t.lockDateAction}
+        </Button>
+        {#if closingBooksState.closingDate}
+          <Button
+            variant="ghost"
+            class="font-proto text-small text-expense hover:bg-expense/10 h-8 px-3 tracking-wider"
+            disabled={closingBooksState.saving}
+            onclick={promptUnlockBooks}
+          >
+            {i18n.t.unlockDateAction}
+          </Button>
+        {/if}
+      </div>
+    </div>
   </Card>
 </div>

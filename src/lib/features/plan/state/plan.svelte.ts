@@ -1,6 +1,15 @@
 import { SvelteMap, SvelteDate } from 'svelte/reactivity';
 import { invokeIpc } from '$lib/core/ipc/client';
-import type { JournalEntryView } from '$lib/core/ipc/bindings';
+import {
+  recordPlanInstallmentCmd,
+  getDueRecurringPlansCmd,
+  postDueRecurringBatchCmd,
+  updatePlanCmd,
+  type DueRecurringPlanView,
+  type JournalEntryView,
+  type UpdatePlanInput,
+} from '$lib/core/ipc/bindings';
+import { eventBus } from '$lib/core/events/eventBus.svelte';
 import type { CalendarDay } from '$lib/core/format/date';
 import { matchesMonthlyDay } from '$lib/core/format/date';
 
@@ -22,6 +31,8 @@ export interface PaymentPlan {
   fromAccountId: string;
   toAccountId: string;
   notes?: string;
+  lastPostedDate?: string;
+  autoPost?: boolean;
   createdAt: string;
 }
 
@@ -39,6 +50,8 @@ export interface PlanDto {
   from_account_id: string;
   to_account_id: string;
   notes: string | null;
+  last_posted_date: string | null;
+  auto_post: boolean;
   created_at: number;
 }
 
@@ -72,6 +85,8 @@ export interface CreatePlanPayload {
   from_account_id: string;
   to_account_id: string;
   notes?: string | null;
+  last_posted_date?: string | null;
+  auto_post?: boolean | null;
 }
 
 export interface DateEvents {
@@ -134,6 +149,8 @@ class PlanState {
   planFilter = $state<string>('ALL');
   editingPlan = $state<PaymentPlan | null>(null);
   modalOpen = $state<boolean>(false);
+  duePlans = $state<DueRecurringPlanView[]>([]);
+  runnerModalOpen = $state<boolean>(false);
 
   plans = $derived.by(() => {
     return this.items.map((item): PaymentPlan => ({
@@ -150,6 +167,8 @@ class PlanState {
       fromAccountId: item.plan.from_account_id,
       toAccountId: item.plan.to_account_id,
       notes: item.plan.notes ?? undefined,
+      lastPostedDate: item.plan.last_posted_date ?? undefined,
+      autoPost: item.plan.auto_post,
       createdAt: new Date(item.plan.created_at * 1000).toISOString(),
     }));
   });
@@ -176,11 +195,24 @@ class PlanState {
     this.loading = true;
     this.error = null;
     try {
-      this.items = await invokeIpc<PlanProgressViewDto[]>('list_plans_with_progress_cmd');
+      const [items, due] = await Promise.all([
+        invokeIpc<PlanProgressViewDto[]>('list_plans_with_progress_cmd'),
+        getDueRecurringPlansCmd(null).catch(() => []),
+      ]);
+      this.items = items;
+      this.duePlans = due;
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
       this.loading = false;
+    }
+  }
+
+  async loadDuePlans(asOfDate?: string): Promise<void> {
+    try {
+      this.duePlans = await getDueRecurringPlansCmd(asOfDate ?? null);
+    } catch {
+      this.duePlans = [];
     }
   }
 
@@ -199,8 +231,22 @@ class PlanState {
     this.modalOpen = false;
   }
 
+  openRunnerModal() {
+    this.runnerModalOpen = true;
+  }
+
+  closeRunnerModal() {
+    this.runnerModalOpen = false;
+  }
+
   async createPlan(input: CreatePlanPayload): Promise<void> {
     await invokeIpc('create_plan_cmd', { input });
+    await this.load();
+    this.closeModal();
+  }
+
+  async updatePlan(id: string, input: UpdatePlanInput): Promise<void> {
+    await updatePlanCmd(id, input);
     await this.load();
     this.closeModal();
   }
@@ -208,6 +254,35 @@ class PlanState {
   async deletePlan(id: string): Promise<void> {
     await invokeIpc('delete_plan_cmd', { id });
     await this.load();
+  }
+
+  async recordInstallment(
+    planId: string,
+    amount: number,
+    date?: string,
+    ref?: string,
+    notes?: string
+  ): Promise<void> {
+    const today = date || new Date().toISOString().slice(0, 10);
+    await recordPlanInstallmentCmd({
+      plan_id: planId,
+      date: today,
+      amount,
+      reference_no: ref ?? null,
+      notes: notes ?? null,
+    });
+    await this.load();
+    eventBus.emit('transaction:posted', { id: '' });
+  }
+
+  async postDueBatch(planIds: string[], date?: string): Promise<void> {
+    if (planIds.length === 0) return;
+    await postDueRecurringBatchCmd({
+      plan_ids: planIds,
+      date: date ?? null,
+    });
+    await this.load();
+    eventBus.emit('transaction:posted', { id: '' });
   }
 }
 

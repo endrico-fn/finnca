@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { i18n } from '$lib/core/i18n.svelte';
+  import { getAppNavItems } from '$lib/core/router/nav';
   import VaultPicker from '$lib/features/vault/components/VaultPicker.svelte';
 
   interface HealthStats {
@@ -18,17 +19,7 @@
     onOpenHealthModal?: () => void;
   } = $props();
 
-  const nav = $derived([
-    { href: '/app', label: i18n.t.dashboard },
-    { href: '/app/accounts', label: i18n.t.account },
-    { href: '/app/journal', label: i18n.t.journal },
-    { href: '/app/budget', label: i18n.t.budget },
-    { href: '/app/reports', label: i18n.t.report },
-    { href: '/app/reconcile', label: i18n.t.reconcile },
-    { href: '/app/plan', label: i18n.t.plan },
-    { href: '/app/audit', label: i18n.t.auditLogTitle },
-    { href: '/app/setting', label: i18n.t.settings },
-  ]);
+  const nav = $derived(getAppNavItems(i18n.t));
 
   const isActive = (href: string) =>
     page.url.pathname === href || (href !== '/app' && page.url.pathname.startsWith(href));
@@ -39,33 +30,26 @@
     <VaultPicker />
   </div>
 
-  <nav class="flex-1 space-y-1 overflow-y-auto px-2.5 py-2.5">
-    {#each nav as item, idx (item.href)}
+  <nav class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2.5 py-2">
+    {#each nav as item (item.href)}
       {@const active = isActive(item.href)}
       <a
         href={resolve(item.href as '/app')}
-        class="btn-nav text-small flex h-8 w-full items-center justify-between px-3 tracking-wider uppercase {active
+        class="btn-nav text-small flex h-8 w-full items-center px-3 tracking-wider uppercase {active
           ? 'active font-medium'
           : ''}"
       >
         <span class="truncate">{item.label}</span>
-        <span
-          class="font-proto text-smaller {active
-            ? 'text-teal font-bold'
-            : 'text-text-muted/60'} tabular-nums transition-colors"
-        >
-          {idx + 1}
-        </span>
       </a>
     {/each}
   </nav>
 
   {#if healthStats}
-    <div class="border-line bg-bg-card/40 shrink-0 border-t p-3">
+    <div class="border-line bg-bg-card/40 shrink-0 border-t border-b p-2.5">
       <button
         type="button"
         onclick={onOpenHealthModal}
-        class="group w-full cursor-pointer text-left focus-visible:outline-teal outline-offset-1"
+        class="group focus-visible:outline-teal w-full cursor-pointer text-left outline-offset-1"
       >
         <div class="mb-1 flex items-center justify-between">
           <span class="font-proto text-text-dim text-smaller font-bold tracking-wider uppercase">

@@ -1,14 +1,13 @@
 <script lang="ts">
-  import type { Split, Currency } from '../state/journalDraft.svelte';
-  import type { Account } from '$lib/core/ipc/bindings';
+  import type { PostingInput, Account } from '$lib/core/ipc/bindings';
   import { formatMinorGrouping } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Icon, Button } from '$lib/components/ui';
+  import { Button } from '$lib/components/ui';
   import JournalLineRow from './JournalLineRow.svelte';
 
   let {
     splits = $bindable(),
-    currency,
+    currency = 'IDR',
     accounts,
     isBalanced,
     imbalance,
@@ -20,53 +19,63 @@
     onAmountChange,
     onAutoBalance,
   }: {
-    splits: Split[];
-    currency: Currency;
+    splits: PostingInput[];
+    currency?: string;
     accounts: Account[];
     isBalanced: boolean;
     imbalance: number;
     debitTotal: number;
     creditTotal: number;
-    onCollapseToSimple: () => void;
+    onCollapseToSimple?: () => void;
     onAddSplit: () => void;
-    onRemoveSplit: (id: string) => void;
-    onAmountChange: (split: Split, field: 'debit' | 'credit', val: string) => void;
+    onRemoveSplit: (id?: string | null) => void;
+    onAmountChange: (split: PostingInput, field: 'debit' | 'credit', val: string) => void;
     onAutoBalance: () => void;
   } = $props();
 </script>
 
-<div class="mt-4">
-  <div class="flex items-center justify-between pb-2">
+<div class="space-y-2">
+  <div class="flex items-center justify-between pb-1">
     <div>
-      <p class="label-xs">
+      <p class="label-xs font-bold">
         {splits.length}
         {i18n.t.splitsLabel}
       </p>
-      <p class="text-text-muted font-proto text-smaller mt-0.5">
+      <p class="text-text-muted font-proto text-smaller">
         {i18n.t.debitCreditHelp}
       </p>
     </div>
     <div class="flex shrink-0 items-center gap-1.5">
-      {#if splits.length === 2}
+      {#if onCollapseToSimple && splits.length === 2}
         <Button
           variant="ghost"
           size="sm"
           onclick={onCollapseToSimple}
-          class="shrink-0 whitespace-nowrap"
+          class="h-7 px-2 shrink-0 whitespace-nowrap"
         >
-          <span class="inline-flex items-center gap-1.5">
-            <Icon name="chev-left" size={12} />
-            {i18n.t.txSimpleView}
+          <span class="inline-flex items-center gap-1 font-proto text-smaller">
+            <span>‹ {i18n.t.txSimpleView}</span>
           </span>
         </Button>
       {/if}
-      <Button variant="ghost" size="sm" onclick={onAddSplit} class="shrink-0 whitespace-nowrap">
-        {i18n.t.txAddRow}
+      {#if imbalance !== 0}
+        <Button variant="tactical" size="sm" onclick={onAutoBalance} class="h-7 px-2">
+          <span class="inline-flex items-center gap-1 font-proto text-smaller">
+            <span>{i18n.t.autoBalanceBtn}</span>
+            <span class="border-line/80 text-text-dim border px-1 py-0.2 text-smaller">Alt+A</span>
+          </span>
+        </Button>
+      {/if}
+      <Button variant="ghost" size="sm" onclick={onAddSplit} class="h-7 px-2 whitespace-nowrap">
+        <span class="inline-flex items-center gap-1 font-proto text-smaller">
+          <span>{i18n.t.txAddRow}</span>
+          <span class="border-line/80 text-text-dim border px-1 py-0.2 text-smaller">Alt+N</span>
+        </span>
       </Button>
     </div>
   </div>
 
-  <div class="border-line mt-2 overflow-x-auto border">
+  <div class="border-line border">
     <table class="font-proto text-smaller w-full tabular-nums">
       <thead class="bg-bg-app text-text-base">
         <tr>
@@ -115,18 +124,23 @@
             colspan="2"
             class="font-proto text-smaller px-3 py-1 {isBalanced ? 'text-income' : 'text-warning'}"
           >
-            {isBalanced
-              ? i18n.t.balanced
-              : `${i18n.t.imbalance}: ${formatMinorGrouping(Math.abs(imbalance), currency)}`}
-            {#if !isBalanced && imbalance !== 0}
-              <Button
-                variant="tactical"
-                size="sm"
-                onclick={onAutoBalance}
-                class="text-smaller ml-2 inline-flex h-6 py-0.5"
-              >
-                {i18n.t.autoBalanceBtn}
-              </Button>
+            {#if isBalanced}
+              <span class="text-income font-bold">{i18n.t.balancedZero}</span>
+            {:else}
+              <span>{i18n.t.imbalance}: {formatMinorGrouping(Math.abs(imbalance), currency)}</span>
+              {#if imbalance !== 0}
+                <Button
+                  variant="tactical"
+                  size="sm"
+                  onclick={onAutoBalance}
+                  class="text-smaller ml-2 inline-flex h-6 items-center gap-1.5 py-0.5"
+                >
+                  <span>{i18n.t.autoBalanceBtn}</span>
+                  <span class="border-line/80 text-text-dim border px-1 py-0.5 text-smaller"
+                    >Alt+A</span
+                  >
+                </Button>
+              {/if}
             {/if}
           </td>
         </tr>

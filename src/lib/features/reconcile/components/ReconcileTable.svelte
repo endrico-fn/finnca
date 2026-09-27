@@ -21,14 +21,13 @@
       />
     </div>
   {:else}
-    <div
-      class="border-line flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5"
-    >
+    <div class="border-line flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
       <div class="font-proto text-smaller flex items-center gap-2">
         <span class="text-text-muted">{i18n.t.reconcileStatus}:</span>
         <span class="text-text-strong font-bold">{reconcileState.clearedCount}</span>
         <span class="text-text-muted">
-          / {reconcileState.unclearedPostings.length} {i18n.t.clearedStatus}
+          / {reconcileState.unclearedPostings.length}
+          {i18n.t.clearedStatus}
         </span>
       </div>
       <div class="flex items-center gap-1.5">
@@ -53,7 +52,7 @@
 
     <div class="flex-1 overflow-y-auto">
       <div
-        class="border-line bg-line/20 font-proto text-text-muted text-smaller sticky top-0 z-10 grid grid-cols-12 gap-2 border-b px-3 py-1.5 tracking-widest uppercase"
+        class="border-line bg-bg-card font-proto text-text-muted text-smaller sticky top-0 z-10 grid grid-cols-12 gap-2 border-b px-3 py-1.5 tracking-widest uppercase"
       >
         <div class="col-span-1 text-center">{i18n.t.reconcileColClr}</div>
         <div class="col-span-2">{i18n.t.reconcileColDate}</div>

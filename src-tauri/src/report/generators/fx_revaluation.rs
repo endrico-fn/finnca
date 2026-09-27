@@ -1,4 +1,4 @@
-use crate::ledger::currency::{normalize_fx_rate, usd_minor_to_idr, DEFAULT_FX_RATE};
+use crate::ledger::currency::{convert_minor_units, normalize_fx_rate, DEFAULT_FX_RATE};
 use crate::report::dto::{FxRevaluationItem, FxRevaluationReport};
 use crate::shared::AppError;
 use rusqlite::Connection;
@@ -32,8 +32,9 @@ pub fn generate(
     let mut total_unrealized_gain_idr: i64 = 0;
 
     let mut post_stmt = conn.prepare(
-        "SELECT je.date, je.fx_rate, p.amount
+        "SELECT je.date, COALESCE(p.fx_rate, je.fx_rate, 16000), p.amount, COALESCE(p.currency, a.currency, 'USD'), p.cost_amount
          FROM postings p
+         JOIN accounts a ON a.id = p.account_id
          JOIN journal_entries je ON je.id = p.entry_id
          WHERE p.account_id = ?1 AND (?2 IS NULL OR je.date <= ?2)
          ORDER BY je.date ASC, je.id ASC;",
@@ -47,6 +48,8 @@ pub fn generate(
                 row.get::<_, String>(0)?,
                 row.get::<_, i64>(1)?,
                 row.get::<_, i64>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<i64>>(4)?,
             ))
         })?;
 
@@ -55,17 +58,21 @@ pub fn generate(
         let mut cost_basis_idr: i64 = 0;
 
         for r in rows {
-            let (_date, entry_fx, amount) = r?;
+            let (_date, entry_fx, amount, curr, cost_amount) = r?;
             native_balance += amount;
             let tx_rate = normalize_fx_rate(entry_fx, current_fx_rate);
-            let amount_idr = usd_minor_to_idr(amount, tx_rate);
+            let amount_idr = if let Some(cost) = cost_amount {
+                amount.signum() * cost.abs()
+            } else {
+                convert_minor_units(amount, &curr, "IDR", tx_rate)
+            };
 
             if amount > 0 {
                 cost_basis_idr += amount_idr;
                 remaining_qty += amount;
             } else if amount < 0 && remaining_qty > 0 {
-                let deduction = ((cost_basis_idr as i128 * (-amount) as i128)
-                    / remaining_qty as i128) as i64;
+                let deduction =
+                    ((cost_basis_idr as i128 * (-amount) as i128) / remaining_qty as i128) as i64;
                 cost_basis_idr -= deduction;
                 remaining_qty += amount;
             } else {
@@ -75,7 +82,8 @@ pub fn generate(
         }
 
         if native_balance != 0 {
-            let current_value_idr = usd_minor_to_idr(native_balance, current_fx_rate);
+            let current_value_idr =
+                convert_minor_units(native_balance, &currency, "IDR", current_fx_rate);
             let unrealized_gain_idr = current_value_idr - cost_basis_idr;
 
             total_cost_basis_idr += cost_basis_idr;

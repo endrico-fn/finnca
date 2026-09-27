@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { buildCalendarDays, parseLocalDateParts } from '$lib/core/format/date';
   import Icon from './Icon.svelte';
@@ -15,6 +16,18 @@
   }>();
 
   let open = $state(false);
+  let containerEl: HTMLElement | null = $state(null);
+
+  function handleClickOutside(e: MouseEvent) {
+    if (containerEl && !containerEl.contains(e.target as Node)) {
+      open = false;
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  });
 
   function setToday() {
     const now = new Date();
@@ -92,7 +105,7 @@
 
   function selectDate(dateStr: string) {
     value = dateStr;
-    open = false; // complete selection
+    open = false;
     onChange?.();
     onSelect?.(dateStr);
   }
@@ -122,8 +135,7 @@
   });
 </script>
 
-<div class="relative inline-block text-left">
-  <!-- Trigger Button -->
+<div class="relative inline-block text-left" bind:this={containerEl}>
   <button
     type="button"
     onclick={() => (open = !open)}
@@ -145,15 +157,9 @@
   </button>
 
   {#if open}
-    <!-- Invisible overlay to close on outside click -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="fixed inset-0 z-40" onclick={() => (open = false)}></div>
-
     <div
-      class="bg-bg-card border-line font-proto text-smaller absolute right-0 z-50 mt-1 flex w-[330px] border select-none"
+      class="bg-bg-card border-line font-proto text-smaller absolute right-0 z-50 mt-1 flex w-84 border select-none"
     >
-      <!-- Quick Filters Sidebar -->
       <div class="border-line bg-bg-app flex w-24 shrink-0 flex-col border-r">
         <button
           type="button"
@@ -196,7 +202,6 @@
         </button>
       </div>
 
-      <!-- Calendar Picker -->
       <div class="flex-1 p-2">
         <div class="mb-2 flex gap-1">
           <div class="border-teal/60 bg-teal/10 text-teal flex-1 border px-1.5 py-1 text-center">

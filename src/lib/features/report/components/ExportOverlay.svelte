@@ -79,7 +79,7 @@
   ];
 </script>
 
-<ModalShell bind:open title="{i18n.t.exportReportTitle} — {reportTitle}" maxWidth="max-w-xs">
+<ModalShell bind:open title="{i18n.t.exportReportTitle} — {reportTitle}" size="xs">
   <div class="space-y-4 pt-2 pb-1">
     {#if supportsPDF}
       <div>

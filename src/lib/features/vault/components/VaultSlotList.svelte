@@ -34,7 +34,7 @@
       </button>
     </div>
 
-    <div class="max-h-48 space-y-1.5 overflow-y-auto pr-1">
+    <div class="max-h-48 space-y-1.5 overflow-x-hidden overflow-y-auto">
       {#each knownVaults as v, idx (v.id || v)}
         {@const isSel = v.path === (selectedVaultId ?? activeVaultPath)}
         <button
@@ -48,11 +48,11 @@
             : 'border-line/60 bg-bg-card hover:border-line hover:bg-bg-app text-text-muted hover:text-text-base'}"
         >
           <div
-            class="grid aspect-square w-12 shrink-0 place-items-center border-r font-proto text-largest transition-colors {isSel
+            class="font-proto text-largest grid aspect-square w-12 shrink-0 place-items-center border-r transition-colors {isSel
               ? 'border-teal/50 bg-teal/15 text-teal'
               : 'border-line/60 bg-bg-app text-text-muted'}"
           >
-            <span class="tabular-nums leading-none tracking-tight">
+            <span class="leading-none tracking-tight tabular-nums">
               {String(idx + 1).padStart(2, '0')}
             </span>
           </div>
@@ -60,13 +60,13 @@
           <div class="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-1">
             <span
               class="text-small block truncate font-medium {isSel
-                ? 'text-income font-bold'
+                ? 'text-teal font-bold'
                 : 'text-text-strong'}"
             >
-              {v.username || i18n.t.vaultUnknownUser}
+              {v.name}
             </span>
             <span class="text-smaller text-text-dim block truncate font-normal">
-              {v.name}
+              {v.username ? `@${v.username}` : i18n.t.vaultUnknownUser}
             </span>
           </div>
 

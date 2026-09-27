@@ -46,6 +46,7 @@ pub fn create_new_vault(
     vault_name: Option<&str>,
     username: Option<&str>,
     template_lang: Option<&str>,
+    account_profile: Option<&str>,
 ) -> Result<Connection, AppError> {
     if !vault_path.exists() {
         fs::create_dir_all(vault_path)?;
@@ -69,7 +70,8 @@ pub fn create_new_vault(
     let conn = open_vault_db(&db_path, &dek)?;
 
     let lang = template_lang.unwrap_or("en");
-    crate::accounts::service::seed_comprehensive_accounts(&conn, lang, "IDR")?;
+    let profile = account_profile.unwrap_or("personal");
+    crate::accounts::service::seed_account_template(&conn, profile, lang, "IDR")?;
 
     Ok(conn)
 }
@@ -133,6 +135,7 @@ mod tests {
                 Some("Personal Finances"),
                 Some("endrico"),
                 Some("en"),
+                None,
             )
             .expect("create new vault");
 

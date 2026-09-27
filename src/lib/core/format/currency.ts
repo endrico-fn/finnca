@@ -1,4 +1,5 @@
 import { getPref } from '$lib/core/state/prefs';
+import { evaluateFinancialExpression, hasMathExpression } from './mathExpression';
 
 export type SupportedCurrency = 'IDR' | 'USD' | string;
 
@@ -108,6 +109,14 @@ export function toMinor(currency: SupportedCurrency, majorUnits: number): number
 export function parseStringAmountToMinor(str: string, currency: SupportedCurrency = 'IDR'): number {
   if (!str) return 0;
   let clean = str.trim();
+
+  if (hasMathExpression(clean)) {
+    const evaluated = evaluateFinancialExpression(clean, currency);
+    if (evaluated !== null) {
+      return toMinor(currency, evaluated);
+    }
+  }
+
   const isNegative = clean.startsWith('-');
   clean = clean.replace(/^-/, '');
 

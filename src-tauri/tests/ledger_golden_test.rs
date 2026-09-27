@@ -150,6 +150,7 @@ fn run_golden_scenario(fixture_path: &Path) {
                     memo: s.memo,
                     action: None,
                     reconcile: rec,
+                    ..Default::default()
                 }
             })
             .collect();
@@ -161,6 +162,9 @@ fn run_golden_scenario(fixture_path: &Path) {
                 date: tx.date,
                 description: tx.description,
                 notes: tx.notes,
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
                 currency: tx.currency,
                 fx_rate: tx.fx_rate,
                 postings,

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { setAutoLockMode } from '$lib/core/ipc/bindings';
+  import { setAutoLockMode, getBootId } from '$lib/core/ipc/bindings';
   import type { Settings } from '$lib/core/types';
   import { Card, Button } from '$lib/components/ui';
   import { lockPolicy } from '$lib/features/security/state/lockPolicy.svelte';
@@ -9,6 +9,7 @@
 
   let mode = $state<Settings['auto_lock_mode']>('always');
   let sessionTimeout = $state('15');
+  let currentBootId = $state('');
   let saved = $state(false);
   let busy = $state(false);
   let error = $state('');
@@ -36,6 +37,7 @@
     mode = session.settings?.auto_lock_mode || 'always';
     lockPolicy.loadFromStorage();
     sessionTimeout = lockPolicy.timeoutMinutes;
+    getBootId().then((id) => (currentBootId = id)).catch(() => {});
   });
 
   async function handleSaveSettings() {
@@ -93,6 +95,14 @@
           <p class="text-text-muted text-smaller font-aux leading-relaxed">
             {i18n.t.lockRebootDesc}
           </p>
+          {#if currentBootId}
+            <div
+              class="border-teal/30 bg-teal/5 text-teal text-smaller font-proto mt-1.5 flex items-center gap-1.5 border px-2 py-0.5"
+            >
+              <span class="font-bold">BOOT ID:</span>
+              <span class="font-proto text-smaller truncate">{currentBootId}</span>
+            </div>
+          {/if}
         </div>
       </label>
     </div>
@@ -108,7 +118,6 @@
           </span>
         </div>
 
-        <!-- Segmented Preset Buttons -->
         <div class="grid grid-cols-6 gap-1">
           {#each timeoutPresets as opt (opt.value)}
             <button
@@ -128,7 +137,7 @@
     {/if}
 
     <div class="border-line/40 mt-3 flex items-center justify-between gap-2 border-t pt-2.5">
-      <div class="min-h-5 flex items-center">
+      <div class="flex min-h-5 items-center">
         {#if error}<p class="text-expense font-proto text-smaller">{error}</p>{/if}
         {#if saved}<p class="text-income font-proto text-smaller">{i18n.t.settingsSavedOk}</p>{/if}
       </div>

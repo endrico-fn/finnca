@@ -53,7 +53,7 @@ pub(crate) fn lock_session(
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, specta::Type)]
 pub struct AppStateView {
     pub configured: bool,
     pub unlocked: bool,
@@ -77,14 +77,11 @@ pub(crate) fn view(app: &AppHandle, state: &AppState) -> Result<AppStateView, St
     })
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
-        .manage(AppState::new())
-        .invoke_handler(tauri::generate_handler![
+pub fn create_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
+    tauri_specta::Builder::<tauri::Wry>::new()
+        .dangerously_cast_bigints_to_number()
+        .disable_serde_phases()
+        .commands(tauri_specta::collect_commands![
             auth::commands::get_app_state,
             auth::commands::unlock,
             auth::commands::lock,
@@ -120,30 +117,88 @@ pub fn run() {
             ledger::commands::list_journal_entries_cmd,
             ledger::commands::get_account_ledger_cmd,
             ledger::commands::get_ledger_totals_cmd,
+            ledger::commands::get_dashboard_metrics_cmd,
+            ledger::commands::diagnose_vault_health_cmd,
+            ledger::commands::get_closing_date_cmd,
+            ledger::commands::set_closing_date_cmd,
+            ledger::commands::export_beancount_cmd,
             budget::commands::upsert_budget_cmd,
             budget::commands::delete_budget_cmd,
             budget::commands::get_budget_summary_cmd,
             audit::commands::get_audit_log_cmd,
             audit::commands::get_entity_audit_log_cmd,
+            audit::commands::verify_audit_log_integrity_cmd,
             plan::commands::create_plan_cmd,
             plan::commands::update_plan_cmd,
             plan::commands::delete_plan_cmd,
             plan::commands::get_plan_cmd,
             plan::commands::list_plans_cmd,
             plan::commands::list_plans_with_progress_cmd,
+            plan::commands::record_plan_installment_cmd,
+            plan::commands::get_due_recurring_plans_cmd,
+            plan::commands::post_due_recurring_batch_cmd,
             reconcile::commands::get_reconciliation_status_cmd,
             reconcile::commands::set_posting_reconciled_cmd,
             reconcile::commands::bulk_set_postings_reconciled_cmd,
             reconcile::commands::finish_reconciliation_cmd,
             reconcile::commands::match_statement_cmd,
             reconcile::commands::read_statement_file_cmd,
+            reconcile::commands::list_reconcile_rules_cmd,
+            reconcile::commands::create_reconcile_rule_cmd,
+            reconcile::commands::delete_reconcile_rule_cmd,
+            reconcile::commands::evaluate_reconcile_rules_cmd,
             report::commands::get_profit_loss_report_cmd,
             report::commands::get_balance_sheet_report_cmd,
             report::commands::get_cash_flow_report_cmd,
             report::commands::get_trial_balance_report_cmd,
             report::commands::get_fx_revaluation_report_cmd,
-            report::commands::get_historical_trends_report_cmd
+            report::commands::get_historical_trends_report_cmd,
+            report::commands::get_monthly_cashflow_summary_cmd
         ])
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    let builder = create_specta_builder();
+
+    #[cfg(debug_assertions)]
+    builder
+        .export(
+            specta_typescript::Typescript::default().header("/* eslint-disable */\n"),
+            "../src/lib/core/ipc/bindings.gen.ts",
+        )
+        .expect("error exporting specta typescript bindings");
+
+    tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            use tauri::Manager;
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.unminimize();
+                let _ = w.set_focus();
+            }
+        }))
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .manage(AppState::new())
+        .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod specta_export_test {
+    use super::*;
+
+    #[test]
+    fn test_export_specta_bindings() {
+        let builder = create_specta_builder();
+        builder
+            .export(
+                specta_typescript::Typescript::default().header("/* eslint-disable */\n"),
+                "../src/lib/core/ipc/bindings.gen.ts",
+            )
+            .expect("error exporting specta typescript bindings in test");
+    }
 }

@@ -1,19 +1,13 @@
 <script lang="ts">
-  import type { Account } from '$lib/core/ipc/bindings';
-  import type { Transaction, Split } from '$lib/core/types';
+  import type { Account, AccountRunningLedgerItem } from '$lib/core/ipc/bindings';
   import { formatMinorGrouping } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { Button } from '$lib/components/ui';
 
-  export interface LedgerEntryRow {
-    tx: Transaction;
-    split: Split;
-    running: number;
-  }
+  export type LedgerEntryRow = AccountRunningLedgerItem;
 
   let {
     entries = [],
-    accountsById,
     accountCurrency = 'IDR',
     hasAnyEntries = false,
     isPlaceholder = false,
@@ -22,13 +16,13 @@
     onNewEntry,
     onAddSubAccount,
   }: {
-    entries?: LedgerEntryRow[];
-    accountsById: Map<string, Account>;
+    entries?: AccountRunningLedgerItem[];
+    accountsById?: Map<string, Account>;
     accountCurrency?: string;
     hasAnyEntries?: boolean;
     isPlaceholder?: boolean;
-    onToggleReconcile?: (row: LedgerEntryRow) => void;
-    onEdit?: (tx: Transaction) => void;
+    onToggleReconcile?: (row: AccountRunningLedgerItem) => void;
+    onEdit?: (entryId: string) => void;
     onNewEntry?: () => void;
     onAddSubAccount?: () => void;
   } = $props();
@@ -100,71 +94,62 @@
         </tr>
       </thead>
       <tbody class="divide-line/40 divide-y">
-        {#each entries as e (e.tx.id + e.split.id)}
-          {@const other = e.tx.splits.find((s) => s.accountId !== e.split.accountId)}
-          {@const otherAcc = other ? accountsById.get(other.accountId) : null}
+        {#each entries as e (e.posting_id)}
           <tr class="hover:bg-bg-row-active transition-colors">
             <td class="text-text-base font-proto py-1 pl-2 whitespace-nowrap tabular-nums">
-              {e.tx.date}
+              {e.date}
             </td>
             <td class="text-text-strong text-smaller px-3 py-1">
               <div class="flex items-center gap-1.5">
-                <span class="truncate">{e.tx.description}</span>
-                {#if e.tx.num}
-                  <span
-                    class="border-line bg-bg-app text-text-muted font-proto text-smaller border px-1"
-                  >
-                    {e.tx.num}
-                  </span>
-                {/if}
+                <span class="truncate">{e.description}</span>
               </div>
-              {#if e.split.memo}
+              {#if e.memo}
                 <p class="text-text-muted text-smaller mt-0.5">
-                  {e.split.memo}
+                  {e.memo}
                 </p>
               {/if}
             </td>
             <td class="text-text-muted text-smaller max-w-36 truncate px-3 py-1">
-              {otherAcc ? `${otherAcc.code} ${otherAcc.name}` : '—'}
+              {e.offset_account || '—'}
             </td>
             <td
-              class="font-proto text-smaller px-3 py-1 text-right whitespace-nowrap tabular-nums {e
-                .split.amount > 0
+              class="font-proto text-smaller px-3 py-1 text-right whitespace-nowrap tabular-nums {e.amount >
+              0
                 ? 'text-income'
                 : 'text-text-dim'}"
             >
-              {e.split.amount > 0 ? formatMinorGrouping(e.split.amount, e.tx.currency) : '—'}
+              {e.amount > 0 ? formatMinorGrouping(e.amount, accountCurrency) : '—'}
             </td>
             <td
-              class="font-proto text-smaller px-3 py-1 text-right whitespace-nowrap tabular-nums {e
-                .split.amount < 0
+              class="font-proto text-smaller px-3 py-1 text-right whitespace-nowrap tabular-nums {e.amount <
+              0
                 ? 'text-text-strong'
                 : 'text-text-dim'}"
             >
-              {e.split.amount < 0 ? formatMinorGrouping(-e.split.amount, e.tx.currency) : '—'}
+              {e.amount < 0 ? formatMinorGrouping(-e.amount, accountCurrency) : '—'}
             </td>
             <td class="px-1 py-1 text-center">
               <button
                 type="button"
                 onclick={() => onToggleReconcile?.(e)}
                 title={i18n.t.reconcileCycleHint}
-                class="font-proto text-smaller inline-flex items-center justify-center border px-1.5 py-0.5 leading-none font-bold tracking-wider uppercase transition-colors {e
-                  .split.reconcile === 'y'
+                class="font-proto text-smaller inline-flex items-center justify-center border px-1.5 py-0.5 leading-none font-bold tracking-wider uppercase transition-colors {e.reconcile ===
+                'y'
                   ? 'badge-ok'
-                  : e.split.reconcile === 'c'
+                  : e.reconcile === 'c'
                     ? 'badge-warn'
                     : 'border-line bg-bg-app text-text-muted hover:border-teal/40'}"
               >
-                {e.split.reconcile}
+                {e.reconcile}
               </button>
             </td>
             <td
               class="text-text-strong font-proto text-smaller py-1 pr-2 text-right font-medium whitespace-nowrap tabular-nums"
             >
-              {formatMinorGrouping(e.running, accountCurrency)}
+              {formatMinorGrouping(e.running_balance, accountCurrency)}
             </td>
             <td class="py-1 pr-2 text-right">
-              <Button variant="ghost" size="sm" onclick={() => onEdit?.(e.tx)}>
+              <Button variant="ghost" size="sm" onclick={() => onEdit?.(e.entry_id)}>
                 {i18n.t.edit}
               </Button>
             </td>

@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { ModalShell, Button } from '$lib/components/ui';
+  import { ModalShell, Button, Badge } from '$lib/components/ui';
   import { i18n } from '$lib/core/i18n.svelte';
   import { formatIDR } from '$lib/core/format/currency';
+  import { diagnoseVaultHealthCmd, type VaultHealthReport } from '$lib/core/ipc/bindings';
 
   export interface HealthStats {
     balanced: boolean;
@@ -23,10 +24,32 @@
     healthStats: HealthStats;
     onFixInJournal?: () => void;
   } = $props();
+
+  let healthReport = $state<VaultHealthReport | null>(null);
+  let diagnosing = $state(false);
+
+  async function runDiagnostics() {
+    diagnosing = true;
+    try {
+      healthReport = await diagnoseVaultHealthCmd();
+    } catch (e) {
+      healthReport = {
+        is_healthy: false,
+        sqlite_integrity: String(e),
+        foreign_keys_ok: false,
+        unbalanced_entries_count: 0,
+        orphan_postings_count: 0,
+        placeholder_postings_count: 0,
+        issues: [String(e)],
+      };
+    } finally {
+      diagnosing = false;
+    }
+  }
 </script>
 
 {#if open && healthStats}
-  <ModalShell bind:open title={i18n.t.ledgerHealthTitle} maxWidth="max-w-lg">
+  <ModalShell bind:open title={i18n.t.ledgerHealthTitle} size="lg">
     <div class="space-y-4 p-4 select-none">
       <div
         class="flex items-center justify-between border p-3 {healthStats.balanced &&
@@ -117,6 +140,43 @@
           </Button>
         </div>
       {/if}
+
+      <div class="border-line/60 border-t pt-3">
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-text-dim font-proto text-smaller font-bold uppercase">
+            {i18n.t.vaultHealthDiagnosticsTitle}
+          </span>
+          <Button variant="ghost" size="sm" disabled={diagnosing} onclick={runDiagnostics}>
+            {diagnosing ? '...' : i18n.t.runDiagnosticsBtn}
+          </Button>
+        </div>
+
+        {#if healthReport}
+          <div
+            class="font-proto text-smaller border p-2.5 {healthReport.is_healthy
+              ? 'border-income/40 bg-income/5'
+              : 'border-expense/40 bg-expense/5'}"
+          >
+            <div class="mb-1.5 flex items-center justify-between">
+              <span class="font-bold {healthReport.is_healthy ? 'text-income' : 'text-expense'}">
+                {healthReport.is_healthy
+                  ? i18n.t.vaultHealthHealthy
+                  : i18n.t.vaultHealthIssuesFound}
+              </span>
+              <Badge size="s" tone={healthReport.is_healthy ? 'ok' : 'err'}>
+                SQLite: {healthReport.sqlite_integrity}
+              </Badge>
+            </div>
+            {#if healthReport.issues.length > 0}
+              <ul class="text-expense text-smaller mt-2 list-inside list-disc space-y-1">
+                {#each healthReport.issues as issue, idx (idx)}
+                  <li class="truncate">{issue}</li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/if}
+      </div>
     </div>
   </ModalShell>
 {/if}
