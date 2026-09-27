@@ -4,6 +4,9 @@
     ACCOUNT_TYPES,
     accountTypeLabel,
     ACCOUNT_TYPE_COLOR,
+    THEME_SWATCH_TOKENS,
+    THEME_SWATCH_HEX,
+    DEFAULT_SWATCH_TOKEN,
     getAccountPath,
   } from '$lib/features/accounts/state/accounts.svelte';
   import type { Account, AccountType } from '$lib/core/ipc/bindings';
@@ -44,19 +47,29 @@
   );
 
   const colorOptions = Object.values(ACCOUNT_TYPE_COLOR);
-  const ACCOUNT_LIGHT_SWATCH = 'var(--color-text-white)';
-  const ACCOUNT_DARK_SWATCH = 'var(--color-bg-app)';
-  const presetColors = [...colorOptions, ACCOUNT_LIGHT_SWATCH, ACCOUNT_DARK_SWATCH, ''];
-  const DEFAULT_SWATCH_HEX = '#4ea398';
+  const ACCOUNT_LIGHT_SWATCH = THEME_SWATCH_TOKENS.LIGHT;
+  const ACCOUNT_DARK_SWATCH = THEME_SWATCH_TOKENS.DARK;
+  const ACCOUNT_TEAL_SWATCH = THEME_SWATCH_TOKENS.TEAL;
+  const presetColors = [
+    ...colorOptions,
+    ACCOUNT_TEAL_SWATCH,
+    ACCOUNT_LIGHT_SWATCH,
+    ACCOUNT_DARK_SWATCH,
+    '',
+  ];
 
   function setColor(c: string) {
     form.color = c || null;
   }
 
   function normalizeSwatch(c: string): string {
-    const n = c.trim().toLowerCase();
-    if (n === '#ffffff' || n === '#fff') return ACCOUNT_LIGHT_SWATCH.toLowerCase();
-    if (n === '#000000' || n === '#000') return ACCOUNT_DARK_SWATCH.toLowerCase();
+    let n = c.trim().toLowerCase();
+    if (n.length === 4 && n.startsWith('#')) {
+      n = `#${n[1]}${n[1]}${n[2]}${n[2]}${n[3]}${n[3]}`;
+    }
+    for (const [token, hex] of Object.entries(THEME_SWATCH_HEX)) {
+      if (n === hex.toLowerCase()) return token.toLowerCase();
+    }
     return n;
   }
 
@@ -68,7 +81,8 @@
     const n = normalizeSwatch(c);
     if (n === ACCOUNT_LIGHT_SWATCH.toLowerCase()) return true;
     if (n === ACCOUNT_DARK_SWATCH.toLowerCase()) return false;
-    const hex = n.match(/^#([0-9a-f]{6})$/);
+    const hexStr = n.startsWith('#') ? n : (THEME_SWATCH_HEX[c] ?? THEME_SWATCH_HEX[n] ?? '');
+    const hex = hexStr.match(/^#([0-9a-f]{6})$/i);
     if (!hex) return false;
     const v = parseInt(hex[1], 16);
     const luminance =
@@ -237,18 +251,21 @@
               title={c}
               aria-label={i18n.t.accountColorAria.replace('{c}', c)}
             >
-              {#if isActiveSwatch(c)}<span
-                  class="font-proto text-smaller font-bold"
-                  style="color:{isLightSwatch(c)
-                    ? 'var(--color-bg-app)'
-                    : 'var(--color-text-white)'}">✓</span
-                >{/if}
+              {#if isActiveSwatch(c)}
+                <span
+                  class="font-proto text-smaller font-bold {isLightSwatch(c)
+                    ? 'text-bg-app'
+                    : 'text-text-white'}">✓</span
+                >
+              {/if}
             </button>
           {/each}
           <label class="ml-1 flex items-center gap-1">
             <input
               type="color"
-              value={form.color?.startsWith('#') ? form.color : DEFAULT_SWATCH_HEX}
+              value={form.color?.startsWith('#')
+                ? form.color
+                : (THEME_SWATCH_HEX[form.color ?? ''] ?? THEME_SWATCH_HEX[DEFAULT_SWATCH_TOKEN])}
               oninput={(e) => setColor((e.target as HTMLInputElement).value)}
               class="border-line size-6 cursor-pointer border bg-transparent p-0"
             />

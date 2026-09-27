@@ -10,7 +10,14 @@
     type JournalEntryView,
   } from '$lib/core/ipc/bindings';
   import { extractErrorMessage } from '$lib/core/ipc/errors';
-  import { toMinor, fromMinor, parseStringAmountToMinor, formatMinorToDisplay } from '$lib/core/format/currency';
+  import {
+    toMinor,
+    parseStringAmountToMinor,
+    formatMinorToDisplay,
+    formatMinorGrouping,
+    getCurrencyPrefix,
+    getCurrencyFactor,
+  } from '$lib/core/format/currency';
   import { hasMathExpression } from '$lib/core/format/mathExpression';
   import { fxState } from '$lib/core/state/fx.svelte';
   import { fetchLiveFxRate } from '$lib/features/settings/fxSync';
@@ -505,11 +512,18 @@
 
   function addQuickAmount(delta: number) {
     const currentMinor = parseStringAmountToMinor(standardAmount, currency);
-    const factor = currency === 'IDR' ? 1 : 100;
+    const factor = getCurrencyFactor(currency);
     const newMinor = Math.max(0, currentMinor + delta * factor);
-    standardAmount = String(fromMinor(currency, newMinor));
+    standardAmount = formatMinorGrouping(newMinor, currency);
     if (mode === 'journal' && postings.length > 0) {
       postings[0].amount = newMinor;
+    }
+  }
+
+  function handleAmountBlur() {
+    if (!standardAmount.trim()) return;
+    if (!hasMathExpression(standardAmount) && minorAmount > 0) {
+      standardAmount = formatMinorGrouping(minorAmount, currency);
     }
   }
 
@@ -554,7 +568,7 @@
     class="border-b-2 border-line bg-bg-card shrink-0 px-3 py-2 flex items-center justify-between select-none"
   >
     <div class="flex items-center gap-2.5">
-      <span class="badge-neutral font-proto text-smaller font-bold">WORKSTATION</span>
+      <span class="badge-neutral font-proto text-smaller font-bold">{i18n.t.workstation}</span>
       <span class="font-proto text-text-strong text-small font-bold uppercase tracking-wider">
         {entry
           ? `${i18n.t.editEntryTitle} ${num ? `· ${num}` : ''}`
@@ -664,8 +678,8 @@
         </div>
 
         <div>
-          <label for="inspector-ref" class="label-xs mb-1 block font-proto font-bold truncate">
-            {i18n.t.voucherNo} / REF
+          <label for="inspector-ref" class="label-xs mb-1 block font-proto font-bold truncate" title={i18n.t.voucherNo}>
+            {i18n.t.voucherNo}
           </label>
           <input
             id="inspector-ref"
@@ -801,7 +815,7 @@
                     ? i18n.t.accTypeIncome
                     : i18n.t.transferSource}
               </span>
-              <span class="badge-neutral font-proto text-smaller">KREDIT</span>
+              <span class="badge-neutral font-proto text-smaller">{i18n.t.credit}</span>
             </div>
             <AccountSelectDropdown
               bind:value={standardFrom}
@@ -842,7 +856,7 @@
                     ? i18n.t.accTypeAsset
                     : i18n.t.transferTarget}
               </span>
-              <span class="badge-neutral font-proto text-smaller">DEBIT</span>
+              <span class="badge-neutral font-proto text-smaller">{i18n.t.debit}</span>
             </div>
             <AccountSelectDropdown
               bind:value={standardTo}
@@ -902,16 +916,16 @@
           <span class="label-xs font-proto text-smaller font-bold uppercase tracking-wider">
             {i18n.t.amount} ({currency}) *
           </span>
-          <span class="text-text-muted font-proto text-smaller">NOMINAL TRANSAKSI</span>
         </div>
 
         <div class="relative flex items-center">
           <span class="absolute left-3 font-proto text-base font-bold text-teal select-none">
-            {currency === 'IDR' ? 'Rp' : '$'}
+            {getCurrencyPrefix(currency)}
           </span>
           <input
             type="text"
             bind:value={standardAmount}
+            onblur={handleAmountBlur}
             placeholder={i18n.t.transferAmountExample}
             inputmode="decimal"
             autocomplete="off"
@@ -919,11 +933,14 @@
           />
         </div>
 
-        {#if hasMathExpression(standardAmount) && minorAmount > 0}
+        {#if standardAmount && minorAmount > 0}
           <div class="flex items-center justify-between font-proto text-smaller text-teal bg-teal/5 border border-teal/30 px-2 py-1">
-            <span class="text-text-dim text-smaller font-bold">{i18n.t.calcResult}:</span>
+            <span class="text-text-dim text-smaller font-bold">
+              {hasMathExpression(standardAmount) ? i18n.t.calcResult : i18n.t.formattedAmount}:
+            </span>
             <span class="font-bold tabular-nums">
-              {formatMinorToDisplay(minorAmount, currency)}
+              {formatMinorGrouping(minorAmount, currency)} {currency}
+              <span class="text-text-muted font-normal">({formatMinorToDisplay(minorAmount, currency)})</span>
             </span>
           </div>
         {/if}
@@ -937,7 +954,11 @@
                 onclick={() => addQuickAmount(chip)}
                 class="border-line bg-bg-card hover:bg-bg-btn hover:text-teal font-proto text-smaller h-6 px-1.5 border transition-colors"
               >
-                +{chip >= 1000000 ? `${chip / 1000000}jt` : `${chip / 1000}k`}
+                +{chip >= 1000000
+                  ? i18n.locale === 'id'
+                    ? `${chip / 1000000}jt`
+                    : `${chip / 1000000}M`
+                  : `${chip / 1000}k`}
               </button>
             {/each}
           {:else}
@@ -947,7 +968,7 @@
                 onclick={() => addQuickAmount(chip)}
                 class="border-line bg-bg-card hover:bg-bg-btn hover:text-teal font-proto text-smaller h-6 px-1.5 border transition-colors"
               >
-                +${chip}
+                +{getCurrencyPrefix(currency)}{chip}
               </button>
             {/each}
           {/if}

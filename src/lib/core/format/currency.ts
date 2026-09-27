@@ -79,6 +79,54 @@ export function formatUSD(minorUnits: number | bigint): string {
   return formatMinorToDisplay(minorUnits, 'USD');
 }
 
+export function getCurrencyPrefix(currency: SupportedCurrency = 'IDR'): string {
+  const upper = (currency || 'IDR').toUpperCase();
+  switch (upper) {
+    case 'IDR':
+      return 'Rp';
+    case 'USD':
+      return '$';
+    case 'EUR':
+      return '€';
+    case 'GBP':
+      return '£';
+    case 'JPY':
+    case 'CNY':
+      return '¥';
+    case 'SGD':
+      return 'S$';
+    case 'AUD':
+      return 'A$';
+    default:
+      return upper;
+  }
+}
+
+export function getCurrencyFactor(currency: SupportedCurrency = 'IDR'): number {
+  const c = (currency || 'IDR').trim().toUpperCase();
+  switch (c) {
+    case 'IDR':
+    case 'JPY':
+    case 'KRW':
+    case 'VND':
+    case 'CLP':
+    case 'HUF':
+    case 'PYG':
+    case 'RWF':
+    case 'UGX':
+    case 'BIF':
+    case 'DJF':
+    case 'GNF':
+    case 'KMF':
+    case 'XAF':
+    case 'XOF':
+    case 'XPF':
+      return 1;
+    default:
+      return 100;
+  }
+}
+
 export function formatMinorGrouping(
   minorUnits: number,
   currency: SupportedCurrency = 'IDR',
@@ -87,23 +135,21 @@ export function formatMinorGrouping(
   const isDot = getPref('finnca_num_format', 'comma') === 'dot';
   const targetLocale = locale ?? (isDot ? 'id-ID' : 'en-US');
   const major = fromMinor(currency, minorUnits);
+  const factor = getCurrencyFactor(currency);
   return major.toLocaleString(targetLocale, {
-    maximumFractionDigits: currency.toUpperCase() === 'USD' ? 2 : 0,
+    minimumFractionDigits: factor === 1 ? 0 : 2,
+    maximumFractionDigits: factor === 1 ? 0 : 2,
   });
 }
 
 export function fromMinor(currency: SupportedCurrency, minorUnits: number): number {
-  if (currency.toUpperCase() === 'USD') {
-    return minorUnits / 100;
-  }
-  return minorUnits;
+  const factor = getCurrencyFactor(currency);
+  return factor === 1 ? minorUnits : minorUnits / factor;
 }
 
 export function toMinor(currency: SupportedCurrency, majorUnits: number): number {
-  if (currency.toUpperCase() === 'USD') {
-    return Math.round(majorUnits * 100);
-  }
-  return Math.round(majorUnits);
+  const factor = getCurrencyFactor(currency);
+  return Math.round(majorUnits * factor);
 }
 
 export function parseStringAmountToMinor(str: string, currency: SupportedCurrency = 'IDR'): number {
@@ -120,33 +166,45 @@ export function parseStringAmountToMinor(str: string, currency: SupportedCurrenc
   const isNegative = clean.startsWith('-');
   clean = clean.replace(/^-/, '');
 
-  const currUpper = currency.toUpperCase();
-  if (currUpper === 'IDR') {
+  const factor = getCurrencyFactor(currency);
+  if (factor === 1) {
     const digitsOnly = clean.replace(/[^0-9]/g, '');
     if (!digitsOnly) return 0;
     const val = parseInt(digitsOnly, 10);
     return isNegative ? -val : val;
   }
 
-  if (currUpper === 'USD') {
-    if (clean.includes(',') && clean.includes('.')) {
+  // 2-decimal currencies (USD, EUR, GBP, etc.)
+  const lastComma = clean.lastIndexOf(',');
+  const lastDot = clean.lastIndexOf('.');
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) {
+      // European / Indonesian: 1.500,50 -> remove dots, replace comma with dot
+      clean = clean.replace(/\./g, '').replace(',', '.');
+    } else {
+      // US / UK: 1,500.50 -> remove commas
       clean = clean.replace(/,/g, '');
-    } else if (clean.includes(',') && !clean.includes('.')) {
+    }
+  } else if (clean.includes(',') && !clean.includes('.')) {
+    if (/^\d{1,3}(,\d{3})+$/.test(clean)) {
+      clean = clean.replace(/,/g, '');
+    } else {
       clean = clean.replace(',', '.');
     }
-    const cleanNum = clean.replace(/[^0-9.]/g, '');
-    if (!cleanNum) return 0;
-    const parts = cleanNum.split('.');
-    const majorStr = parts[0] || '0';
-    const minorStr = (parts[1] || '').padEnd(2, '0').slice(0, 2);
-    const major = parseInt(majorStr, 10);
-    const minor = parseInt(minorStr, 10);
-    const total = major * 100 + minor;
-    return isNegative ? -total : total;
+  } else if (clean.includes('.') && !clean.includes(',')) {
+    // Multiple dots like "1.000.000" are thousand separators
+    if (/^\d{1,3}(\.\d{3}){2,}$/.test(clean)) {
+      clean = clean.replace(/\./g, '');
+    }
   }
 
-  const digitsOnly = clean.replace(/[^0-9]/g, '');
-  if (!digitsOnly) return 0;
-  const val = parseInt(digitsOnly, 10);
-  return isNegative ? -val : val;
+  const cleanNum = clean.replace(/[^0-9.]/g, '');
+  if (!cleanNum) return 0;
+  const parts = cleanNum.split('.');
+  const majorStr = parts[0] || '0';
+  const minorStr = (parts[1] || '').padEnd(2, '0').slice(0, 2);
+  const major = parseInt(majorStr, 10);
+  const minor = parseInt(minorStr, 10);
+  const total = major * 100 + minor;
+  return isNegative ? -total : total;
 }

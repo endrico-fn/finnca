@@ -47,7 +47,7 @@
 {#if open}
   {#if isDocked}
     <div
-      class="fixed inset-y-0 right-0 z-50 flex flex-col border-l-2 border-line bg-bg-app rounded-none w-[560px] max-w-[96vw] shadow-2xl overflow-hidden transition-all duration-150 animate-in slide-in-from-right"
+      class="fixed inset-y-0 right-0 z-50 flex flex-col border-l-2 border-line bg-bg-app rounded-none w-full sm:w-(--layout-inspector-docked) max-w-full overflow-hidden transition-all duration-150 animate-in slide-in-from-right"
       role="dialog"
       tabindex="-1"
       aria-modal="false"
@@ -59,7 +59,7 @@
     </div>
   {:else}
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-[2px] transition-opacity"
+      class="bg-overlay fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-subtle transition-opacity"
       role="presentation"
       onclick={(e) => {
         if (e.target === e.currentTarget && onClose) {
@@ -68,7 +68,7 @@
       }}
     >
       <div
-        class="flex flex-col border-2 border-line bg-bg-app rounded-none w-[96vw] sm:w-[680px] max-w-[740px] h-[88vh] max-h-[calc(100dvh-2.5rem)] shadow-2xl overflow-hidden"
+        class="flex flex-col border-2 border-line bg-bg-app rounded-none w-full sm:w-(--layout-inspector-float) max-w-(--layout-inspector-max) h-(--layout-inspector-height) max-h-[calc(100dvh-2.5rem)] overflow-hidden"
         role="dialog"
         tabindex="-1"
         aria-modal="true"

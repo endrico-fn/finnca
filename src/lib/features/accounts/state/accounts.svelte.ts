@@ -21,6 +21,9 @@ export {
   accountTypeLabel,
   getAccountPath,
   getAccountBreadcrumb,
+  THEME_SWATCH_TOKENS,
+  THEME_SWATCH_HEX,
+  DEFAULT_SWATCH_TOKEN,
 } from '$lib/core/format/account';
 
 class AccountsStore {

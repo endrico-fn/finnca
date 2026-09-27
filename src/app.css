@@ -99,6 +99,12 @@
   --shadow-xl: none;
   --shadow-2xl: none;
   --shadow-inner: none;
+
+  --width-inspector-docked: 35rem;
+  --width-inspector-float: 42.5rem;
+  --max-width-inspector: 46.25rem;
+  --height-inspector-float: 88vh;
+  --blur-subtle: 2px;
 }
 
 :root {
@@ -106,6 +112,10 @@
   --layout-topbar: 41px;
   --layout-gap: 0.5rem;
   --layout-page-pad: 0.75rem;
+  --layout-inspector-docked: 560px;
+  --layout-inspector-float: 680px;
+  --layout-inspector-max: 740px;
+  --layout-inspector-height: 88vh;
   --duration-fast: 120ms;
   --duration-normal: 160ms;
   --duration-slow: 240ms;

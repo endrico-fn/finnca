@@ -91,5 +91,10 @@ Semua radius dikunci ke `0px` pada level CSS global:
 
 - **Sidebar Width:** Tetap di `225px` (`--layout-sidebar`).
 - **Topbar Height:** Tetap di `41px` (`--layout-topbar`).
+- **Inspector Docked Width:** Tetap di `560px` (`--layout-inspector-docked`).
+- **Inspector Float Width:** Tetap di `680px` (`--layout-inspector-float`).
+- **Inspector Max Width:** Tetap di `740px` (`--layout-inspector-max`).
+- **Inspector Float Height:** Tetap di `88vh` (`--layout-inspector-height`).
 - **Grid Gap:** Menggunakan token `--layout-gap: 0.5rem` (8px).
 - **Page Padding:** Menggunakan token `--layout-page-pad: 0.75rem` (12px).
+- **Modal Overlay Blur:** Menggunakan token `--blur-subtle: 2px` (`backdrop-blur-subtle`).

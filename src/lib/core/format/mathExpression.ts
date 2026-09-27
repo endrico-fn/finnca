@@ -12,8 +12,16 @@ export function evaluateFinancialExpression(
   s = s.replace(/(\d+),(\d+)\s*(k|rb|m|jt)\b/g, '$1.$2$3');
 
   if (currency.toUpperCase() === 'IDR') {
-    s = s.replace(/(\d)\.(\d{3})(?!\d|\.[0-9]|k|rb|m|jt)/g, '$1$2');
-    s = s.replace(/(\d),(\d{3})(?!\d|,[0-9]|k|rb|m|jt)/g, '$1$2');
+    while (/(\d)[.,](\d{3})(?=[.,+\-*/()\s]|$)(?![0-9]|[a-z])/i.test(s)) {
+      s = s.replace(/(\d)[.,](\d{3})(?=[.,+\-*/()\s]|$)(?![0-9]|[a-z])/gi, '$1$2');
+    }
+  } else {
+    while (/(\d),(\d{3})(?=[,.\D]|$)(?![0-9]|[a-z])/i.test(s)) {
+      s = s.replace(/(\d),(\d{3})(?=[,.\D]|$)(?![0-9]|[a-z])/gi, '$1$2');
+    }
+    while (/(\d)\.(\d{3})(?=\.\d{3})/i.test(s)) {
+      s = s.replace(/(\d)\.(\d{3})(?=\.\d{3})/gi, '$1$2');
+    }
   }
 
   const tokenRegex = /(\d+(?:\.\d+)?(?:k|rb|m|jt)?|[+\-*/()])/g;

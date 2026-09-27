@@ -47,10 +47,39 @@ describe('hasMathExpression', () => {
 
 describe('parseStringAmountToMinor integration', () => {
   it('parses math expressions to integer minor units', async () => {
-    const { parseStringAmountToMinor } = await import('./currency');
+    const {
+      parseStringAmountToMinor,
+      getCurrencyPrefix,
+      getCurrencyFactor,
+      formatMinorGrouping,
+    } = await import('./currency');
     expect(parseStringAmountToMinor('50k + 12k', 'IDR')).toBe(62000);
     expect(parseStringAmountToMinor('1.5m', 'IDR')).toBe(1500000);
     expect(parseStringAmountToMinor('10.50 + 2.50', 'USD')).toBe(1300);
     expect(parseStringAmountToMinor('100000', 'IDR')).toBe(100000);
+    expect(parseStringAmountToMinor('500,000', 'IDR')).toBe(500000);
+    expect(parseStringAmountToMinor('1.000.000', 'IDR')).toBe(1000000);
+    expect(parseStringAmountToMinor('1.000.000 + 500.000', 'IDR')).toBe(1500000);
+    expect(parseStringAmountToMinor('1,000,000 + 500,000', 'IDR')).toBe(1500000);
+    expect(parseStringAmountToMinor('500,000', 'USD')).toBe(50000000);
+    expect(parseStringAmountToMinor('1,000,000', 'USD')).toBe(100000000);
+    expect(parseStringAmountToMinor('1.000.000', 'USD')).toBe(100000000);
+    expect(parseStringAmountToMinor('1,500.50', 'USD')).toBe(150050);
+    expect(parseStringAmountToMinor('1.500,50', 'USD')).toBe(150050);
+    expect(parseStringAmountToMinor('1,000 + 500', 'USD')).toBe(150000);
+    expect(parseStringAmountToMinor('12.50', 'USD')).toBe(1250);
+
+    expect(getCurrencyPrefix('IDR')).toBe('Rp');
+    expect(getCurrencyPrefix('USD')).toBe('$');
+    expect(getCurrencyPrefix('EUR')).toBe('€');
+    expect(getCurrencyPrefix('GBP')).toBe('£');
+
+    expect(getCurrencyFactor('IDR')).toBe(1);
+    expect(getCurrencyFactor('USD')).toBe(100);
+    expect(getCurrencyFactor('EUR')).toBe(100);
+
+    expect(formatMinorGrouping(500000, 'IDR', 'en-US')).toBe('500,000');
+    expect(formatMinorGrouping(150050, 'USD', 'en-US')).toBe('1,500.50');
+    expect(formatMinorGrouping(10000, 'USD', 'en-US')).toBe('100.00');
   });
 });

@@ -11,6 +11,30 @@ export const ACCOUNT_TYPE_COLOR: Record<AccountType, string> = {
   EXPENSE: 'var(--color-expense)',
 };
 
+export const THEME_SWATCH_TOKENS = {
+  ASSET: 'var(--color-asset)',
+  LIABILITY: 'var(--color-liability)',
+  EQUITY: 'var(--color-equity)',
+  INCOME: 'var(--color-income)',
+  EXPENSE: 'var(--color-expense)',
+  TEAL: 'var(--color-teal)',
+  LIGHT: 'var(--color-text-white)',
+  DARK: 'var(--color-bg-app)',
+} as const;
+
+export const THEME_SWATCH_HEX: Record<string, string> = {
+  [THEME_SWATCH_TOKENS.TEAL]: '#2dd4bf',
+  [THEME_SWATCH_TOKENS.LIGHT]: '#ffffff',
+  [THEME_SWATCH_TOKENS.DARK]: '#0c0d0e',
+  [THEME_SWATCH_TOKENS.ASSET]: '#fbbf24',
+  [THEME_SWATCH_TOKENS.LIABILITY]: '#38bdf8',
+  [THEME_SWATCH_TOKENS.EQUITY]: '#c084fc',
+  [THEME_SWATCH_TOKENS.INCOME]: '#34d399',
+  [THEME_SWATCH_TOKENS.EXPENSE]: '#f43f5e',
+};
+
+export const DEFAULT_SWATCH_TOKEN = THEME_SWATCH_TOKENS.TEAL;
+
 export const ACCOUNT_TYPE_BG: Record<AccountType, string> = {
   ASSET: 'bg-asset',
   LIABILITY: 'bg-liability',
