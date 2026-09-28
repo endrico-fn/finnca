@@ -174,7 +174,7 @@
           onSelect={(id) => (chartMode = id as 'line' | 'bars')}
         />
         <span
-          class="border-line bg-bg-app text-text-muted font-proto text-smaller inline-flex items-center justify-center border px-1.5 py-0.5 leading-none tracking-wider uppercase transition-opacity {hoveredCoord
+          class="border-line bg-bg-app text-text-muted font-proto text-smaller inline-flex items-center justify-center border px-2 py-0.5 leading-none tracking-wider uppercase transition-opacity {hoveredCoord
             ? 'opacity-100'
             : 'pointer-events-none opacity-0'}"
         >
@@ -200,7 +200,7 @@
       >
         {formatIDR(currentValue)}
       </div>
-      <div class="text-small mt-1.5 flex items-center gap-2">
+      <div class="text-small mt-2 flex items-center gap-2">
         <span
           class="font-proto font-bold tabular-nums {isHealthyChange
             ? 'text-income'
@@ -246,13 +246,13 @@
       />
     {/if}
 
-    <div class="border-line/60 mt-1 flex shrink-0 items-center justify-between border-t pt-2.5">
+    <div class="border-line/60 mt-1 flex shrink-0 items-center justify-between border-t pt-3">
       <div class="flex items-center gap-1">
         {#each ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'] as p (p)}
           <button
             type="button"
             onclick={() => (trendsPeriod = p as typeof trendsPeriod)}
-            class="font-proto text-smaller h-6 cursor-pointer border px-2.5 transition-colors {trendsPeriod ===
+            class="font-proto text-smaller h-6 cursor-pointer border px-2 transition-colors {trendsPeriod ===
             p
               ? 'border-teal bg-teal/15 text-teal font-bold'
               : 'border-line bg-bg-app hover:border-text-dim text-text-muted hover:text-text-base'}"

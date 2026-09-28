@@ -26,8 +26,8 @@
   );
 </script>
 
-<div class="flex min-h-0 w-full flex-1 flex-col gap-3">
-  <div class="grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-4">
+<div class="flex min-h-0 w-full flex-1 flex-col gap-4">
+  <div class="grid shrink-0 grid-cols-2 gap-4 sm:grid-cols-4">
     <KpiCard label={i18n.t.revenues} labelClass="text-income">
       <AnimatedCounter
         value={totalIncome}
@@ -82,7 +82,7 @@
     </KpiCard>
   </div>
 
-  <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
+  <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
     <Card divided title={i18n.t.revenues} class="flex min-h-0 flex-1 flex-col">
       {#snippet header()}
         <span class="font-proto text-text-white text-small font-bold tabular-nums">
@@ -103,11 +103,13 @@
               <tr>
                 <th class="w-24 pl-3">{i18n.t.colCode}</th>
                 <th class="px-3">{i18n.t.name}</th>
+                <th class="numeric w-24 px-2">{i18n.t.colPctRevenue}</th>
                 <th class="numeric w-36 pr-3">{i18n.t.amount}</th>
               </tr>
             </thead>
             <tbody>
               {#each incomeRows as row (row.account_id)}
+                {@const pct = totalIncome > 0 ? (row.amount / totalIncome) * 100 : 0}
                 <tr>
                   <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
                     {row.code}
@@ -119,7 +121,12 @@
                     </div>
                   </td>
                   <td
-                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums"
+                    class="numeric font-proto text-text-dim text-smaller w-24 px-2 whitespace-nowrap tabular-nums"
+                  >
+                    {totalIncome > 0 ? `${pct.toFixed(1)}%` : '—'}
+                  </td>
+                  <td
+                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums font-bold"
                   >
                     {fmt(row.amount, row.currency)}
                   </td>
@@ -151,11 +158,13 @@
               <tr>
                 <th class="w-24 pl-3">{i18n.t.colCode}</th>
                 <th class="px-3">{i18n.t.name}</th>
+                <th class="numeric w-24 px-2">{i18n.t.colPctRevenue}</th>
                 <th class="numeric w-36 pr-3">{i18n.t.amount}</th>
               </tr>
             </thead>
             <tbody>
               {#each expenseRows as row (row.account_id)}
+                {@const pct = totalIncome > 0 ? (row.amount / totalIncome) * 100 : 0}
                 <tr>
                   <td class="font-proto text-text-muted text-smaller w-24 pl-3 whitespace-nowrap">
                     {row.code}
@@ -167,7 +176,12 @@
                     </div>
                   </td>
                   <td
-                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums"
+                    class="numeric font-proto text-text-dim text-smaller w-24 px-2 whitespace-nowrap tabular-nums"
+                  >
+                    {totalIncome > 0 ? `${pct.toFixed(1)}%` : '—'}
+                  </td>
+                  <td
+                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums font-bold"
                   >
                     {fmt(row.amount, row.currency)}
                   </td>
@@ -180,8 +194,8 @@
     </Card>
   </div>
 
-  <Card class="border-line bg-bg-card/60 shrink-0 p-2.5">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+  <Card class="border-line bg-bg-card/60 shrink-0 p-4">
+    <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="font-proto text-smaller text-text-dim flex items-center gap-2">
         <span class="text-text-base font-bold">{i18n.t.netIncome}:</span>
         <span>{fmt(totalIncome)} - {fmt(totalExpenses)} = </span>

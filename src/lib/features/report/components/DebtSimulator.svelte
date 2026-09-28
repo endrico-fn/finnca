@@ -61,7 +61,7 @@
   {#if debtStats.length === 0}
     <EmptyState title={i18n.t.noActiveLiabilityAccounts} hint={i18n.t.debtSimHint} />
   {:else}
-    <div class="px-3 pt-2 pb-2.5">
+    <div class="px-3 pt-2 pb-3">
       <div class="font-proto text-text-dim bg-bg-app border-line text-small mb-4 border p-3">
         {#if strategy === 'AVALANCHE'}
           <strong>{i18n.t.avalanche}:</strong> {i18n.t.debtSimAvalancheDesc}
@@ -73,7 +73,7 @@
       <div class="space-y-3">
         {#each selectedStrategy as debt, i (debt.id || debt)}
           <div
-            class="border-line bg-bg-app relative flex flex-col gap-2 overflow-hidden border px-3 pt-2 pb-2.5"
+            class="border-line bg-bg-app relative flex flex-col gap-2 overflow-hidden border px-3 pt-2 pb-3"
           >
             {#if i === 0}
               <div class="bg-income absolute top-0 right-0 bottom-0 w-1"></div>

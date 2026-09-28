@@ -112,7 +112,7 @@
         <span class="text-income text-medium">{debtReportStats.settledCount}</span>
       </span>
       <span
-        class="font-proto text-text-dim text-smaller flex items-center gap-1.5 leading-tight uppercase"
+        class="font-proto text-text-dim text-smaller flex items-center gap-2 leading-tight uppercase"
       >
         <span>{i18n.t.activeStatus}</span>
         <span>/</span>
@@ -153,7 +153,7 @@
         {#each debtReportStats.plans as item (item.plan.id)}
           {@const p = item.plan}
           <div
-            class="bg-bg-app border-line space-y-2 border px-3 pt-2 pb-2.5 {item.is_settled
+            class="bg-bg-app border-line space-y-2 border px-3 pt-2 pb-3 {item.is_settled
               ? 'opacity-65'
               : ''}"
           >

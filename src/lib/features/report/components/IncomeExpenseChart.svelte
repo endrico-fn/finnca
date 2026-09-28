@@ -33,8 +33,8 @@
   );
 </script>
 
-<div class="flex min-h-0 flex-1 flex-col gap-3">
-  <div class="grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-4">
+<div class="flex min-h-0 flex-1 flex-col gap-4">
+  <div class="grid shrink-0 grid-cols-2 gap-4 sm:grid-cols-4">
     <KpiCard label={i18n.t.revenues} labelClass="text-income">
       <AnimatedCounter
         value={totalIncome}

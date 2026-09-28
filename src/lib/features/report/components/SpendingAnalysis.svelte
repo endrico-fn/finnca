@@ -85,8 +85,8 @@
   }
 </script>
 
-<div class="flex min-h-0 w-full flex-1 flex-col gap-3">
-  <div class="grid shrink-0 grid-cols-1 gap-2.5 sm:grid-cols-3">
+<div class="flex min-h-0 w-full flex-1 flex-col gap-4">
+  <div class="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-3">
     <KpiCard label={i18n.t.expense} labelClass="text-expense">
       <AnimatedCounter
         value={totalExpense}
@@ -130,10 +130,10 @@
       <EmptyState title={i18n.t.noSpendingData} hint={i18n.t.adjustFilterHint} icon="chart" />
     </div>
   {:else}
-    <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-12">
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
       <Card
         title={i18n.t.categoryDistribution}
-        class="flex min-h-0 flex-col justify-between p-3 lg:col-span-4"
+        class="flex min-h-0 flex-col justify-between p-4 lg:col-span-4"
       >
         <div class="flex flex-1 flex-col items-center justify-center py-4">
           <DonutChart
@@ -149,7 +149,7 @@
           />
         </div>
 
-        <div class="border-line/40 font-proto text-smaller flex flex-col gap-2 border-t pt-3">
+        <div class="border-line/40 font-proto text-smaller flex flex-col gap-2 border-t pt-4">
           {#if focusedCategory}
             <div class="flex items-center justify-between">
               <span class="text-text-dim uppercase">{i18n.t.selectedCategory}</span>
@@ -188,19 +188,47 @@
       </Card>
 
       <div class="sharp-card flex min-h-0 flex-1 flex-col overflow-hidden lg:col-span-8">
+        <!-- Proportional distribution stacked bar across all categories -->
+        <div class="border-line/60 bg-bg-card/40 border-b px-4 py-3">
+          <div class="flex items-center justify-between pb-1.5">
+            <span class="font-proto text-text-dim text-smaller font-bold tracking-wider uppercase">
+              {i18n.t.spendingDistribution}
+            </span>
+            <span class="font-proto text-text-muted text-smaller tabular-nums">
+              100%
+            </span>
+          </div>
+          <div class="border-line/60 bg-bg-app flex h-3 w-full overflow-hidden border">
+            {#each expenseRows as row, idx (row.account_id)}
+              {@const share = totalExpense > 0 ? (row.amount / totalExpense) * 100 : 0}
+              {@const isSel = selectedCategoryId === row.account_id}
+              <button
+                type="button"
+                onclick={() => toggleCategory(row.account_id)}
+                class="h-full transition-opacity cursor-pointer {isSel
+                  ? 'ring-1 ring-white ring-inset'
+                  : 'hover:opacity-80'}"
+                style="width: {share}%; background-color: {getCategoryColor(idx)};"
+                title="{row.name}: {share.toFixed(1)}% ({formatMinorToDisplay(row.amount, row.currency || 'IDR')})"
+                aria-label="{row.name}: {share.toFixed(1)}%"
+              ></button>
+            {/each}
+          </div>
+        </div>
+
         <div class="flex-1 overflow-y-auto">
           <table class="sharp-table">
             <thead class="sticky top-0 z-10">
               <tr>
                 <th class="w-20 pl-3">{i18n.t.code}</th>
                 <th class="px-3">{i18n.t.account}</th>
-                <th class="w-44 px-3 text-right">{i18n.t.allocation}</th>
+                <th class="w-48 px-3 text-right">{i18n.t.colPctExpense}</th>
                 <th class="w-36 pr-3 text-right">{i18n.t.amount}</th>
               </tr>
             </thead>
             <tbody>
               {#each expenseRows as row, idx (row.account_id)}
-                {@const pct = totalExpense > 0 ? Math.round((row.amount / totalExpense) * 100) : 0}
+                {@const pct = totalExpense > 0 ? (row.amount / totalExpense) * 100 : 0}
                 {@const isSelected = selectedCategoryId === row.account_id}
                 {@const rowColor = getCategoryColor(idx)}
                 <tr
@@ -225,13 +253,13 @@
                       {/if}
                     </div>
                   </td>
-                  <td class="w-44 px-3 text-right">
+                  <td class="w-48 px-3 text-right">
                     <div class="flex items-center justify-end gap-2">
-                      <ProgressBar value={pct} tone="teal" size="xs" class="w-20 shrink-0" />
+                      <ProgressBar value={pct} tone="teal" size="xs" class="w-24 shrink-0" />
                       <span
-                        class="text-text-muted font-proto text-smaller w-10 text-right tabular-nums"
+                        class="text-text-muted font-proto text-smaller w-12 text-right tabular-nums"
                       >
-                        {pct}%
+                        {pct.toFixed(1)}%
                       </span>
                     </div>
                   </td>
@@ -255,7 +283,7 @@
                 <td
                   class="text-text-muted font-proto text-smaller px-3 text-right font-bold tabular-nums"
                 >
-                  100%
+                  100.0%
                 </td>
                 <td
                   class="text-expense font-proto text-smaller pr-3 text-right font-bold tabular-nums"

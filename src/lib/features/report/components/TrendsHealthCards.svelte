@@ -27,11 +27,11 @@
       </span>
     {/snippet}
 
-    <div class="space-y-2.5">
+    <div class="space-y-3">
       {#each topAssetAccounts as item (item.account.id)}
         <div class="space-y-1">
           <div class="text-small flex items-center justify-between">
-            <div class="flex items-center gap-1.5 truncate">
+            <div class="flex items-center gap-2 truncate">
               <span class="text-text-dim font-proto text-smaller">{item.account.code}</span>
               <span class="text-text-strong truncate font-medium">{item.account.name}</span>
             </div>
@@ -56,11 +56,11 @@
     {/snippet}
 
     <div class="text-small space-y-3">
-      <div class="border-line bg-bg-app space-y-1 border p-2.5">
+      <div class="border-line bg-bg-app space-y-1 border p-3">
         <div class="flex items-center justify-between">
           <span class="text-text-muted text-smaller font-proto">{i18n.t.debtToAssetRatio}</span>
           <span
-            class="border-line text-smaller font-proto border px-1.5 py-0.5 font-bold uppercase
+            class="border-line text-smaller font-proto border px-2 py-0.5 font-bold uppercase
             {numRatio < 30
               ? 'text-income border-income/40'
               : numRatio < 60
@@ -76,7 +76,7 @@
         <div class="text-text-dim text-smaller font-proto">{i18n.t.debtRatioFormula}</div>
       </div>
 
-      <div class="border-line bg-bg-app space-y-1 border p-2.5">
+      <div class="border-line bg-bg-app space-y-1 border p-3">
         <div class="flex items-center justify-between">
           <span class="text-text-muted text-smaller font-proto">{i18n.t.cashRunwayMonths}</span>
           <span class="text-text-dim font-proto text-smaller uppercase">{i18n.t.reserves}</span>

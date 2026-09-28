@@ -185,3 +185,198 @@ export function calculateSankeyLayout(
 
   return { nodes, links, width, actualHeight, colWidth };
 }
+
+export interface WaterfallStepInput {
+  id: string;
+  label: string;
+  amount: number;
+  isTotal?: boolean;
+  tone?: 'income' | 'expense' | 'neutral' | 'teal' | 'warn';
+  color?: string;
+  formattedAmount?: string;
+  percentage?: string;
+}
+
+export interface WaterfallBarComputed {
+  id: string;
+  label: string;
+  amount: number;
+  isTotal: boolean;
+  color: string;
+  tone: 'income' | 'expense' | 'neutral' | 'teal' | 'warn';
+  startVal: number;
+  endVal: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  formattedAmount: string;
+  percentage: string;
+  connectorY: number;
+}
+
+export interface WaterfallConnector {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export interface WaterfallLayoutResult {
+  bars: WaterfallBarComputed[];
+  connectors: WaterfallConnector[];
+  zeroY: number;
+  minVal: number;
+  maxVal: number;
+  width: number;
+  height: number;
+}
+
+export function calculateWaterfallLayout(
+  steps: WaterfallStepInput[],
+  width = 800,
+  height = 300,
+  padLeft = 24,
+  padRight = 24,
+  padTop = 40,
+  padBottom = 48
+): WaterfallLayoutResult {
+  if (steps.length === 0) {
+    return {
+      bars: [],
+      connectors: [],
+      zeroY: height / 2,
+      minVal: 0,
+      maxVal: 0,
+      width,
+      height,
+    };
+  }
+
+  let running = 0;
+  const intermediates: {
+    step: WaterfallStepInput;
+    startVal: number;
+    endVal: number;
+    tone: 'income' | 'expense' | 'neutral' | 'teal' | 'warn';
+  }[] = [];
+
+  for (const step of steps) {
+    let startVal: number;
+    let endVal: number;
+    let tone = step.tone;
+
+    if (step.isTotal) {
+      startVal = 0;
+      endVal = step.amount;
+      running = step.amount;
+      if (!tone) tone = 'teal';
+    } else {
+      startVal = running;
+      endVal = running + step.amount;
+      running = endVal;
+      if (!tone) {
+        tone = step.amount >= 0 ? 'income' : 'expense';
+      }
+    }
+
+    intermediates.push({ step, startVal, endVal, tone });
+  }
+
+  let minVal = 0;
+  let maxVal = 0;
+  for (const item of intermediates) {
+    minVal = Math.min(minVal, item.startVal, item.endVal);
+    maxVal = Math.max(maxVal, item.startVal, item.endVal);
+  }
+
+  if (minVal === maxVal) {
+    maxVal = minVal + 100;
+  } else {
+    const span = maxVal - minVal;
+    maxVal += span * 0.12;
+    if (minVal < 0) {
+      minVal -= span * 0.12;
+    }
+  }
+
+  const plotHeight = Math.max(1, height - padTop - padBottom);
+  const usableWidth = Math.max(1, width - padLeft - padRight);
+  const slotWidth = usableWidth / steps.length;
+  const maxBarWidth = Math.max(6, slotWidth - 4);
+  const targetBarWidth = slotWidth * 0.65;
+  const barWidth = Math.min(68, Math.max(8, Math.min(targetBarWidth, maxBarWidth)));
+
+  function yFor(val: number): number {
+    const ratio = (val - minVal) / (maxVal - minVal);
+    return height - padBottom - ratio * plotHeight;
+  }
+
+  const zeroY = yFor(0);
+
+  const bars: WaterfallBarComputed[] = [];
+  const connectors: WaterfallConnector[] = [];
+
+  for (let i = 0; i < intermediates.length; i++) {
+    const item = intermediates[i];
+    const slotCenterX = padLeft + (i + 0.5) * slotWidth;
+    const barX = slotCenterX - barWidth / 2;
+
+    const topVal = Math.max(item.startVal, item.endVal);
+    const bottomVal = Math.min(item.startVal, item.endVal);
+
+    const topY = yFor(topVal);
+    const bottomY = yFor(bottomVal);
+    const barHeight = Math.max(3, bottomY - topY);
+
+    const defaultColor =
+      item.tone === 'income'
+        ? 'var(--color-income)'
+        : item.tone === 'expense'
+          ? 'var(--color-expense)'
+          : item.tone === 'warn'
+            ? 'var(--color-warning)'
+            : item.tone === 'teal'
+              ? 'var(--color-teal)'
+              : 'var(--color-text-white)';
+
+    bars.push({
+      id: item.step.id,
+      label: item.step.label,
+      amount: item.step.amount,
+      isTotal: Boolean(item.step.isTotal),
+      color: item.step.color || defaultColor,
+      tone: item.tone,
+      startVal: item.startVal,
+      endVal: item.endVal,
+      x: barX,
+      y: topY,
+      width: barWidth,
+      height: barHeight,
+      formattedAmount: item.step.formattedAmount || String(item.step.amount),
+      percentage: item.step.percentage || '',
+      connectorY: yFor(item.endVal),
+    });
+
+    if (i < intermediates.length - 1) {
+      const nextSlotCenterX = padLeft + (i + 1.5) * slotWidth;
+      const nextBarX = nextSlotCenterX - barWidth / 2;
+      connectors.push({
+        x1: barX + barWidth,
+        y1: yFor(item.endVal),
+        x2: nextBarX,
+        y2: yFor(item.endVal),
+      });
+    }
+  }
+
+  return {
+    bars,
+    connectors,
+    zeroY,
+    minVal,
+    maxVal,
+    width,
+    height,
+  };
+}

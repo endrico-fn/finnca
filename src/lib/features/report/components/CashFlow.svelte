@@ -13,7 +13,13 @@
     Button,
     Icon,
   } from '$lib/components/ui';
-  import { SankeyDiagram, type SankeyNodeInput, type SankeyLinkInput } from '$lib/components/charts';
+  import {
+    SankeyDiagram,
+    WaterfallChart,
+    type SankeyNodeInput,
+    type SankeyLinkInput,
+    type WaterfallStepInput,
+  } from '$lib/components/charts';
   import { reportState } from '../state/report.svelte';
 
   const fmt = (n: number) => formatMinorToDisplay(n, 'IDR');
@@ -30,7 +36,7 @@
   let searchQuery = $state('');
   let directionFilter = $state<'all' | 'inflow' | 'outflow'>('all');
   let showTrend = $state(false);
-  let viewMode = $state<'table' | 'sankey'>('table');
+  let viewMode = $state<'table' | 'waterfall' | 'sankey'>('table');
 
   $effect(() => {
     reportState.loadCashFlow(from || undefined, to || undefined);
@@ -118,8 +124,114 @@
     return 'err';
   }
 
+  const waterfallSteps = $derived.by<WaterfallStepInput[]>(() => {
+    const opIn = operatingRows.filter((r) => r.amount > 0).reduce((s, r) => s + r.amount, 0);
+    const opOut = operatingRows.filter((r) => r.amount < 0).reduce((s, r) => s + r.amount, 0);
+
+    const hasStart = Math.abs(startingCash) > 0;
+    const base = hasStart ? Math.abs(startingCash) : opIn > 0 ? opIn : 0;
+
+    let startPct: string;
+    let inPct: string;
+    let outPct: string;
+    let invPct: string;
+    let finPct: string;
+    let endPct: string;
+
+    if (hasStart) {
+      startPct = startingCash > 0 ? '100%' : '-100%';
+      inPct = opIn > 0 ? `+${((opIn / base) * 100).toFixed(1)}%` : '0%';
+      outPct = opOut < 0 ? `-${((Math.abs(opOut) / base) * 100).toFixed(1)}%` : '0%';
+      invPct =
+        investingCash !== 0
+          ? `${investingCash > 0 ? '+' : ''}${((investingCash / base) * 100).toFixed(1)}%`
+          : '0%';
+      finPct =
+        financingCash !== 0
+          ? `${financingCash > 0 ? '+' : ''}${((financingCash / base) * 100).toFixed(1)}%`
+          : '0%';
+      const netDelta = ((endingCash - startingCash) / base) * 100;
+      endPct = `${netDelta >= 0 ? '+' : ''}${netDelta.toFixed(1)}%`;
+    } else if (base > 0) {
+      startPct = '0%';
+      inPct = '+100%';
+      outPct = opOut < 0 ? `-${((Math.abs(opOut) / base) * 100).toFixed(1)}%` : '0%';
+      invPct =
+        investingCash !== 0
+          ? `${investingCash > 0 ? '+' : ''}${((investingCash / base) * 100).toFixed(1)}%`
+          : '0%';
+      finPct =
+        financingCash !== 0
+          ? `${financingCash > 0 ? '+' : ''}${((financingCash / base) * 100).toFixed(1)}%`
+          : '0%';
+      const retained = ((endingCash / base) * 100).toFixed(1);
+      endPct = `${endingCash >= 0 ? '+' : ''}${retained}%`;
+    } else {
+      startPct = '—';
+      inPct = '—';
+      outPct = '—';
+      invPct = '—';
+      finPct = '—';
+      endPct = '—';
+    }
+
+    return [
+      {
+        id: 'starting',
+        label: i18n.t.waterfallStarting,
+        amount: startingCash,
+        isTotal: true,
+        tone: 'neutral',
+        formattedAmount: fmt(startingCash),
+        percentage: startPct,
+      },
+      {
+        id: 'operating_in',
+        label: i18n.t.waterfallInflow,
+        amount: opIn,
+        tone: 'income',
+        formattedAmount: `+${fmt(opIn)}`,
+        percentage: inPct,
+      },
+      {
+        id: 'operating_out',
+        label: i18n.t.waterfallOutflow,
+        amount: opOut,
+        tone: 'expense',
+        formattedAmount: `-${fmt(Math.abs(opOut))}`,
+        percentage: outPct,
+      },
+      {
+        id: 'investing',
+        label: i18n.t.waterfallInvesting,
+        amount: investingCash,
+        tone: investingCash >= 0 ? 'income' : 'warn',
+        formattedAmount: formatSigned(investingCash),
+        percentage: invPct,
+      },
+      {
+        id: 'financing',
+        label: i18n.t.waterfallFinancing,
+        amount: financingCash,
+        tone: financingCash >= 0 ? 'income' : 'warn',
+        formattedAmount: formatSigned(financingCash),
+        percentage: finPct,
+      },
+      {
+        id: 'ending',
+        label: i18n.t.waterfallEnding,
+        amount: endingCash,
+        isTotal: true,
+        tone: 'teal',
+        formattedAmount: fmt(endingCash),
+        percentage: endPct,
+      },
+    ];
+  });
+
   const sankeyData = $derived.by(() => {
-    if (allRows.length === 0) return { nodes: [] as SankeyNodeInput[], links: [] as SankeyLinkInput[] };
+    if (allRows.length === 0)
+      return { nodes: [] as SankeyNodeInput[], links: [] as SankeyLinkInput[] };
 
     const inflowsByCategory = new SvelteMap<string, number>();
     const outflowsByCategory = new SvelteMap<string, number>();
@@ -145,18 +257,36 @@
     const links: SankeyLinkInput[] = [];
 
     for (const [cat, val] of inflowsByCategory.entries()) {
-      nodes.push({ id: `in_${cat}`, label: cat, value: val, color: 'var(--color-income)', column: 0 });
+      nodes.push({
+        id: `in_${cat}`,
+        label: cat,
+        value: val,
+        color: 'var(--color-income)',
+        column: 0,
+      });
     }
 
     for (const [acc, flow] of cashByAccount.entries()) {
       const totalFlow = flow.in + flow.out;
       if (totalFlow > 0) {
-        nodes.push({ id: `acc_${acc}`, label: acc, value: totalFlow, color: 'var(--color-teal)', column: 1 });
+        nodes.push({
+          id: `acc_${acc}`,
+          label: acc,
+          value: totalFlow,
+          color: 'var(--color-teal)',
+          column: 1,
+        });
       }
     }
 
     for (const [cat, val] of outflowsByCategory.entries()) {
-      nodes.push({ id: `out_${cat}`, label: cat, value: val, color: 'var(--color-expense)', column: 2 });
+      nodes.push({
+        id: `out_${cat}`,
+        label: cat,
+        value: val,
+        color: 'var(--color-expense)',
+        column: 2,
+      });
     }
 
     const totalIn = Array.from(inflowsByCategory.values()).reduce((a, b) => a + b, 0);
@@ -198,8 +328,8 @@
   });
 </script>
 
-<div class="flex min-h-0 w-full flex-1 flex-col gap-3">
-  <div class="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+<div class="flex min-h-0 w-full flex-1 flex-col gap-4">
+  <div class="grid shrink-0 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
     <KpiCard label={i18n.t.startingCash} subValue={i18n.t.startingCashDesc}>
       <AnimatedCounter
         value={startingCash}
@@ -260,16 +390,16 @@
   </div>
 
   {#if monthlyPoints.length > 0 && showTrend}
-    <Card title={i18n.t.monthlyCashflowTrend} class="shrink-0 p-3">
+    <Card title={i18n.t.monthlyCashflowTrend} class="shrink-0 p-4">
       {#snippet actions()}
         <Button variant="ghost" size="sm" onclick={() => (showTrend = false)}>
           {i18n.t.hideTrend}
         </Button>
       {/snippet}
-      <div class="flex flex-wrap gap-2.5 pt-1">
+      <div class="flex flex-wrap gap-4 pt-1">
         {#each monthlyPoints as pt (pt.month)}
           <div
-            class="border-line bg-bg-btn flex max-w-sm min-w-65 flex-1 flex-col justify-between border p-2.5"
+            class="border-line bg-bg-btn flex max-w-sm min-w-64 flex-1 flex-col justify-between border p-3"
           >
             <div class="flex items-center justify-between gap-2">
               <span class="font-proto text-text-white text-small font-bold">{pt.month}</span>
@@ -284,7 +414,7 @@
               </span>
             </div>
 
-            <div class="bg-bg-card border-line/50 my-2 flex h-1.5 w-full items-center border">
+            <div class="bg-bg-card border-line/50 my-2 flex h-2 w-full items-center border">
               {#if pt.net >= 0}
                 <div
                   class="bg-income h-full transition-all duration-300"
@@ -334,19 +464,22 @@
     class="flex min-h-0 flex-1 flex-col"
   >
     {#snippet header()}
-      <div class="flex items-center gap-2">
-        <Tabs
-          variant="outline"
-          tabs={[
-            { id: 'all', label: `${i18n.t.allActivities} (${countAll})` },
-            { id: 'operating', label: `${i18n.t.operatingActivities} (${countOperating})` },
-            { id: 'investing', label: `${i18n.t.investingActivities} (${countInvesting})` },
-            { id: 'financing', label: `${i18n.t.financingActivities} (${countFinancing})` },
-          ]}
-          active={activeActivityTab}
-          onSelect={(id) =>
-            (activeActivityTab = id as 'all' | 'operating' | 'investing' | 'financing')}
-        />
+      <div class="flex flex-wrap items-center gap-2">
+        {#if viewMode === 'table'}
+          <Tabs
+            variant="outline"
+            tabs={[
+              { id: 'all', label: `${i18n.t.allActivities} (${countAll})` },
+              { id: 'operating', label: `${i18n.t.operatingActivities} (${countOperating})` },
+              { id: 'investing', label: `${i18n.t.investingActivities} (${countInvesting})` },
+              { id: 'financing', label: `${i18n.t.financingActivities} (${countFinancing})` },
+            ]}
+            active={activeActivityTab}
+            onSelect={(id) =>
+              (activeActivityTab = id as 'all' | 'operating' | 'investing' | 'financing')}
+          />
+        {/if}
+
         {#if monthlyPoints.length > 0}
           <Button
             variant={showTrend ? 'secondary' : 'outline'}
@@ -358,23 +491,88 @@
             {showTrend ? i18n.t.hideTrend : i18n.t.showTrend}
           </Button>
         {/if}
-        <Button
-          variant={viewMode === 'sankey' ? 'secondary' : 'outline'}
-          size="sm"
-          onclick={() => (viewMode = viewMode === 'sankey' ? 'table' : 'sankey')}
-          class="flex shrink-0 items-center gap-1.5"
-        >
-          <Icon name="chart" size={14} />
-          {viewMode === 'sankey' ? i18n.t.cashFlowTable : i18n.t.cashFlowDiagram}
-        </Button>
+
+        <!-- View mode switcher -->
+        <div class="border-line/60 bg-bg-app inline-flex items-center gap-1 border p-0.5">
+          <button
+            type="button"
+            onclick={() => (viewMode = 'table')}
+            class="font-proto text-smaller flex h-7 cursor-pointer items-center px-2.5 uppercase transition-colors {viewMode ===
+            'table'
+              ? 'border-line/80 bg-bg-card text-text-white font-bold border'
+              : 'text-text-muted hover:text-text-white hover:bg-bg-btn'}"
+          >
+            {i18n.t.cashFlowTable}
+          </button>
+          <button
+            type="button"
+            onclick={() => (viewMode = 'waterfall')}
+            class="font-proto text-smaller flex h-7 cursor-pointer items-center gap-1 px-2.5 uppercase transition-colors {viewMode ===
+            'waterfall'
+              ? 'border-teal bg-teal/15 text-teal font-bold border'
+              : 'text-text-muted hover:text-text-white hover:bg-bg-btn'}"
+          >
+            <Icon name="chart" size={12} />
+            {i18n.t.viewWaterfall}
+          </button>
+          <button
+            type="button"
+            onclick={() => (viewMode = 'sankey')}
+            class="font-proto text-smaller flex h-7 cursor-pointer items-center gap-1 px-2.5 uppercase transition-colors {viewMode ===
+            'sankey'
+              ? 'border-teal bg-teal/15 text-teal font-bold border'
+              : 'text-text-muted hover:text-text-white hover:bg-bg-btn'}"
+          >
+            <Icon name="chart" size={12} />
+            {i18n.t.cashFlowDiagram}
+          </button>
+        </div>
       </div>
     {/snippet}
 
-    {#if viewMode === 'sankey'}
+    {#if viewMode === 'waterfall'}
+      <div class="flex min-h-0 flex-1 flex-col justify-between overflow-auto p-4">
+        {#if allRows.length === 0}
+          <div class="flex h-72 items-center justify-center p-8">
+            <EmptyState
+              title={i18n.t.noCashFlowRecords}
+              hint={i18n.t.adjustFilterHint}
+              icon="chart"
+            />
+          </div>
+        {:else}
+          <div class="flex min-h-0 flex-1 flex-col justify-center py-4">
+            <WaterfallChart steps={waterfallSteps} height={300} class="w-full" />
+          </div>
+
+          <div
+            class="border-line/60 bg-bg-card/40 mt-4 flex flex-wrap items-center justify-between gap-4 border p-4 select-none"
+          >
+            <div class="font-proto text-smaller text-text-dim flex items-center gap-2">
+              <span class="text-text-base font-bold">{i18n.t.startingCash}:</span>
+              <span class="text-text-white font-bold">{fmt(startingCash)}</span>
+              <span>➔</span>
+              <span class="text-text-base font-bold">{i18n.t.endingCash}:</span>
+              <span class="text-text-white font-bold">{fmt(endingCash)}</span>
+            </div>
+            <div class="font-proto text-smaller text-text-dim flex items-center gap-3">
+              <span>{i18n.t.netChange}:</span>
+              <strong class="font-bold {netCashChange >= 0 ? 'text-income' : 'text-expense'}">
+                {formatSigned(netCashChange)}
+              </strong>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {:else if viewMode === 'sankey'}
       <div class="flex-1 overflow-auto p-4">
         {#if sankeyData.nodes.length === 0}
           <div class="flex h-72 items-center justify-center p-8">
-            <EmptyState title={i18n.t.noCashFlowRecords} hint={i18n.t.adjustFilterHint} icon="chart" />
+            <EmptyState
+              title={i18n.t.noCashFlowRecords}
+              hint={i18n.t.adjustFilterHint}
+              icon="chart"
+            />
           </div>
         {:else}
           <SankeyDiagram
@@ -387,10 +585,14 @@
       </div>
     {:else}
       <div
-        class="border-line bg-bg-card flex shrink-0 items-center justify-between gap-3 border-b px-3 py-2"
+        class="border-line bg-bg-card flex shrink-0 items-center justify-between gap-4 border-b px-4 py-2"
       >
         <div class="flex max-w-md min-w-48 flex-1 items-center">
-          <SearchBar bind:value={searchQuery} placeholder={i18n.t.searchPlaceholder} class="w-full" />
+          <SearchBar
+            bind:value={searchQuery}
+            placeholder={i18n.t.searchPlaceholder}
+            class="w-full"
+          />
         </div>
         <div class="flex shrink-0 items-center gap-2">
           <Tabs
@@ -408,53 +610,57 @@
 
       {#if displayedRows.length === 0}
         <div class="flex flex-1 items-center justify-center p-8">
-          <EmptyState title={i18n.t.noCashFlowRecords} hint={i18n.t.adjustFilterHint} icon="chart" />
+          <EmptyState
+            title={i18n.t.noCashFlowRecords}
+            hint={i18n.t.adjustFilterHint}
+            icon="chart"
+          />
         </div>
-    {:else}
-      <div class="min-h-0 flex-1 overflow-y-auto">
-        <table class="sharp-table w-full">
-          <thead>
-            <tr>
-              <th class="w-28 pl-3">{i18n.t.colDate}</th>
-              <th class="w-32 px-2">{i18n.t.category}</th>
-              <th class="min-w-50 px-3">{i18n.t.description}</th>
-              <th class="w-56 px-3">{i18n.t.contraAccount}</th>
-              <th class="numeric w-40 pr-3">{i18n.t.netChange}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each displayedRows as row (row.date + row.description + row.amount + row.account_name)}
+      {:else}
+        <div class="min-h-0 flex-1 overflow-y-auto">
+          <table class="sharp-table w-full">
+            <thead>
               <tr>
-                <td class="font-proto text-text-muted text-smaller w-28 pl-3 whitespace-nowrap">
-                  {row.date}
-                </td>
-                <td class="w-32 px-2 whitespace-nowrap">
-                  <Badge size="s" tone={getBadgeTone(row.section, row.amount)}>
-                    {getCategoryLabel(row.category)}
-                  </Badge>
-                </td>
-                <td class="font-aux text-text-white text-small px-3">
-                  {row.description}
-                </td>
-                <td class="font-aux text-text-dim text-small w-56 truncate px-3">
-                  {row.account_name || '—'}
-                </td>
-                <td
-                  class="font-proto text-small numeric w-40 pr-3 font-bold whitespace-nowrap tabular-nums {row.amount >
-                  0
-                    ? 'text-income'
-                    : row.amount < 0
-                      ? 'text-expense'
-                      : 'text-text-white'}"
-                >
-                  {formatSigned(row.amount)}
-                </td>
+                <th class="w-28 pl-3">{i18n.t.colDate}</th>
+                <th class="w-32 px-2">{i18n.t.category}</th>
+                <th class="min-w-50 px-3">{i18n.t.description}</th>
+                <th class="w-56 px-3">{i18n.t.contraAccount}</th>
+                <th class="numeric w-40 pr-3">{i18n.t.netChange}</th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {#each displayedRows as row (row.date + row.description + row.amount + row.account_name)}
+                <tr>
+                  <td class="font-proto text-text-muted text-smaller w-28 pl-3 whitespace-nowrap">
+                    {row.date}
+                  </td>
+                  <td class="w-32 px-2 whitespace-nowrap">
+                    <Badge size="s" tone={getBadgeTone(row.section, row.amount)}>
+                      {getCategoryLabel(row.category)}
+                    </Badge>
+                  </td>
+                  <td class="font-aux text-text-white text-small px-3">
+                    {row.description}
+                  </td>
+                  <td class="font-aux text-text-dim text-small w-56 truncate px-3">
+                    {row.account_name || '—'}
+                  </td>
+                  <td
+                    class="font-proto text-small numeric w-40 pr-3 font-bold whitespace-nowrap tabular-nums {row.amount >
+                    0
+                      ? 'text-income'
+                      : row.amount < 0
+                        ? 'text-expense'
+                        : 'text-text-white'}"
+                  >
+                    {formatSigned(row.amount)}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
     {/if}
-  {/if}
-</Card>
+  </Card>
 </div>
