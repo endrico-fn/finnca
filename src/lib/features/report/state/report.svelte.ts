@@ -52,6 +52,7 @@ export type ReportTab =
 export type ReportGroup =
   | 'statements'
   | 'liquidity'
+  | 'forecast-intelligence'
   | 'forecast-debt'
   | 'intelligence'
   | 'budget-debt'

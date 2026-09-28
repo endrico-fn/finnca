@@ -101,6 +101,7 @@ export const id: TranslationDict = {
   // Reports Page
   reportGroupStatements: 'LAPORAN KEUANGAN',
   reportGroupCashLiquidity: 'KAS & LIKUIDITAS',
+  reportGroupForecastIntelligence: 'PROYEKSI & INTELIJEN',
   reportGroupForecastDebt: 'PROYEKSI & UTANG',
   reportGroupIntelligenceFx: 'INTELIJEN & VALAS',
   reportGroupBudgetDebt: 'HUTANG & KEWAJIBAN',
@@ -141,8 +142,6 @@ export const id: TranslationDict = {
   waterfallInvesting: 'INVESTASI',
   waterfallFinancing: 'PENDANAAN',
   waterfallEnding: 'SALDO AKHIR',
-  railNavTitle: 'LAPORAN',
-  railNavShortcutHint: '1-9 / ↑↓: Navigasi',
   spendingDistribution: 'DISTRIBUSI PENGELUARAN',
   viewWaterfall: 'WATERFALL',
   cashFlowWaterfall: 'REKONSILIASI KAS',

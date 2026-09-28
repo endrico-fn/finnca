@@ -99,8 +99,9 @@ export const en = {
   totalCredit: 'TOTAL CREDIT',
 
   // Reports Page
-  reportGroupStatements: 'FINANCIAL STATEMENTS',
+  reportGroupStatements: 'STATEMENTS',
   reportGroupCashLiquidity: 'CASH & LIQUIDITY',
+  reportGroupForecastIntelligence: 'FORECAST & INTELLIGENCE',
   reportGroupForecastDebt: 'FORECAST & DEBT',
   reportGroupIntelligenceFx: 'INTELLIGENCE & FX',
   reportGroupBudgetDebt: 'DEBT & LIABILITIES',
@@ -141,8 +142,6 @@ export const en = {
   waterfallInvesting: 'INVESTING',
   waterfallFinancing: 'FINANCING',
   waterfallEnding: 'ENDING',
-  railNavTitle: 'REPORTS',
-  railNavShortcutHint: '1-9 / ↑↓: Navigate',
   spendingDistribution: 'SPENDING DISTRIBUTION',
   viewWaterfall: 'WATERFALL',
   cashFlowWaterfall: 'CASH RECONCILIATION',
