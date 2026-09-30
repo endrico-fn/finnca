@@ -1,7 +1,7 @@
 <script lang="ts">
   import { updaterState, type UpdaterPhase } from '$lib/core/updater/updaterState.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { APP_VERSION } from '$lib/core/types';
+  import { appInfo } from '$lib/core/state/appInfo.svelte';
   import { Button } from '$lib/components/ui';
   import { lockPolicy } from '$lib/features/security/state/lockPolicy.svelte';
 
@@ -76,7 +76,7 @@
       </div>
       <div class="flex items-center gap-3">
         <span class="font-proto text-[10px]" style="color: var(--color-text-dim)">
-          {i18n.t.updaterCurrentVersion}: v{APP_VERSION}
+          {i18n.t.updaterCurrentVersion}: v{appInfo.version}
         </span>
         {#if updaterState.phase === 'idle' || updaterState.phase === 'up_to_date' || isError}
           <button
@@ -225,7 +225,7 @@
             class="mt-1 max-h-72 overflow-y-auto font-aux text-xs leading-relaxed"
             style="color: var(--color-text-base)"
           >
-            {#each formatReleaseNotes(updaterState.releaseNotes).split('\n') as line}
+            {#each formatReleaseNotes(updaterState.releaseNotes).split('\n') as line, idx (idx)}
               {#if line.startsWith('- ') || line.startsWith('• ')}
                 <p class="mb-1 pl-2" style="border-left: 2px solid var(--color-line)">
                   {line.replace(/^[-•]\s/, '')}

@@ -1288,6 +1288,7 @@ export const en = {
   updateAvailableTitle: 'UPDATE AVAILABLE',
   updateAvailableMsg: 'Finnca {version} is available. Click to view release notes.',
   updateActionView: 'VIEW RELEASE',
+  checkForUpdates: 'CHECK FOR UPDATES',
   updaterTitle: 'SOFTWARE UPDATE WORKSTATION',
   updaterCurrentVersion: 'CURRENT',
   updaterStatus: 'ENGINE STATUS',

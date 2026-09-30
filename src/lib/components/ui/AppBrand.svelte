@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { APP_NAME, APP_VERSION } from '$lib/core/types';
+  import { APP_NAME } from '$lib/core/types';
+  import { appInfo } from '$lib/core/state/appInfo.svelte';
   import Icon from './Icon.svelte';
 
   let {
@@ -26,7 +27,7 @@
         <span
           class="font-proto text-text-dim border-line bg-bg-card text-smaller border px-1.5 py-0.5"
         >
-          v{APP_VERSION}
+          v{appInfo.version}
         </span>
       </div>
       {#if tagline}

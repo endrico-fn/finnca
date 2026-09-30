@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { APP_NAME, APP_VERSION } from '$lib/core/types';
+  import { APP_NAME } from '$lib/core/types';
+  import { appInfo } from '$lib/core/state/appInfo.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Card, Badge, AppBrand } from '$lib/components/ui';
+  import { Card, Badge, AppBrand, Button, Icon } from '$lib/components/ui';
+  import { updaterState } from '$lib/core/updater/updaterState.svelte';
 </script>
 
-<Card title={i18n.t.aboutAppTitle} badge="v{APP_VERSION}">
+<Card title={i18n.t.aboutAppTitle} badge="v{appInfo.version}">
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div class="flex items-center gap-3">
       <AppBrand variant="hero" />
@@ -36,9 +38,25 @@
   </div>
 
   <div
-    class="border-line/40 font-proto text-smaller text-text-muted mt-4 flex items-center justify-between border-t pt-2.5"
+    class="border-line/40 font-proto text-smaller text-text-muted mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3"
   >
-    <span>{APP_NAME} &copy; {new Date().getFullYear()}</span>
-    <span class="tracking-widest uppercase">{i18n.t.aboutLicense}: MIT</span>
+    <div class="flex items-center gap-4">
+      <span>{APP_NAME} &copy; {new Date().getFullYear()}</span>
+      <span class="tracking-widest uppercase">{i18n.t.aboutLicense}: MIT</span>
+    </div>
+
+    <Button
+      size="sm"
+      variant="secondary"
+      onclick={() => {
+        updaterState.openScreen();
+        updaterState.checkForUpdate();
+      }}
+    >
+      <span class="inline-flex items-center gap-1.5">
+        <Icon name="refresh" size={12} />
+        {i18n.t.checkForUpdates}
+      </span>
+    </Button>
   </div>
 </Card>

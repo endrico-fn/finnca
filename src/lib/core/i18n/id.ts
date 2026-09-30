@@ -1293,6 +1293,7 @@ export const id: TranslationDict = {
   updateAvailableTitle: 'PEMBARUAN TERSEDIA',
   updateAvailableMsg: 'Finnca {version} telah dirilis. Ketuk untuk melihat catatan rilis.',
   updateActionView: 'LIHAT RILIS',
+  checkForUpdates: 'PERIKSA PEMBARUAN',
   updaterTitle: 'WORKSTATION PEMBARUAN PERANGKAT LUNAK',
   updaterCurrentVersion: 'VERSI SAAT INI',
   updaterStatus: 'STATUS ENGINE',

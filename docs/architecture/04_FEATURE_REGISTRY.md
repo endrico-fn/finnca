@@ -52,3 +52,5 @@ Daftar kode yang telah dimusnahkan karena digantikan oleh mesin Rust baru:
 3. `src/lib/accounting/reports/*.ts`: Dihapus (digantikan oleh native report generators di Rust).
 4. `src/lib/core/state/briefing.ts`: Dihapus (dead code tanpa referensi atau rencana arsitektur).
 5. Monolithic `capabilities/default.json`: Dihapus (diganti dengan capability granular per-domain).
+6. `scripts/generate-golden-fixtures.ts`: Dihapus (skrip transisi migrasi TS->Rust; fixtures telah permanen di `src-tauri/tests/fixtures/` dan `src/tests/fixtures/ledger-golden/`).
+7. `scripts/env.ts`: Dihapus (skrip mock deklarasi global yatim yang tidak direferensikan).
