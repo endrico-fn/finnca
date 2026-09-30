@@ -122,17 +122,41 @@ Keywords=finance;accounting;budget;
 StartupNotify=true
 EOF
 
-  _info "Installing app icon..."
-  ${SUDO_CMD} mkdir -p "${ICON_DIR}"
-  ${SUDO_CMD} cp "${INSTALL_DIR}/usr/share/icons/hicolor/128x128/apps/${APP_NAME}.png" \
-    "${ICON_DIR}/${APP_NAME}.png" 2>/dev/null || \
-  ${SUDO_CMD} cp "${INSTALL_DIR}/${APP_NAME}.png" "${ICON_DIR}/${APP_NAME}.png" 2>/dev/null || true
+  _info "Installing app icons (multi-resolution)..."
+  local base_icons_dir="${ICON_DIR%/*/*}"
+  for size in 32x32 64x64 128x128 256x256 512x512; do
+    ${SUDO_CMD} mkdir -p "${base_icons_dir}/${size}/apps"
+    if [[ -f "${INSTALL_DIR}/usr/share/icons/hicolor/${size}/apps/${APP_NAME}.png" ]]; then
+      ${SUDO_CMD} cp "${INSTALL_DIR}/usr/share/icons/hicolor/${size}/apps/${APP_NAME}.png" "${base_icons_dir}/${size}/apps/${APP_NAME}.png" 2>/dev/null || true
+    elif [[ -f "${INSTALL_DIR}/${APP_NAME}.png" ]]; then
+      ${SUDO_CMD} cp "${INSTALL_DIR}/${APP_NAME}.png" "${base_icons_dir}/${size}/apps/${APP_NAME}.png" 2>/dev/null || true
+    fi
+    ${SUDO_CMD} chmod 644 "${base_icons_dir}/${size}/apps/${APP_NAME}.png" 2>/dev/null || true
+  done
 
-  if command -v update-desktop-database &>/dev/null; then
-    update-desktop-database "$(dirname "${DESKTOP_FILE}")" 2>/dev/null || true
+  # Fallback universal ke pixmaps
+  local pixmaps_dir="${HOME}/.local/share/pixmaps"
+  if [[ -n "${SUDO_CMD}" ]]; then
+    pixmaps_dir="/usr/share/pixmaps"
   fi
+  ${SUDO_CMD} mkdir -p "${pixmaps_dir}"
+  if [[ -f "${INSTALL_DIR}/${APP_NAME}.png" ]]; then
+    ${SUDO_CMD} cp "${INSTALL_DIR}/${APP_NAME}.png" "${pixmaps_dir}/${APP_NAME}.png" 2>/dev/null || true
+  elif [[ -f "${base_icons_dir}/128x128/apps/${APP_NAME}.png" ]]; then
+    ${SUDO_CMD} cp "${base_icons_dir}/128x128/apps/${APP_NAME}.png" "${pixmaps_dir}/${APP_NAME}.png" 2>/dev/null || true
+  fi
+  ${SUDO_CMD} chmod 644 "${pixmaps_dir}/${APP_NAME}.png" 2>/dev/null || true
+
   if command -v gtk-update-icon-cache &>/dev/null; then
-    gtk-update-icon-cache -f "${ICON_DIR%/*/*}" 2>/dev/null || true
+    ${SUDO_CMD} gtk-update-icon-cache -f -t "${base_icons_dir}" 2>/dev/null || true
+  fi
+  if command -v update-desktop-database &>/dev/null; then
+    ${SUDO_CMD} update-desktop-database "$(dirname "${DESKTOP_FILE}")" 2>/dev/null || true
+  fi
+  if command -v kbuildsycoca6 &>/dev/null; then
+    kbuildsycoca6 2>/dev/null || true
+  elif command -v kbuildsycoca5 &>/dev/null; then
+    kbuildsycoca5 2>/dev/null || true
   fi
 
   _ok "Finnca ${version:-v0.1.0} successfully installed!"

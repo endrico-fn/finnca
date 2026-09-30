@@ -51,6 +51,11 @@ if command -v update-desktop-database &>/dev/null; then
   update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
   sudo update-desktop-database /usr/share/applications 2>/dev/null || true
 fi
+if command -v kbuildsycoca6 &>/dev/null; then
+  kbuildsycoca6 2>/dev/null || true
+elif command -v kbuildsycoca5 &>/dev/null; then
+  kbuildsycoca5 2>/dev/null || true
+fi
 
 _ok "Finnca application has been cleanly uninstalled."
 _info "Note: Your encrypted vaults and configs in ~/.config/finnca remain intact."
