@@ -104,9 +104,13 @@ install_finnca() {
   ${SUDO_CMD} mv "${tmp_dir}/squashfs-root" "${INSTALL_DIR}"
   echo "${version}" | ${SUDO_CMD} tee "${INSTALL_DIR}/version" > /dev/null
 
-  _info "Creating executable symlink (${BIN_LINK})..."
+  _info "Creating executable launcher (${BIN_LINK})..."
   ${SUDO_CMD} mkdir -p "$(dirname "${BIN_LINK}")"
-  ${SUDO_CMD} ln -sf "${INSTALL_DIR}/AppRun" "${BIN_LINK}"
+  cat << EOF | ${SUDO_CMD} tee "${BIN_LINK}" > /dev/null
+#!/usr/bin/env bash
+exec "${INSTALL_DIR}/AppRun" "\$@"
+EOF
+  ${SUDO_CMD} chmod +x "${BIN_LINK}"
 
   local base_icons_dir="${ICON_DIR%/*/*}"
   local icon_entry_value="${APP_NAME}"
