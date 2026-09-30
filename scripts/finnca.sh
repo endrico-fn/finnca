@@ -130,9 +130,14 @@ cmd_install() {
 
   # Check local build artifact fallback first (developer workstation convenience)
   local local_appimage=""
-  local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd || true)"
-  if [[ -n "${project_root}" && -f "${project_root}/src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage" ]]; then
-    local_appimage="${project_root}/src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage"
+  local script_source="${BASH_SOURCE[0]:-}"
+  if [[ -n "${script_source}" && -f "${script_source}" ]]; then
+    local project_root="$(cd "$(dirname "${script_source}")/.." 2>/dev/null && pwd || true)"
+    if [[ -n "${project_root}" && -f "${project_root}/src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage" ]]; then
+      local_appimage="${project_root}/src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage"
+    fi
+  elif [[ -f "./src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage" ]]; then
+    local_appimage="./src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage"
   fi
 
   if [[ -z "${target_ver}" ]]; then
