@@ -3,7 +3,7 @@
   import { formatMinorToDisplay } from '$lib/core/format/currency';
   import { accountTypeLabel } from '$lib/core/format/account';
   import type { AccountType } from '$lib/core/ipc/bindings';
-  import { Badge, Card } from '$lib/components/ui';
+  import { Badge } from '$lib/components/ui';
   import { reportState } from '../state/report.svelte';
 
   const fmt = (n: number, c = 'IDR') => formatMinorToDisplay(n, c);
@@ -22,13 +22,8 @@
   const balanced = $derived(tbReport?.is_balanced ?? true);
 </script>
 
-<Card
-  title={i18n.t.trialBalanceTitle}
-  padding={false}
-  borderHeader
-  class="border-line bg-bg-card flex min-h-0 w-full flex-1 flex-col overflow-hidden border"
->
-  {#snippet header()}
+<div class="border-line bg-bg-card flex min-h-0 w-full flex-1 flex-col overflow-hidden border">
+  <div class="border-line/60 flex shrink-0 items-center justify-between border-b px-3 py-1.5">
     <div class="font-proto text-smaller flex shrink-0 items-center gap-2">
       <Badge size="s" tone={balanced ? 'ok' : 'err'}>
         {balanced ? i18n.t.auditBalanced : i18n.t.auditUnbalanced}
@@ -44,7 +39,7 @@
         <strong class="text-text-strong ml-1 font-bold tabular-nums">{fmt(totalCredit, reportCurrency)}</strong>
       </span>
     </div>
-  {/snippet}
+  </div>
 
   <div class="min-h-0 flex-1 overflow-y-auto">
     <table class="sharp-table w-full border-x-0 border-t-0" spellcheck="false">
@@ -113,4 +108,4 @@
       {/if}
     </table>
   </div>
-</Card>
+</div>

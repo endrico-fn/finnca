@@ -145,13 +145,13 @@
 
 <nav
   bind:this={navContainerEl}
-  class="flex items-center gap-1 flex-wrap"
+  class="inline-flex items-center gap-1 font-proto text-smaller"
   aria-label={i18n.t.report}
 >
   {#each REPORT_GROUPS as group (group.id)}
     {@const isCategoryActive = group.tabs.includes(currentTab)}
     {@const isOpen = openGroupId === group.id}
-    <div class="relative inline-block">
+    <div class="relative inline-flex items-center">
       <button
         type="button"
         id="report-btn-{group.id}"

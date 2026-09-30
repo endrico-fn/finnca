@@ -55,7 +55,7 @@
   const displayLabel = $derived(formatRangeDisplayLabel(from, to, i18n.t));
 </script>
 
-<div class="relative inline-block text-left" bind:this={containerEl}>
+<div class="relative inline-flex items-center text-left" bind:this={containerEl}>
   <button
     type="button"
     onclick={() => (open = !open)}

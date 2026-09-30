@@ -135,7 +135,7 @@
   });
 </script>
 
-<div class="relative inline-block text-left" bind:this={containerEl}>
+<div class="relative inline-flex items-center text-left" bind:this={containerEl}>
   <button
     type="button"
     onclick={() => (open = !open)}
