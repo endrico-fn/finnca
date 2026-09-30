@@ -42,7 +42,14 @@
   });
 
   const postableAccounts = $derived(
-    accounts.filter((a) => !a.placeholder && (a.account_type === 'EXPENSE' || a.account_type === 'INCOME' || a.account_type === 'LIABILITY' || a.account_type === 'ASSET'))
+    accounts.filter(
+      (a) =>
+        !a.placeholder &&
+        (a.account_type === 'EXPENSE' ||
+          a.account_type === 'INCOME' ||
+          a.account_type === 'LIABILITY' ||
+          a.account_type === 'ASSET')
+    )
   );
 
   async function handleCreateRule() {
@@ -121,7 +128,9 @@
   <div class="flex flex-col gap-4">
     <!-- Form to Create / Add Rule -->
     <div class="border-line bg-bg-card/40 flex flex-col gap-3 border p-3">
-      <div class="font-proto text-smaller text-teal flex items-center justify-between font-bold tracking-wider">
+      <div
+        class="font-proto text-smaller text-teal flex items-center justify-between font-bold tracking-wider"
+      >
         <span>{i18n.t.reconcileRuleCreateBtn}</span>
       </div>
 
@@ -136,7 +145,7 @@
             type="text"
             bind:value={pattern}
             placeholder={i18n.t.reconcileRulePatternPlaceholder}
-            class="border-line bg-bg-app font-aux text-small focus:border-teal h-8 border px-2.5 outline-none transition-colors"
+            class="border-line bg-bg-app font-aux text-small focus:border-teal h-8 border px-2.5 transition-colors outline-none"
           />
         </div>
 
@@ -148,7 +157,7 @@
           <select
             id="rule-account"
             bind:value={selectedAccountId}
-            class="border-line bg-bg-app font-aux text-small focus:border-teal h-8 border px-2 outline-none transition-colors"
+            class="border-line bg-bg-app font-aux text-small focus:border-teal h-8 border px-2 transition-colors outline-none"
           >
             <option value="" disabled>{i18n.t.reconcileRuleSelectAccount}</option>
             {#each postableAccounts as acc (acc.id)}
@@ -167,7 +176,7 @@
           <select
             id="rule-direction"
             bind:value={matchType}
-            class="border-line bg-bg-app font-proto text-smaller focus:border-teal h-8 border px-2 outline-none transition-colors"
+            class="border-line bg-bg-app font-proto text-smaller focus:border-teal h-8 border px-2 transition-colors outline-none"
           >
             <option value="ANY">{i18n.t.reconcileRuleMatchAny}</option>
             <option value="INFLOW">{i18n.t.reconcileRuleMatchInflow}</option>
@@ -185,7 +194,7 @@
             type="text"
             bind:value={descriptionOverride}
             placeholder={i18n.t.reconcileRuleDescOverridePlaceholder}
-            class="border-line bg-bg-app font-aux text-small focus:border-teal h-8 border px-2.5 outline-none transition-colors"
+            class="border-line bg-bg-app font-aux text-small focus:border-teal h-8 border px-2.5 transition-colors outline-none"
           />
         </div>
       </div>
@@ -225,10 +234,7 @@
 
       {#if reconcileState.rules.length === 0}
         <div class="py-6">
-          <EmptyState
-            title={i18n.t.reconcileRuleEmpty}
-            hint={i18n.t.reconcileRuleEmptyHint}
-          />
+          <EmptyState title={i18n.t.reconcileRuleEmpty} hint={i18n.t.reconcileRuleEmptyHint} />
         </div>
       {:else}
         <div class="border-line font-proto text-smaller max-h-64 overflow-y-auto border">
@@ -247,7 +253,7 @@
                 <tr class="hover:bg-bg-card/40 transition-colors">
                   <td class="text-text-base px-2.5 py-1.5">
                     <div class="flex items-center gap-1.5">
-                      <span class="font-bold text-teal">{r.pattern}</span>
+                      <span class="text-teal font-bold">{r.pattern}</span>
                       {#if r.is_regex}
                         <Badge size="s" tone="warn">REGEX</Badge>
                       {/if}
@@ -256,13 +262,18 @@
                   <td class="text-text-dim px-2.5 py-1.5 whitespace-nowrap">
                     <Badge
                       size="s"
-                      tone={r.match_type === 'INFLOW' ? 'ok' : r.match_type === 'OUTFLOW' ? 'err' : 'neutral'}
+                      tone={r.match_type === 'INFLOW'
+                        ? 'ok'
+                        : r.match_type === 'OUTFLOW'
+                          ? 'err'
+                          : 'neutral'}
                     >
                       {r.match_type}
                     </Badge>
                   </td>
                   <td class="text-text-base px-2.5 py-1.5 whitespace-nowrap">
-                    <span class="text-text-dim">[{r.account_code}]</span> {r.account_name}
+                    <span class="text-text-dim">[{r.account_code}]</span>
+                    {r.account_name}
                   </td>
                   <td class="text-text-dim font-aux px-2.5 py-1.5">
                     {r.description_override || '—'}

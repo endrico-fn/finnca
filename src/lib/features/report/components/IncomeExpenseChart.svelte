@@ -72,7 +72,9 @@
 
   <Card title={i18n.t.incomeExpChartTitle} class="min-h-0 flex-1">
     {#if barData.length === 0}
-      <div class="text-text-dim font-proto text-small flex h-full min-h-50 w-full items-center justify-center border border-dashed border-line">
+      <div
+        class="text-text-dim font-proto text-small border-line flex h-full min-h-50 w-full items-center justify-center border border-dashed"
+      >
         {i18n.t.noHistoricalData}
       </div>
     {:else}

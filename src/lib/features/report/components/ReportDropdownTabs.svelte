@@ -145,7 +145,7 @@
 
 <nav
   bind:this={navContainerEl}
-  class="inline-flex items-center gap-1 font-proto text-smaller"
+  class="font-proto text-smaller inline-flex items-center gap-1"
   aria-label={i18n.t.report}
 >
   {#each REPORT_GROUPS as group (group.id)}
@@ -169,21 +169,19 @@
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls="report-dropdown-{group.id}"
-        class="font-proto text-smaller inline-flex h-6 cursor-pointer items-center justify-center gap-1.5 border px-2 whitespace-nowrap transition-colors select-none rounded-none {isCategoryActive
+        class="font-proto text-smaller inline-flex h-6 cursor-pointer items-center justify-center gap-1.5 rounded-none border px-2 whitespace-nowrap transition-colors select-none {isCategoryActive
           ? 'bg-bg-row-active border-line text-text-strong font-semibold'
           : isOpen
             ? 'border-line/80 bg-bg-card text-text-white font-semibold'
-            : 'border-transparent bg-transparent text-text-muted hover:border-line/40 hover:bg-bg-card hover:text-text-base font-semibold'}"
+            : 'text-text-muted hover:border-line/40 hover:bg-bg-card hover:text-text-base border-transparent bg-transparent font-semibold'}"
       >
         {#if isCategoryActive}
-          <span class="size-1.5 shrink-0 bg-teal"></span>
+          <span class="bg-teal size-1.5 shrink-0"></span>
         {/if}
 
-        <span class="uppercase tracking-wider">{i18n.t[group.labelKey]}</span>
+        <span class="tracking-wider uppercase">{i18n.t[group.labelKey]}</span>
 
-        <span
-          class="inline-flex transition-transform duration-150 {isOpen ? 'rotate-180' : ''}"
-        >
+        <span class="inline-flex transition-transform duration-150 {isOpen ? 'rotate-180' : ''}">
           <Icon name="chev-down" size={10} />
         </span>
       </button>
@@ -193,7 +191,7 @@
           id="report-dropdown-{group.id}"
           role="menu"
           aria-label={i18n.t[group.labelKey]}
-          class="absolute left-0 top-full mt-1 min-w-64 max-w-[calc(100vw-2rem)] border border-line bg-bg-card shadow-xl rounded-none z-30 py-1"
+          class="border-line bg-bg-card absolute top-full left-0 z-30 mt-1 max-w-[calc(100vw-2rem)] min-w-64 rounded-none border py-1 shadow-xl"
         >
           {#each group.tabs as tabId (tabId)}
             {@const isSelected = currentTab === tabId}
@@ -203,11 +201,11 @@
               role="menuitem"
               tabindex={isOpen ? 0 : -1}
               onclick={() => handleSelect(tabId)}
-              class="group font-proto text-smaller flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left transition-colors select-none rounded-none focus-visible:outline-none {isSelected
-                ? 'border-l-2 border-teal bg-teal/15 text-teal font-bold focus-visible:bg-teal/20'
-                : 'border-l-2 border-transparent text-text-muted hover:bg-bg-btn hover:text-text-white focus-visible:bg-bg-btn focus-visible:text-text-white'}"
+              class="group font-proto text-smaller flex w-full cursor-pointer items-center justify-between rounded-none px-3 py-2 text-left transition-colors select-none focus-visible:outline-none {isSelected
+                ? 'border-teal bg-teal/15 text-teal focus-visible:bg-teal/20 border-l-2 font-bold'
+                : 'text-text-muted hover:bg-bg-btn hover:text-text-white focus-visible:bg-bg-btn focus-visible:text-text-white border-l-2 border-transparent'}"
             >
-              <div class="flex items-center gap-2 min-w-0">
+              <div class="flex min-w-0 items-center gap-2">
                 {#if isSelected}
                   <span class="bg-teal size-1.5 shrink-0"></span>
                 {:else}
@@ -218,7 +216,7 @@
 
               {#if shortcut}
                 <span
-                  class="font-proto text-smaller border px-1 py-0.5 transition-colors shrink-0 ml-2 {isSelected
+                  class="font-proto text-smaller ml-2 shrink-0 border px-1 py-0.5 transition-colors {isSelected
                     ? 'border-teal/40 text-teal'
                     : 'border-line/60 text-text-dim group-hover:text-text-muted'}"
                 >

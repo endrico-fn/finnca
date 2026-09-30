@@ -47,8 +47,12 @@ describe('transferValidation', () => {
     it('validates fee account consistency', () => {
       expect(checkTransferAmounts(100_000, '', 5_000)).toBe('FEE_ACCOUNT_MISSING');
       expect(checkTransferAmounts(100_000, 'fee-acc', 0)).toBe('FEE_BAD_AMOUNT');
-      expect(checkTransferAmounts(100_000, 'from-acc', 5_000, 'from-acc', 'to-acc')).toBe('FEE_IS_SIDE');
-      expect(checkTransferAmounts(100_000, 'to-acc', 5_000, 'from-acc', 'to-acc')).toBe('FEE_IS_SIDE');
+      expect(checkTransferAmounts(100_000, 'from-acc', 5_000, 'from-acc', 'to-acc')).toBe(
+        'FEE_IS_SIDE'
+      );
+      expect(checkTransferAmounts(100_000, 'to-acc', 5_000, 'from-acc', 'to-acc')).toBe(
+        'FEE_IS_SIDE'
+      );
       expect(checkTransferAmounts(100_000, 'fee-acc', 5_000, 'from-acc', 'to-acc')).toBeNull();
     });
   });

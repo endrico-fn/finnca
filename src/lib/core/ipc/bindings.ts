@@ -389,34 +389,20 @@ export function matchStatementCmd(
 }
 
 export function listReconcileRulesCmd(): Promise<ReconcileRuleWithAccount[]> {
-  return unwrap(
-    commands.listReconcileRulesCmd(),
-    30_000,
-    'list_reconcile_rules_cmd'
-  );
+  return unwrap(commands.listReconcileRulesCmd(), 30_000, 'list_reconcile_rules_cmd');
 }
 
 export function createReconcileRuleCmd(
   input: CreateReconcileRuleInput
 ): Promise<ReconcileRuleWithAccount> {
-  return unwrap(
-    commands.createReconcileRuleCmd(input),
-    30_000,
-    'create_reconcile_rule_cmd'
-  );
+  return unwrap(commands.createReconcileRuleCmd(input), 30_000, 'create_reconcile_rule_cmd');
 }
 
 export async function deleteReconcileRuleCmd(ruleId: string): Promise<void> {
-  await unwrap(
-    commands.deleteReconcileRuleCmd(ruleId),
-    30_000,
-    'delete_reconcile_rule_cmd'
-  );
+  await unwrap(commands.deleteReconcileRuleCmd(ruleId), 30_000, 'delete_reconcile_rule_cmd');
 }
 
-export function evaluateReconcileRulesCmd(
-  statements: StatementRow[]
-): Promise<StatementRow[]> {
+export function evaluateReconcileRulesCmd(statements: StatementRow[]): Promise<StatementRow[]> {
   return unwrap(
     commands.evaluateReconcileRulesCmd(statements),
     30_000,

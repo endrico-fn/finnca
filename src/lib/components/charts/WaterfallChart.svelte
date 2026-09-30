@@ -69,7 +69,9 @@
         onmouseenter={() => (hoveredBar = bar)}
         onmouseleave={() => (hoveredBar = null)}
       >
-        <title>{bar.label}: {bar.formattedAmount}{bar.percentage ? ` (${bar.percentage})` : ''}</title>
+        <title
+          >{bar.label}: {bar.formattedAmount}{bar.percentage ? ` (${bar.percentage})` : ''}</title
+        >
         <!-- Bar rect -->
         <rect
           x={bar.x}

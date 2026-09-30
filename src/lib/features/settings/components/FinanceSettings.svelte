@@ -297,7 +297,10 @@
           {/if}
         </div>
         <p class="font-aux text-text-muted text-smaller mt-0.5 max-w-lg">
-          {i18n.t.confirmLockDateMsg.replace('{date}', closingBooksState.closingDate || selectedLockDate)}
+          {i18n.t.confirmLockDateMsg.replace(
+            '{date}',
+            closingBooksState.closingDate || selectedLockDate
+          )}
         </p>
       </div>
 

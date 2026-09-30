@@ -37,7 +37,9 @@
     mode = session.settings?.auto_lock_mode || 'always';
     lockPolicy.loadFromStorage();
     sessionTimeout = lockPolicy.timeoutMinutes;
-    getBootId().then((id) => (currentBootId = id)).catch(() => {});
+    getBootId()
+      .then((id) => (currentBootId = id))
+      .catch(() => {});
   });
 
   async function handleSaveSettings() {

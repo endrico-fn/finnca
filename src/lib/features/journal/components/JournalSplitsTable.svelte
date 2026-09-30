@@ -51,25 +51,25 @@
           variant="ghost"
           size="sm"
           onclick={onCollapseToSimple}
-          class="h-7 px-2 shrink-0 whitespace-nowrap"
+          class="h-7 shrink-0 px-2 whitespace-nowrap"
         >
-          <span class="inline-flex items-center gap-1 font-proto text-smaller">
+          <span class="font-proto text-smaller inline-flex items-center gap-1">
             <span>‹ {i18n.t.txSimpleView}</span>
           </span>
         </Button>
       {/if}
       {#if imbalance !== 0}
         <Button variant="tactical" size="sm" onclick={onAutoBalance} class="h-7 px-2">
-          <span class="inline-flex items-center gap-1 font-proto text-smaller">
+          <span class="font-proto text-smaller inline-flex items-center gap-1">
             <span>{i18n.t.autoBalanceBtn}</span>
-            <span class="border-line/80 text-text-dim border px-1 py-0.2 text-smaller">Alt+A</span>
+            <span class="border-line/80 text-text-dim py-0.2 text-smaller border px-1">Alt+A</span>
           </span>
         </Button>
       {/if}
       <Button variant="ghost" size="sm" onclick={onAddSplit} class="h-7 px-2 whitespace-nowrap">
-        <span class="inline-flex items-center gap-1 font-proto text-smaller">
+        <span class="font-proto text-smaller inline-flex items-center gap-1">
           <span>{i18n.t.txAddRow}</span>
-          <span class="border-line/80 text-text-dim border px-1 py-0.2 text-smaller">Alt+N</span>
+          <span class="border-line/80 text-text-dim py-0.2 text-smaller border px-1">Alt+N</span>
         </span>
       </Button>
     </div>
@@ -136,7 +136,7 @@
                   class="text-smaller ml-2 inline-flex h-6 items-center gap-1.5 py-0.5"
                 >
                   <span>{i18n.t.autoBalanceBtn}</span>
-                  <span class="border-line/80 text-text-dim border px-1 py-0.5 text-smaller"
+                  <span class="border-line/80 text-text-dim text-smaller border px-1 py-0.5"
                     >Alt+A</span
                   >
                 </Button>

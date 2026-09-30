@@ -87,7 +87,7 @@
   });
 </script>
 
-<div class="border-line bg-bg-card flex h-full flex-col divide-y divide-line/40 select-none">
+<div class="border-line bg-bg-card divide-line/40 flex h-full flex-col divide-y select-none">
   <div class="flex items-start justify-between p-2.5 pb-2">
     <div class="min-w-0 flex-1 pr-2">
       <div class="flex flex-wrap items-center gap-1.5">
@@ -109,7 +109,10 @@
       <h3 class="font-proto text-text-strong text-medium mt-1 truncate font-bold">
         {account.name}
       </h3>
-      <p class="font-proto text-text-dim text-smaller mt-0.5 truncate tracking-wide" title={fullPath}>
+      <p
+        class="font-proto text-text-dim text-smaller mt-0.5 truncate tracking-wide"
+        title={fullPath}
+      >
         {fullPath}
       </p>
     </div>
@@ -125,9 +128,9 @@
   </div>
 
   <div class="space-y-2 p-2.5">
-    <div class="bg-bg-app border-line/60 border p-2.5 space-y-1.5">
+    <div class="bg-bg-app border-line/60 space-y-1.5 border p-2.5">
       <div class="flex items-center justify-between">
-        <span class="font-proto text-text-dim text-smaller uppercase font-bold">
+        <span class="font-proto text-text-dim text-smaller font-bold uppercase">
           {i18n.t.rollupBalance}
         </span>
         <span class="font-proto text-text-dim text-smaller">
@@ -165,7 +168,9 @@
 
     {#if account.description}
       <div class="border-line/60 bg-bg-app border p-2">
-        <span class="font-proto text-text-dim text-smaller block uppercase font-bold">{i18n.t.descriptionField}</span>
+        <span class="font-proto text-text-dim text-smaller block font-bold uppercase"
+          >{i18n.t.descriptionField}</span
+        >
         <p class="font-aux text-text-muted text-smaller mt-0.5 line-clamp-2 leading-relaxed">
           {account.description}
         </p>

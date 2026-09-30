@@ -84,7 +84,7 @@
         <Badge
           size="s"
           tone={integrityReport.is_valid ? 'ok' : 'err'}
-          class="font-proto tracking-wider uppercase font-bold"
+          class="font-proto font-bold tracking-wider uppercase"
         >
           {integrityReport.is_valid
             ? i18n.t.auditHashChainValid.replace('{count}', String(integrityReport.total_verified))
@@ -96,7 +96,7 @@
         size="sm"
         loading={verifyingIntegrity}
         onclick={checkIntegrity}
-        class="font-proto text-smaller h-8 px-2.5 font-bold uppercase tracking-wider"
+        class="font-proto text-smaller h-8 px-2.5 font-bold tracking-wider uppercase"
       >
         {i18n.t.auditVerifyIntegrityBtn}
       </Button>
@@ -139,9 +139,7 @@
                 <th class="w-48 pl-3 text-left">
                   {i18n.t.auditTimeCol}
                 </th>
-                <th class="w-28 px-2 text-left">
-                  HASH
-                </th>
+                <th class="w-28 px-2 text-left"> HASH </th>
                 <th class="w-36 px-3 text-left">
                   {i18n.t.auditActorCol}
                 </th>

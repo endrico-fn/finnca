@@ -74,6 +74,8 @@ describe('forecastEngine', () => {
 
   it('returns null for geometry when points length is less than 2', () => {
     expect(computeForecastGeometry([])).toBeNull();
-    expect(computeForecastGeometry([{ date: '2026-09-01', balance: 100, dayOffset: 0 }])).toBeNull();
+    expect(
+      computeForecastGeometry([{ date: '2026-09-01', balance: 100, dayOffset: 0 }])
+    ).toBeNull();
   });
 });

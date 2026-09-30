@@ -6,7 +6,7 @@
   import { accountsState } from '$lib/features/accounts/state/accounts.svelte';
   import { journalState } from '$lib/features/journal/state/journalDraft.svelte';
   import { reportState } from '$lib/features/report/state/report.svelte';
-import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
+  import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
   import NotificationToast from '$lib/components/feedback/NotificationToast.svelte';
   import NotificationDrawer from '$lib/components/feedback/NotificationDrawer.svelte';
   import { APP_NAME } from '$lib/core/types';
@@ -94,13 +94,11 @@ import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
         } else if (modalState.inspectorOpen) {
           modalState.closeInspector();
         }
-      } else if (
-        !(
-          e.target instanceof HTMLInputElement ||
-          e.target instanceof HTMLTextAreaElement ||
-          e.target instanceof HTMLSelectElement
-        )
-      ) {
+      } else if (!(
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      )) {
         if (e.key === 'n' || e.key === 'N') {
           e.preventDefault();
           modalState.openQuickTx();

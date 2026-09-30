@@ -76,9 +76,7 @@
   const endIndex = $derived(
     isVirtualized ? Math.min(entries.length, startIndex + visibleCount) : entries.length
   );
-  const visibleEntries = $derived(
-    isVirtualized ? entries.slice(startIndex, endIndex) : entries
-  );
+  const visibleEntries = $derived(isVirtualized ? entries.slice(startIndex, endIndex) : entries);
   const topPadding = $derived(isVirtualized ? startIndex * ROW_HEIGHT : 0);
   const bottomPadding = $derived(
     isVirtualized ? Math.max(0, (entries.length - endIndex) * ROW_HEIGHT) : 0
@@ -94,169 +92,173 @@
   class="min-h-0 flex-1 overflow-y-auto"
 >
   <table class="sharp-table w-full border-x-0 border-t-0" spellcheck="false">
-    <thead class="sticky top-0 z-10 bg-bg-card">
-      <tr class="border-b border-line">
-        <th class="w-24 pl-3 py-2 whitespace-nowrap">{i18n.t.date}</th>
+    <thead class="bg-bg-card sticky top-0 z-10">
+      <tr class="border-line border-b">
+        <th class="w-24 py-2 pl-3 whitespace-nowrap">{i18n.t.date}</th>
         <th class="w-20 px-2 py-2 whitespace-nowrap">{i18n.t.colRef}</th>
         <th class="px-3 py-2">{i18n.t.description}</th>
         <th class="w-36 px-2 py-2">{i18n.t.debit} {i18n.t.account}</th>
-        <th class="numeric w-28 px-3 py-2 whitespace-nowrap text-right">{i18n.t.debit}</th>
+        <th class="numeric w-28 px-3 py-2 text-right whitespace-nowrap">{i18n.t.debit}</th>
         <th class="w-36 px-2 py-2">{i18n.t.credit} {i18n.t.account}</th>
-        <th class="numeric w-28 px-3 py-2 whitespace-nowrap text-right">{i18n.t.credit}</th>
+        <th class="numeric w-28 px-3 py-2 text-right whitespace-nowrap">{i18n.t.credit}</th>
         <th class="center w-16 px-2 py-2">{i18n.t.status}</th>
-        <th class="w-16 pr-3 py-2"></th>
+        <th class="w-16 py-2 pr-3"></th>
       </tr>
     </thead>
     <tbody>
       {#snippet journalRow(tx: JournalEntryView, index: number)}
-          {@const imb = transactionImbalance(tx)}
-          {@const drcr = getDrCrPostings(tx, accountsById)}
-          {@const isLocked = closingBooksState.isDateLocked(tx.date)}
-          {@const isEditing = editing?.id === tx.id}
-          {@const expanded = expandedId === tx.id}
-          {@const isSelected = selectedRowIndex === index}
-          {@const tags = parseNoteTags(tx)}
-          {@const num = tags.ref}
-          {@const isSettled = tags.settled}
-          {@const cleanDue = tags.dueDate || null}
-          {@const today = new Date().toISOString().slice(0, 10)}
-          {@const isOverdue = cleanDue ? cleanDue < today && !isSettled : false}
-          {@const displayNotes = tags.cleanNotes || null}
+        {@const imb = transactionImbalance(tx)}
+        {@const drcr = getDrCrPostings(tx, accountsById)}
+        {@const isLocked = closingBooksState.isDateLocked(tx.date)}
+        {@const isEditing = editing?.id === tx.id}
+        {@const expanded = expandedId === tx.id}
+        {@const isSelected = selectedRowIndex === index}
+        {@const tags = parseNoteTags(tx)}
+        {@const num = tags.ref}
+        {@const isSettled = tags.settled}
+        {@const cleanDue = tags.dueDate || null}
+        {@const today = new Date().toISOString().slice(0, 10)}
+        {@const isOverdue = cleanDue ? cleanDue < today && !isSettled : false}
+        {@const displayNotes = tags.cleanNotes || null}
 
-          <tr
-            id="tx-row-{tx.id}"
-            class="hover:bg-bg-row-active cursor-pointer transition-colors {isSelected
-              ? 'selected bg-bg-row-active border-teal border-l-2'
-              : ''} {isEditing ? 'bg-bg-row-active' : ''}"
-            aria-selected={isSelected}
-            onclick={() => {
-              onToggleExpand(tx.id);
-              onSelectRow(index);
-            }}
+        <tr
+          id="tx-row-{tx.id}"
+          class="hover:bg-bg-row-active cursor-pointer transition-colors {isSelected
+            ? 'selected bg-bg-row-active border-teal border-l-2'
+            : ''} {isEditing ? 'bg-bg-row-active' : ''}"
+          aria-selected={isSelected}
+          onclick={() => {
+            onToggleExpand(tx.id);
+            onSelectRow(index);
+          }}
+        >
+          <td
+            class="font-proto text-text-muted text-smaller w-24 py-2 pl-3 whitespace-nowrap tabular-nums"
           >
-            <td class="font-proto text-text-muted text-smaller w-24 py-2 pl-3 whitespace-nowrap tabular-nums">
-              {tx.date}
-            </td>
-            <td class="font-proto text-text-muted text-smaller w-20 px-2 py-2 whitespace-nowrap">
-              {#if num}
-                <span class="bg-bg-app border-line text-text-dim border px-1">
-                  {num}
-                </span>
-              {:else}
-                —
-              {/if}
-            </td>
-            <td class="px-3 py-2">
-              <div class="flex items-center gap-1.5">
-                <span class="font-aux text-text-strong text-small truncate normal-case">{tx.description}</span>
-                {#if cleanDue}
-                  {#if isSettled}
-                    <Badge size="s" tone="ok">{i18n.t.badgeSettled}</Badge>
-                  {:else if isOverdue}
-                    <Badge size="s" tone="err">{i18n.t.badgeOverdue}: {cleanDue}</Badge>
-                  {:else}
-                    <Badge size="s" tone="warn">{i18n.t.badgeDue}: {cleanDue}</Badge>
-                  {/if}
-                {/if}
-                {#if drcr.isMulti}
-                  <span
-                    class="bg-bg-card border-line text-text-dim font-proto text-smaller border px-1 font-semibold uppercase"
-                    title="{tx.postings.length} {i18n.t.splitsUnit.toLowerCase()}"
-                  >
-                    {tx.postings.length}
-                    {i18n.t.splitsUnit}
-                  </span>
-                {/if}
-              </div>
-              {#if displayNotes}
-                <p class="text-text-muted font-aux text-smaller mt-0.5 leading-tight normal-case">
-                  {displayNotes}
-                </p>
-              {/if}
-            </td>
-            <td class="font-proto text-text-base text-smaller w-36 max-w-36 truncate px-2 py-2">
-              <span class="text-text-strong font-medium truncate">{drcr.drLabel}</span>
-            </td>
-            <td
-              class="numeric font-proto text-income text-smaller w-28 px-3 py-2 font-bold whitespace-nowrap tabular-nums text-right"
-            >
-              {formatMinorToDisplay(drcr.drTotal, tx.currency)}
-            </td>
-            <td class="font-proto text-text-base text-smaller w-36 max-w-36 truncate px-2 py-2">
-              <span class="text-text-strong font-medium truncate">{drcr.crLabel}</span>
-            </td>
-            <td
-              class="numeric font-proto text-text-strong text-smaller w-28 px-3 py-2 font-bold whitespace-nowrap tabular-nums text-right"
-            >
-              {formatMinorToDisplay(drcr.crTotal, tx.currency)}
-            </td>
-            <td class="center px-2 py-2">
-              {#if imb !== 0}
-                <Badge size="s" tone="err">{i18n.t.badgeImbal}</Badge>
-              {:else if isLocked}
-                <span title={i18n.t.periodLockedNotice}>
-                  <Badge size="s" tone="warn"
-                    ><span class="inline-flex"><Icon name="lock" size={10} /></span>
-                    {i18n.t.lockedPeriodBadge}</Badge
-                  >
-                </span>
-              {:else}
-                <Badge size="s" tone="ok">{i18n.t.badgeOk}</Badge>
-              {/if}
-            </td>
-            <td class="py-2 pr-3 text-right">
-              <div class="flex items-center justify-end gap-1">
-                {#if cleanDue && !isSettled && onSettle && !isLocked}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="font-proto text-smaller border-success text-success hover:bg-success-bg px-1.5 py-0.5"
-                    title={i18n.t.settleInvoiceTitle}
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      onSettle(tx);
-                    }}
-                  >
-                    {i18n.t.settleInvoiceAction}
-                  </Button>
-                {/if}
-                {#if isLocked}
-                  <span
-                    class="text-text-dim font-proto text-smaller inline-flex items-center gap-1 px-1.5 py-0.5 tracking-wider uppercase select-none"
-                    title={i18n.t.periodLockedEditDisabled}
-                  >
-                    <Icon name="lock" size={10} />
-                    {i18n.t.lockedPeriodBadge}
-                  </span>
+            {tx.date}
+          </td>
+          <td class="font-proto text-text-muted text-smaller w-20 px-2 py-2 whitespace-nowrap">
+            {#if num}
+              <span class="bg-bg-app border-line text-text-dim border px-1">
+                {num}
+              </span>
+            {:else}
+              —
+            {/if}
+          </td>
+          <td class="px-3 py-2">
+            <div class="flex items-center gap-1.5">
+              <span class="font-aux text-text-strong text-small truncate normal-case"
+                >{tx.description}</span
+              >
+              {#if cleanDue}
+                {#if isSettled}
+                  <Badge size="s" tone="ok">{i18n.t.badgeSettled}</Badge>
+                {:else if isOverdue}
+                  <Badge size="s" tone="err">{i18n.t.badgeOverdue}: {cleanDue}</Badge>
                 {:else}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      onToggleEdit(tx);
-                    }}
-                  >
-                    {i18n.t.edit}
-                  </Button>
+                  <Badge size="s" tone="warn">{i18n.t.badgeDue}: {cleanDue}</Badge>
                 {/if}
+              {/if}
+              {#if drcr.isMulti}
+                <span
+                  class="bg-bg-card border-line text-text-dim font-proto text-smaller border px-1 font-semibold uppercase"
+                  title="{tx.postings.length} {i18n.t.splitsUnit.toLowerCase()}"
+                >
+                  {tx.postings.length}
+                  {i18n.t.splitsUnit}
+                </span>
+              {/if}
+            </div>
+            {#if displayNotes}
+              <p class="text-text-muted font-aux text-smaller mt-0.5 leading-tight normal-case">
+                {displayNotes}
+              </p>
+            {/if}
+          </td>
+          <td class="font-proto text-text-base text-smaller w-36 max-w-36 truncate px-2 py-2">
+            <span class="text-text-strong truncate font-medium">{drcr.drLabel}</span>
+          </td>
+          <td
+            class="numeric font-proto text-income text-smaller w-28 px-3 py-2 text-right font-bold whitespace-nowrap tabular-nums"
+          >
+            {formatMinorToDisplay(drcr.drTotal, tx.currency)}
+          </td>
+          <td class="font-proto text-text-base text-smaller w-36 max-w-36 truncate px-2 py-2">
+            <span class="text-text-strong truncate font-medium">{drcr.crLabel}</span>
+          </td>
+          <td
+            class="numeric font-proto text-text-strong text-smaller w-28 px-3 py-2 text-right font-bold whitespace-nowrap tabular-nums"
+          >
+            {formatMinorToDisplay(drcr.crTotal, tx.currency)}
+          </td>
+          <td class="center px-2 py-2">
+            {#if imb !== 0}
+              <Badge size="s" tone="err">{i18n.t.badgeImbal}</Badge>
+            {:else if isLocked}
+              <span title={i18n.t.periodLockedNotice}>
+                <Badge size="s" tone="warn"
+                  ><span class="inline-flex"><Icon name="lock" size={10} /></span>
+                  {i18n.t.lockedPeriodBadge}</Badge
+                >
+              </span>
+            {:else}
+              <Badge size="s" tone="ok">{i18n.t.badgeOk}</Badge>
+            {/if}
+          </td>
+          <td class="py-2 pr-3 text-right">
+            <div class="flex items-center justify-end gap-1">
+              {#if cleanDue && !isSettled && onSettle && !isLocked}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="font-proto text-smaller border-success text-success hover:bg-success-bg px-1.5 py-0.5"
+                  title={i18n.t.settleInvoiceTitle}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    onSettle(tx);
+                  }}
+                >
+                  {i18n.t.settleInvoiceAction}
+                </Button>
+              {/if}
+              {#if isLocked}
+                <span
+                  class="text-text-dim font-proto text-smaller inline-flex items-center gap-1 px-1.5 py-0.5 tracking-wider uppercase select-none"
+                  title={i18n.t.periodLockedEditDisabled}
+                >
+                  <Icon name="lock" size={10} />
+                  {i18n.t.lockedPeriodBadge}
+                </span>
+              {:else}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    onToggleEdit(tx);
+                  }}
+                >
+                  {i18n.t.edit}
+                </Button>
+              {/if}
+            </div>
+          </td>
+        </tr>
+
+        {#if expanded && !isEditing}
+          <tr class="bg-bg-card/40 border-line border-b">
+            <td colspan="9" class="p-0">
+              <div
+                transition:slide={{ duration: 120, easing: cubicOut }}
+                class="border-line/60 bg-bg-card/50 border-t p-3"
+              >
+                <JournalSplitsDetail entry={tx} {accountsById} />
               </div>
             </td>
           </tr>
-
-          {#if expanded && !isEditing}
-            <tr class="bg-bg-card/40 border-line border-b">
-              <td colspan="9" class="p-0">
-                <div
-                  transition:slide={{ duration: 120, easing: cubicOut }}
-                  class="border-line/60 bg-bg-card/50 border-t p-3"
-                >
-                  <JournalSplitsDetail entry={tx} {accountsById} />
-                </div>
-              </td>
-            </tr>
-          {/if}
-        {/snippet}
+        {/if}
+      {/snippet}
 
       {#if entries.length === 0}
         <tr>
@@ -266,13 +268,13 @@
         </tr>
       {:else}
         {#if topPadding > 0}
-          <tr style="height: {topPadding}px"><td colspan="9" class="p-0 border-none"></td></tr>
+          <tr style="height: {topPadding}px"><td colspan="9" class="border-none p-0"></td></tr>
         {/if}
         {#each visibleEntries as tx, i (tx.id)}
           {@render journalRow(tx, startIndex + i)}
         {/each}
         {#if bottomPadding > 0}
-          <tr style="height: {bottomPadding}px"><td colspan="9" class="p-0 border-none"></td></tr>
+          <tr style="height: {bottomPadding}px"><td colspan="9" class="border-none p-0"></td></tr>
         {/if}
       {/if}
     </tbody>

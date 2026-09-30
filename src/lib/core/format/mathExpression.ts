@@ -6,7 +6,10 @@ export function evaluateFinancialExpression(
 ): number | null {
   if (!expr || typeof expr !== 'string') return null;
 
-  let s = expr.trim().toLowerCase().replace(/^(rp|usd|\$)\s*/, '');
+  let s = expr
+    .trim()
+    .toLowerCase()
+    .replace(/^(rp|usd|\$)\s*/, '');
   if (!s) return null;
 
   s = s.replace(/(\d+),(\d+)\s*(k|rb|m|jt)\b/g, '$1.$2$3');

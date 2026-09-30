@@ -97,7 +97,10 @@
         <!-- phase indicator -->
         <div class="flex flex-col gap-1.5">
           <div class="flex items-center justify-between">
-            <span class="font-proto text-[10px] tracking-widest" style="color: var(--color-text-dim)">
+            <span
+              class="font-proto text-[10px] tracking-widest"
+              style="color: var(--color-text-dim)"
+            >
               {i18n.t.updaterStatus}
             </span>
             {#if updaterState.latestVersion}
@@ -127,13 +130,15 @@
         {#if isProgressActive || isReady || isRestarting}
           <div class="flex flex-col gap-1.5">
             <div class="flex items-center justify-between">
-              <span class="font-proto text-[10px] tracking-widest" style="color: var(--color-text-dim)">
+              <span
+                class="font-proto text-[10px] tracking-widest"
+                style="color: var(--color-text-dim)"
+              >
                 {i18n.t.updaterProgress}
               </span>
               {#if updaterState.phase === 'downloading'}
                 <span class="font-proto text-[10px]" style="color: var(--color-text-base)">
-                  {updaterState.downloadedMb} / {updaterState.totalMb} MB
-                  · {updaterState.progressPercent}%
+                  {updaterState.downloadedMb} / {updaterState.totalMb} MB · {updaterState.progressPercent}%
                 </span>
               {/if}
             </div>
@@ -151,7 +156,7 @@
         <!-- error detail -->
         {#if isError && updaterState.errorMessage}
           <div
-            class="border px-3 py-2 font-aux text-xs"
+            class="font-aux border px-3 py-2 text-xs"
             style="border-color: var(--color-danger-border); background: var(--color-danger-bg); color: var(--color-expense)"
           >
             {updaterState.errorMessage}
@@ -164,7 +169,10 @@
             class="border px-3 py-2.5"
             style="border-color: var(--color-warning-border); background: var(--color-warning-bg)"
           >
-            <span class="font-proto text-[10px] tracking-widest" style="color: var(--color-warning)">
+            <span
+              class="font-proto text-[10px] tracking-widest"
+              style="color: var(--color-warning)"
+            >
               {i18n.t.updaterSessionExpiredWarning}
             </span>
           </div>
@@ -173,37 +181,28 @@
         <!-- action buttons -->
         <div class="mt-auto flex gap-2">
           {#if updaterState.phase === 'available'}
-            <Button
-              onclick={() => updaterState.downloadAndInstall()}
-              variant="primary"
-              size="sm"
-            >
+            <Button onclick={() => updaterState.downloadAndInstall()} variant="primary" size="sm">
               {i18n.t.updaterDownloadBtn}
             </Button>
             <Button onclick={onClose} variant="ghost" size="sm">
               {i18n.t.updaterLaterBtn}
             </Button>
           {:else if isReady}
-            <Button
-              onclick={() => updaterState.applyAndRelaunch()}
-              variant="primary"
-              size="sm"
-            >
+            <Button onclick={() => updaterState.applyAndRelaunch()} variant="primary" size="sm">
               {isSessionExpired ? i18n.t.updaterRelockAndApplyBtn : i18n.t.updaterApplyBtn}
             </Button>
           {:else if isError}
-            <Button
-              onclick={() => updaterState.checkForUpdate()}
-              variant="ghost"
-              size="sm"
-            >
+            <Button onclick={() => updaterState.checkForUpdate()} variant="ghost" size="sm">
               {i18n.t.updaterRetryBtn}
             </Button>
             <Button onclick={onClose} variant="ghost" size="sm">
               {i18n.t.updaterCancelBtn}
             </Button>
           {:else if isRestarting}
-            <span class="font-proto text-[10px] tracking-widest animate-pulse" style="color: var(--color-teal)">
+            <span
+              class="font-proto animate-pulse text-[10px] tracking-widest"
+              style="color: var(--color-teal)"
+            >
               {i18n.t.updaterRestartingMsg}
             </span>
           {/if}
@@ -222,7 +221,7 @@
         {/if}
         {#if updaterState.releaseNotes}
           <div
-            class="mt-1 max-h-72 overflow-y-auto font-aux text-xs leading-relaxed"
+            class="font-aux mt-1 max-h-72 overflow-y-auto text-xs leading-relaxed"
             style="color: var(--color-text-base)"
           >
             {#each formatReleaseNotes(updaterState.releaseNotes).split('\n') as line, idx (idx)}
@@ -231,7 +230,10 @@
                   {line.replace(/^[-•]\s/, '')}
                 </p>
               {:else if line.trim()}
-                <p class="mb-1.5 font-proto text-[10px] tracking-wider" style="color: var(--color-text-strong)">
+                <p
+                  class="font-proto mb-1.5 text-[10px] tracking-wider"
+                  style="color: var(--color-text-strong)"
+                >
                   {line}
                 </p>
               {/if}

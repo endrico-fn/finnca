@@ -105,7 +105,12 @@
     const rect = containerEl.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
-    const openUpward = placement === 'top' ? true : placement === 'bottom' ? false : spaceBelow < 280 && spaceAbove > spaceBelow;
+    const openUpward =
+      placement === 'top'
+        ? true
+        : placement === 'bottom'
+          ? false
+          : spaceBelow < 280 && spaceAbove > spaceBelow;
     const width = Math.max(rect.width, 320);
     const left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.left));
 
@@ -214,8 +219,10 @@
   <!-- Dropdown Popover -->
   {#if open}
     <div
-      class="border-2 border-line bg-bg-card fixed z-[9999] border {menuClass}"
-      style="left: {menuCoords.left}px; {menuCoords.openUpward ? `bottom: ${typeof window !== 'undefined' ? window.innerHeight - menuCoords.top + 4 : 0}px;` : `top: ${menuCoords.top + 4}px;`} width: {menuCoords.width}px;"
+      class="border-line bg-bg-card fixed z-[9999] border border-2 {menuClass}"
+      style="left: {menuCoords.left}px; {menuCoords.openUpward
+        ? `bottom: ${typeof window !== 'undefined' ? window.innerHeight - menuCoords.top + 4 : 0}px;`
+        : `top: ${menuCoords.top + 4}px;`} width: {menuCoords.width}px;"
       role="listbox"
     >
       <!-- Search Box -->

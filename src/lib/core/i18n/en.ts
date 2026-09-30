@@ -524,7 +524,8 @@ export const en = {
 
   // Closing Books & Lock Date
   closingBooksTitle: 'CLOSING BOOKS & LOCK DATE',
-  closingBooksDesc: 'Lock past transaction history so that finalized and audited financial statements cannot be tampered with.',
+  closingBooksDesc:
+    'Lock past transaction history so that finalized and audited financial statements cannot be tampered with.',
   currentLockDate: 'Active Lock Date',
   noClosingDateSet: 'Open Books (All Historical Periods Open)',
   lockDateAction: 'LOCK ACCOUNTING PERIOD',
@@ -536,7 +537,8 @@ export const en = {
   lockedPeriodBadge: 'LOCKED',
   openPeriodBadge: 'OPEN',
   periodLockedNotice: 'The accounting period on or before this date is closed and locked.',
-  periodLockedEditDisabled: 'This transaction is in a closed accounting period and cannot be modified.',
+  periodLockedEditDisabled:
+    'This transaction is in a closed accounting period and cannot be modified.',
   closingDateUpdatedSuccess: 'Accounting closing date updated successfully',
 
   // Reports & Analytics additions

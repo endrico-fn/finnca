@@ -3,7 +3,11 @@
   import { reportState } from '$lib/features/report/state/report.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { KpiCard, AnimatedCounter } from '$lib/components/ui';
-  import { calculateChartCoords, calculateZeroLineY, type TrendsPeriod } from '../state/trendsChartUtils';
+  import {
+    calculateChartCoords,
+    calculateZeroLineY,
+    type TrendsPeriod,
+  } from '../state/trendsChartUtils';
   import type { Account, AccountReportRow } from '$lib/core/ipc/bindings';
   import TrendsChart from './TrendsChart.svelte';
   import TrendsHealthCards from './TrendsHealthCards.svelte';
@@ -56,7 +60,7 @@
   const debtRatio = $derived(
     bs.assets > 0 ? ((bs.liabilities / bs.assets) * 100).toFixed(1) : '0.0'
   );
-  
+
   const debtStatus = $derived(
     Number(debtRatio) < 30
       ? i18n.t.healthy
@@ -104,16 +108,29 @@
   <!-- Milestones -->
   <div class="grid shrink-0 grid-cols-3 gap-2">
     <KpiCard label={i18n.t.networthPeakLabel}>
-      <AnimatedCounter value={peakPoint?.netWorth ?? 0} currency="IDR" class="text-medium text-teal block leading-tight font-bold" />
+      <AnimatedCounter
+        value={peakPoint?.netWorth ?? 0}
+        currency="IDR"
+        class="text-medium text-teal block leading-tight font-bold"
+      />
       <span class="text-text-dim font-proto text-smaller block">{peakPoint?.date ?? '—'}</span>
     </KpiCard>
     <KpiCard label={i18n.t.networthCurrentLabel}>
-      <AnimatedCounter value={currentPoint?.netWorth ?? 0} currency="IDR"
-        class="text-medium {(currentPoint?.netWorth ?? 0) >= 0 ? 'text-income' : 'text-expense'} block leading-tight font-bold" />
+      <AnimatedCounter
+        value={currentPoint?.netWorth ?? 0}
+        currency="IDR"
+        class="text-medium {(currentPoint?.netWorth ?? 0) >= 0
+          ? 'text-income'
+          : 'text-expense'} block leading-tight font-bold"
+      />
       <span class="text-text-dim font-proto text-smaller block">{currentPoint?.date ?? '—'}</span>
     </KpiCard>
     <KpiCard label={i18n.t.networthStartLabel}>
-      <AnimatedCounter value={startPoint?.netWorth ?? 0} currency="IDR" class="text-medium text-text-base block leading-tight font-bold" />
+      <AnimatedCounter
+        value={startPoint?.netWorth ?? 0}
+        currency="IDR"
+        class="text-medium text-text-base block leading-tight font-bold"
+      />
       <span class="text-text-dim font-proto text-smaller block">{trendsDateRange.startStr}</span>
     </KpiCard>
   </div>

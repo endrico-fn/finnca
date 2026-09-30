@@ -27,12 +27,12 @@
 </script>
 
 <table class="sharp-table w-full border-x-0 border-t-0" spellcheck="false">
-  <thead class="sticky top-0 z-10 bg-bg-card">
-    <tr class="border-b border-line">
-      <th class="w-24 pl-3 py-2 whitespace-nowrap">{i18n.t.colCode}</th>
+  <thead class="bg-bg-card sticky top-0 z-10">
+    <tr class="border-line border-b">
+      <th class="w-24 py-2 pl-3 whitespace-nowrap">{i18n.t.colCode}</th>
       <th class="px-3 py-2">{i18n.t.colHierarchyPath}</th>
-      <th class="numeric w-36 px-3 py-2 whitespace-nowrap text-right">{i18n.t.colBalance}</th>
-      <th class="center w-12 pr-3 py-2"></th>
+      <th class="numeric w-36 px-3 py-2 text-right whitespace-nowrap">{i18n.t.colBalance}</th>
+      <th class="center w-12 py-2 pr-3"></th>
     </tr>
   </thead>
   <tbody>
@@ -51,7 +51,9 @@
         ondblclick={() => onDblClick?.(acc)}
         title={acc.placeholder ? i18n.t.singleSelectDoubleEdit : i18n.t.singleSelectDoubleLedger}
       >
-        <td class="text-text-muted font-proto text-smaller w-24 pl-3 py-2 whitespace-nowrap tabular-nums">
+        <td
+          class="text-text-muted font-proto text-smaller w-24 py-2 pl-3 whitespace-nowrap tabular-nums"
+        >
           {acc.code}
         </td>
         <td class="max-w-0 px-3 py-2">
@@ -66,7 +68,9 @@
               <span class="size-1.5 shrink-0 {ACCOUNT_TYPE_BG[acc.account_type]}"></span>
               <div class="flex min-w-0 items-center gap-1 truncate">
                 {#if segments.length > 1}
-                  <span class="text-text-dim font-aux text-smaller min-w-0 shrink truncate normal-case">
+                  <span
+                    class="text-text-dim font-aux text-smaller min-w-0 shrink truncate normal-case"
+                  >
                     {segments.slice(0, -1).join(' > ')}
                     <span class="text-text-muted/50 font-proto text-smaller mx-0.5 select-none"
                       >&gt;</span
@@ -87,14 +91,14 @@
           </AccountHoverCard>
         </td>
         <td
-          class="numeric font-proto text-smaller w-36 px-3 py-2 whitespace-nowrap tabular-nums text-right {normalBalance <
+          class="numeric font-proto text-smaller w-36 px-3 py-2 text-right whitespace-nowrap tabular-nums {normalBalance <
           0
             ? 'text-expense font-bold'
             : 'text-text-strong font-medium'}"
         >
           {formatMinorToDisplay(normalBalance, acc.currency)}
         </td>
-        <td class="center w-12 pr-3 py-2 whitespace-nowrap">
+        <td class="center w-12 py-2 pr-3 whitespace-nowrap">
           <button
             type="button"
             onclick={(e) => onToggleHide?.(acc, e)}

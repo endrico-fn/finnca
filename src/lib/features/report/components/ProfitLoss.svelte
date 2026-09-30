@@ -126,7 +126,7 @@
                     {totalIncome > 0 ? `${pct.toFixed(1)}%` : '—'}
                   </td>
                   <td
-                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums font-bold"
+                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 font-bold whitespace-nowrap tabular-nums"
                   >
                     {fmt(row.amount, row.currency)}
                   </td>
@@ -181,7 +181,7 @@
                     {totalIncome > 0 ? `${pct.toFixed(1)}%` : '—'}
                   </td>
                   <td
-                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 whitespace-nowrap tabular-nums font-bold"
+                    class="numeric font-proto text-text-white text-smaller w-36 pr-3 font-bold whitespace-nowrap tabular-nums"
                   >
                     {fmt(row.amount, row.currency)}
                   </td>

@@ -528,19 +528,23 @@ export const id: TranslationDict = {
 
   // Closing Books & Lock Date
   closingBooksTitle: 'PENUTUPAN BUKU & KUNCI PERIODE',
-  closingBooksDesc: 'Kunci histori transaksi masa lalu agar laporan keuangan yang telah diaudit tidak dapat diubah.',
+  closingBooksDesc:
+    'Kunci histori transaksi masa lalu agar laporan keuangan yang telah diaudit tidak dapat diubah.',
   currentLockDate: 'Tanggal Kunci Aktif',
   noClosingDateSet: 'Buku Terbuka (Semua Periode Terbuka)',
   lockDateAction: 'KUNCI PERIODE BUKU',
   unlockDateAction: 'BUKA KUNCI BUKU',
   confirmLockDateTitle: 'Kunci Periode Pembukuan?',
-  confirmLockDateMsg: 'Transaksi pada atau sebelum tanggal {date} tidak akan dapat ditambah, diedit, atau dihapus.',
+  confirmLockDateMsg:
+    'Transaksi pada atau sebelum tanggal {date} tidak akan dapat ditambah, diedit, atau dihapus.',
   confirmUnlockTitle: 'Buka Kunci Periode Pembukuan?',
-  confirmUnlockMsg: 'Membuka kunci buku memungkinkan penambahan atau pengubahan transaksi pada periode masa lalu.',
+  confirmUnlockMsg:
+    'Membuka kunci buku memungkinkan penambahan atau pengubahan transaksi pada periode masa lalu.',
   lockedPeriodBadge: 'TERKUNCI',
   openPeriodBadge: 'TERBUKA',
   periodLockedNotice: 'Periode akuntansi pada atau sebelum tanggal ini telah ditutup dan dikunci.',
-  periodLockedEditDisabled: 'Transaksi ini berada pada periode buku terkunci dan tidak dapat diubah.',
+  periodLockedEditDisabled:
+    'Transaksi ini berada pada periode buku terkunci dan tidak dapat diubah.',
   closingDateUpdatedSuccess: 'Tanggal penutupan buku berhasil diperbarui',
 
   // Reports & Analytics additions
@@ -1256,7 +1260,8 @@ export const id: TranslationDict = {
   editPlanTitle: 'PERBARUI RENCANA PEMBAYARAN',
   editPlanSuccess: 'Rencana pembayaran berhasil diperbarui',
   lockOnReboot: 'Kunci Vault Otomatis Saat Boot Ulang (Reboot)',
-  lockOnRebootDesc: 'Deteksi boot ID OS untuk memastikan vault terkunci saat perangkat dinyalakan ulang',
+  lockOnRebootDesc:
+    'Deteksi boot ID OS untuk memastikan vault terkunci saat perangkat dinyalakan ulang',
   fxSyncLiveBtn: 'LIVE',
   calcResult: 'HASIL KALKULASI',
   formattedAmount: 'TERFORMAT',
@@ -1288,7 +1293,8 @@ export const id: TranslationDict = {
   reconcileRuleCreatedSuccess: 'Aturan kategorisasi berhasil disimpan.',
   reconcileRuleDeletedSuccess: 'Aturan berhasil dihapus.',
   reconcileRuleEmpty: 'Belum ada aturan kategorisasi mutasi bank.',
-  reconcileRuleEmptyHint: 'Buat aturan untuk mengkategorikan transaksi rekening koran secara instan.',
+  reconcileRuleEmptyHint:
+    'Buat aturan untuk mengkategorikan transaksi rekening koran secara instan.',
   reconcileQuickAddWithRuleBtn: '+ CATAT (ATURAN)',
   updateAvailableTitle: 'PEMBARUAN TERSEDIA',
   updateAvailableMsg: 'Finnca {version} telah dirilis. Ketuk untuk melihat catatan rilis.',
@@ -1316,5 +1322,6 @@ export const id: TranslationDict = {
   updaterRetryBtn: 'COBA LAGI',
   updaterCancelBtn: 'BATAL',
   updaterRestartingMsg: 'MELUNCURKAN ULANG APLIKASI...',
-  updaterSessionExpiredWarning: 'SESI BERAKHIR SELAMA PEMBARUAN · VAULT AKAN DIKUNCI ULANG SAAT RELAUNCH',
+  updaterSessionExpiredWarning:
+    'SESI BERAKHIR SELAMA PEMBARUAN · VAULT AKAN DIKUNCI ULANG SAAT RELAUNCH',
 };

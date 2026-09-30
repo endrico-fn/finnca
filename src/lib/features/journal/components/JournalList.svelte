@@ -2,11 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/state';
   import { journalState } from '../state/journalDraft.svelte';
-  import {
-    listAccountsCmd,
-    type Account,
-    type JournalEntryView,
-  } from '$lib/core/ipc/bindings';
+  import { listAccountsCmd, type Account, type JournalEntryView } from '$lib/core/ipc/bindings';
   import { modalState } from '$lib/core/state/modal.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
@@ -91,7 +87,12 @@
   let selectedRowIndex = $state<number | null>(null);
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement
+    )
+      return;
 
     if (e.key === 'j' || e.key === 'ArrowDown') {
       e.preventDefault();
@@ -232,7 +233,7 @@
         <span class="flex items-center gap-1.5">
           <Icon name="transfer" size={13} />
           <span>{i18n.t.modeTransfer}</span>
-          <span class="border-line/80 text-text-dim border px-1 py-0.5 text-smaller">T</span>
+          <span class="border-line/80 text-text-dim text-smaller border px-1 py-0.5">T</span>
         </span>
       </Button>
 
@@ -247,7 +248,7 @@
       >
         <span class="flex items-center gap-1.5">
           <span>{i18n.t.newEntry}</span>
-          <span class="border-line/80 text-text-dim border px-1 py-0.5 text-smaller">N</span>
+          <span class="border-line/80 text-text-dim text-smaller border px-1 py-0.5">N</span>
         </span>
       </Button>
     </div>
@@ -259,7 +260,10 @@
     <ErrorState message={journalState.error} onRetry={() => journalState.loadEntries()} />
   {:else}
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <Card padding={false} class="border-line bg-bg-card min-h-0 min-w-0 flex-1 flex flex-col overflow-hidden border">
+      <Card
+        padding={false}
+        class="border-line bg-bg-card flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border"
+      >
         <JournalFilterBar
           bind:q
           bind:from

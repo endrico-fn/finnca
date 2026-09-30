@@ -156,7 +156,7 @@
 
     <Card
       title="{i18n.t.budgetEnvelopeTitle} ({filteredEnvelopes.length})"
-      class="border-line bg-bg-card min-h-0 flex-1 flex flex-col overflow-hidden border"
+      class="border-line bg-bg-card flex min-h-0 flex-1 flex-col overflow-hidden border"
       padding={false}
       borderHeader
     >

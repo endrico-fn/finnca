@@ -152,7 +152,7 @@
     </div>
 
     <div
-      class="text-text-dim bg-bg-app border-line text-smaller max-h-32 overflow-y-auto border p-2 font-aux whitespace-pre-wrap"
+      class="text-text-dim bg-bg-app border-line text-smaller font-aux max-h-32 overflow-y-auto border p-2 whitespace-pre-wrap"
     >
       {scanResultText}
     </div>

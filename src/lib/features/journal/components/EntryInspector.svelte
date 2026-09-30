@@ -47,11 +47,7 @@
     checkTransferLegs,
     type PresetInput,
   } from '../state/journalFormUtils';
-  import {
-    parseNoteTags,
-    serializeNoteTags,
-    stripSettledMarker,
-  } from '../state/journalNoteTags';
+  import { parseNoteTags, serializeNoteTags, stripSettledMarker } from '../state/journalNoteTags';
 
   type InspectorViewMode = 'transfer' | 'journal';
   type SimpleCategory = 'TRANSFER' | 'EXPENSE' | 'INCOME' | 'CUSTOM';
@@ -122,14 +118,18 @@
   const minorFee = $derived(showFee ? parseStringAmountToMinor(adminFee || '', currency) : 0);
   const fromAcc = $derived(accountsById.get(standardFrom));
   const toAcc = $derived(accountsById.get(standardTo));
-  const feeAcc = $derived(showFee && adminFeeAccount ? accountsById.get(adminFeeAccount) : undefined);
+  const feeAcc = $derived(
+    showFee && adminFeeAccount ? accountsById.get(adminFeeAccount) : undefined
+  );
   const hasFeeLine = $derived(showFee && minorFee > 0 && !!adminFeeAccount);
 
   const fromBalance = $derived(accountBalances.get(standardFrom) ?? 0);
   const toBalance = $derived(accountBalances.get(standardTo) ?? 0);
   const projectedFrom = $derived(fromBalance - minorAmount);
   const projectedTo = $derived(toBalance + minorAmount);
-  const isOverdraft = $derived(fromAcc?.account_type === 'ASSET' && minorAmount > 0 && projectedFrom < 0);
+  const isOverdraft = $derived(
+    fromAcc?.account_type === 'ASSET' && minorAmount > 0 && projectedFrom < 0
+  );
 
   const previewDebits = $derived(
     standardFrom && standardTo && minorAmount > 0 && toAcc
@@ -162,13 +162,7 @@
   const simpleValid = $derived.by(() => {
     if (!description.trim()) return false;
     return (
-      checkTransferLegs(
-        standardFrom,
-        standardTo,
-        minorAmount,
-        adminFeeAccount,
-        minorFee
-      ) === null
+      checkTransferLegs(standardFrom, standardTo, minorAmount, adminFeeAccount, minorFee) === null
     );
   });
 
@@ -289,9 +283,10 @@
       notes = snap.notes || '';
       currency = (snap.currency as Currency) || 'IDR';
       fxRate = snap.fx_rate ?? defaultFxRate;
-      postings = snap.postings && snap.postings.length >= 2
-        ? snap.postings
-        : createEmptyJournalDraft().postings;
+      postings =
+        snap.postings && snap.postings.length >= 2
+          ? snap.postings
+          : createEmptyJournalDraft().postings;
 
       adminFee = '';
       adminFeeAccount = '';
@@ -560,23 +555,25 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <aside
-  class="bg-bg-app flex h-full min-h-0 flex-1 flex-col overflow-hidden outline-none font-aux"
+  class="bg-bg-app font-aux flex h-full min-h-0 flex-1 flex-col overflow-hidden outline-none"
   tabindex="-1"
   aria-label={i18n.t.entryInspectorTitle}
 >
   <header
-    class="border-b-2 border-line bg-bg-card shrink-0 px-3 py-2 flex items-center justify-between select-none"
+    class="border-line bg-bg-card flex shrink-0 items-center justify-between border-b-2 px-3 py-2 select-none"
   >
     <div class="flex items-center gap-2.5">
       <span class="badge-neutral font-proto text-smaller font-bold">{i18n.t.workstation}</span>
-      <span class="font-proto text-text-strong text-small font-bold uppercase tracking-wider">
+      <span class="font-proto text-text-strong text-small font-bold tracking-wider uppercase">
         {entry
           ? `${i18n.t.editEntryTitle} ${num ? `· ${num}` : ''}`
           : mode === 'transfer'
             ? i18n.t.quickTransferTitle
             : i18n.t.newEntryTitle}
       </span>
-      <span class="font-proto text-teal text-smaller font-bold border border-line bg-bg-app px-1.5 py-0.5">
+      <span
+        class="font-proto text-teal text-smaller border-line bg-bg-app border px-1.5 py-0.5 font-bold"
+      >
         #{num || (entry ? entry.id.slice(0, 8).toUpperCase() : 'DRAFT')}
       </span>
       {#if isLocked}
@@ -592,8 +589,7 @@
         <button
           type="button"
           onclick={switchToSimple}
-          class="font-proto text-smaller h-6 px-2.5 uppercase transition-colors {mode ===
-          'transfer'
+          class="font-proto text-smaller h-6 px-2.5 uppercase transition-colors {mode === 'transfer'
             ? 'bg-bg-btn text-teal font-bold'
             : 'text-text-muted hover:text-text-base'}"
         >
@@ -602,8 +598,7 @@
         <button
           type="button"
           onclick={switchToSplit}
-          class="font-proto text-smaller h-6 px-2.5 uppercase transition-colors {mode ===
-          'journal'
+          class="font-proto text-smaller h-6 px-2.5 uppercase transition-colors {mode === 'journal'
             ? 'bg-bg-btn text-teal font-bold'
             : 'text-text-muted hover:text-text-base'}"
         >
@@ -614,19 +609,23 @@
       <button
         type="button"
         onclick={() => modalState.toggleInspectorLayout()}
-        title={modalState.inspectorLayout === 'docked' ? i18n.t.layoutCenterHud : i18n.t.layoutSplitDock}
-        class="border border-line hover:border-teal hover:text-teal bg-bg-app text-text-muted font-proto text-smaller h-7 px-2 flex items-center gap-1 transition-colors"
+        title={modalState.inspectorLayout === 'docked'
+          ? i18n.t.layoutCenterHud
+          : i18n.t.layoutSplitDock}
+        class="border-line hover:border-teal hover:text-teal bg-bg-app text-text-muted font-proto text-smaller flex h-7 items-center gap-1 border px-2 transition-colors"
       >
         <span>{modalState.inspectorLayout === 'docked' ? '⧉' : '◨'}</span>
-        <span class="hidden sm:inline text-smaller">
-          {modalState.inspectorLayout === 'docked' ? i18n.t.layoutCenterHud : i18n.t.layoutSplitDock}
+        <span class="text-smaller hidden sm:inline">
+          {modalState.inspectorLayout === 'docked'
+            ? i18n.t.layoutCenterHud
+            : i18n.t.layoutSplitDock}
         </span>
       </button>
 
       <button
         type="button"
         onclick={onCancel}
-        class="border border-line hover:border-danger hover:text-danger bg-bg-app text-text-muted font-proto text-smaller h-7 w-7 flex items-center justify-center transition-colors"
+        class="border-line hover:border-danger hover:text-danger bg-bg-app text-text-muted font-proto text-smaller flex h-7 w-7 items-center justify-center border transition-colors"
         aria-label={i18n.t.closeBtn}
       >
         ✕
@@ -634,7 +633,7 @@
     </div>
   </header>
 
-  <div class="min-h-0 flex-1 overflow-y-auto p-3 space-y-3 select-text">
+  <div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 select-text">
     {#if error}
       <div class="badge-err font-proto text-small px-3 py-2">{error}</div>
     {/if}
@@ -654,9 +653,11 @@
     {/if}
 
     <div class="border-line bg-bg-card/40 border p-3">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <div>
-          <label for="inspector-date" class="label-xs mb-1 block font-proto font-bold">{i18n.t.date}</label>
+          <label for="inspector-date" class="label-xs font-proto mb-1 block font-bold"
+            >{i18n.t.date}</label
+          >
           <input
             id="inspector-date"
             type="date"
@@ -666,7 +667,9 @@
         </div>
 
         <div>
-          <label for="inspector-cur" class="label-xs mb-1 block font-proto font-bold">{i18n.t.currency}</label>
+          <label for="inspector-cur" class="label-xs font-proto mb-1 block font-bold"
+            >{i18n.t.currency}</label
+          >
           <select
             id="inspector-cur"
             bind:value={currency}
@@ -678,7 +681,11 @@
         </div>
 
         <div>
-          <label for="inspector-ref" class="label-xs mb-1 block font-proto font-bold truncate" title={i18n.t.voucherNo}>
+          <label
+            for="inspector-ref"
+            class="label-xs font-proto mb-1 block truncate font-bold"
+            title={i18n.t.voucherNo}
+          >
             {i18n.t.voucherNo}
           </label>
           <input
@@ -691,12 +698,14 @@
         </div>
 
         <div>
-          <div class="flex items-center justify-between mb-1">
-            <label for="inspector-due" class="label-xs font-proto font-bold truncate">
+          <div class="mb-1 flex items-center justify-between">
+            <label for="inspector-due" class="label-xs font-proto truncate font-bold">
               {i18n.t.txDueDateOpt}
             </label>
             {#if dueDate}
-              <label class="text-text-base font-proto text-smaller flex cursor-pointer items-center gap-1 select-none">
+              <label
+                class="text-text-base font-proto text-smaller flex cursor-pointer items-center gap-1 select-none"
+              >
                 <input type="checkbox" bind:checked={settled} class="accent-teal size-3" />
                 <span class="text-smaller font-bold">{i18n.t.txMarkSettled}</span>
               </label>
@@ -713,7 +722,7 @@
 
       {#if currency === 'USD'}
         <div
-          class="border border-line bg-bg-app font-proto text-smaller flex items-center justify-between p-2 mt-2.5"
+          class="border-line bg-bg-app font-proto text-smaller mt-2.5 flex items-center justify-between border p-2"
         >
           <div class="flex items-center gap-2">
             <span class="badge-teal font-proto text-smaller font-bold">{i18n.t.fxRateLabel}</span>
@@ -732,7 +741,7 @@
               onclick={handleSyncLiveFx}
               disabled={syncingFx}
               title={i18n.t.fxSyncLiveBtn}
-              class="border border-line hover:border-teal hover:text-teal bg-bg-card text-text-dim px-2 h-7 font-proto text-smaller uppercase transition-colors disabled:opacity-50"
+              class="border-line hover:border-teal hover:text-teal bg-bg-card text-text-dim font-proto text-smaller h-7 border px-2 uppercase transition-colors disabled:opacity-50"
             >
               {syncingFx ? '...' : `⟳ ${i18n.t.fxSyncLiveBtn}`}
             </button>
@@ -742,14 +751,14 @@
     </div>
 
     {#if mode === 'transfer'}
-      <div class="border-line bg-bg-card/40 border p-3 space-y-3">
-        <div class="flex items-center justify-between gap-2 flex-wrap">
+      <div class="border-line bg-bg-card/40 space-y-3 border p-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-wrap items-center gap-1.5">
             <div class="flex items-center gap-1">
               <button
                 type="button"
                 onclick={() => selectSimpleCategory('TRANSFER')}
-                class="font-proto text-smaller h-7 px-2.5 uppercase border transition-colors {simpleCategory ===
+                class="font-proto text-smaller h-7 border px-2.5 uppercase transition-colors {simpleCategory ===
                 'TRANSFER'
                   ? 'bg-bg-btn border-teal text-teal font-bold'
                   : 'border-line text-text-muted hover:text-text-base'}"
@@ -759,7 +768,7 @@
               <button
                 type="button"
                 onclick={() => selectSimpleCategory('EXPENSE')}
-                class="font-proto text-smaller h-7 px-2.5 uppercase border transition-colors {simpleCategory ===
+                class="font-proto text-smaller h-7 border px-2.5 uppercase transition-colors {simpleCategory ===
                 'EXPENSE'
                   ? 'bg-bg-btn border-teal text-teal font-bold'
                   : 'border-line text-text-muted hover:text-text-base'}"
@@ -769,7 +778,7 @@
               <button
                 type="button"
                 onclick={() => selectSimpleCategory('INCOME')}
-                class="font-proto text-smaller h-7 px-2.5 uppercase border transition-colors {simpleCategory ===
+                class="font-proto text-smaller h-7 border px-2.5 uppercase transition-colors {simpleCategory ===
                 'INCOME'
                   ? 'bg-bg-btn border-teal text-teal font-bold'
                   : 'border-line text-text-muted hover:text-text-base'}"
@@ -779,7 +788,7 @@
               <button
                 type="button"
                 onclick={() => (simpleCategory = 'CUSTOM')}
-                class="font-proto text-smaller h-7 px-2.5 uppercase border transition-colors {simpleCategory ===
+                class="font-proto text-smaller h-7 border px-2.5 uppercase transition-colors {simpleCategory ===
                 'CUSTOM'
                   ? 'bg-bg-btn border-teal text-teal font-bold'
                   : 'border-line text-text-muted hover:text-text-base'}"
@@ -789,7 +798,7 @@
             </div>
 
             {#if !entry}
-              <div class="h-4 w-px bg-line mx-0.5 hidden sm:block"></div>
+              <div class="bg-line mx-0.5 hidden h-4 w-px sm:block"></div>
               <JournalQuickPresets onSelect={applyPreset} />
             {/if}
           </div>
@@ -798,17 +807,19 @@
             type="button"
             onclick={handleSwapAccounts}
             title={i18n.t.swapAccounts}
-            class="border border-line hover:border-teal hover:text-teal bg-bg-app text-text-muted flex h-7 items-center gap-1 px-2.5 font-proto text-smaller transition-colors ml-auto"
+            class="border-line hover:border-teal hover:text-teal bg-bg-app text-text-muted font-proto text-smaller ml-auto flex h-7 items-center gap-1 border px-2.5 transition-colors"
           >
             <span>⇄</span>
             <span class="hidden sm:inline">{i18n.t.swapAccounts}</span>
           </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-start">
-          <div class="border border-line bg-bg-app p-2 space-y-1.5">
+        <div class="grid grid-cols-1 items-start gap-2.5 sm:grid-cols-2">
+          <div class="border-line bg-bg-app space-y-1.5 border p-2">
             <div class="flex items-center justify-between">
-              <span class="font-proto text-smaller font-bold text-text-dim uppercase tracking-wider">
+              <span
+                class="font-proto text-smaller text-text-dim font-bold tracking-wider uppercase"
+              >
                 {simpleCategory === 'EXPENSE'
                   ? i18n.t.sourceAccount
                   : simpleCategory === 'INCOME'
@@ -832,14 +843,29 @@
               class="w-full"
             />
             {#if standardFrom}
-              <div class="flex items-center justify-between font-proto text-smaller text-text-muted pt-1">
-                <span>{i18n.t.currentBalance}: {formatMinorToDisplay(fromBalance, fromAcc?.currency ?? currency)}</span>
+              <div
+                class="font-proto text-smaller text-text-muted flex items-center justify-between pt-1"
+              >
+                <span
+                  >{i18n.t.currentBalance}: {formatMinorToDisplay(
+                    fromBalance,
+                    fromAcc?.currency ?? currency
+                  )}</span
+                >
                 {#if minorAmount > 0}
-                  <span class="flex items-center gap-1 {isOverdraft ? 'text-expense font-bold' : 'text-text-dim'}">
+                  <span
+                    class="flex items-center gap-1 {isOverdraft
+                      ? 'text-expense font-bold'
+                      : 'text-text-dim'}"
+                  >
                     <span>{i18n.t.projectedBalance}:</span>
-                    <span class="tabular-nums">{formatMinorToDisplay(projectedFrom, fromAcc?.currency ?? currency)}</span>
+                    <span class="tabular-nums"
+                      >{formatMinorToDisplay(projectedFrom, fromAcc?.currency ?? currency)}</span
+                    >
                     {#if isOverdraft}
-                      <span class="badge-warn font-proto text-smaller px-1 py-0">{i18n.t.overdraftWarning}</span>
+                      <span class="badge-warn font-proto text-smaller px-1 py-0"
+                        >{i18n.t.overdraftWarning}</span
+                      >
                     {/if}
                   </span>
                 {/if}
@@ -847,9 +873,11 @@
             {/if}
           </div>
 
-          <div class="border border-line bg-bg-app p-2 space-y-1.5">
+          <div class="border-line bg-bg-app space-y-1.5 border p-2">
             <div class="flex items-center justify-between">
-              <span class="font-proto text-smaller font-bold text-text-dim uppercase tracking-wider">
+              <span
+                class="font-proto text-smaller text-text-dim font-bold tracking-wider uppercase"
+              >
                 {simpleCategory === 'EXPENSE'
                   ? i18n.t.accTypeExpense
                   : simpleCategory === 'INCOME'
@@ -873,12 +901,21 @@
               class="w-full"
             />
             {#if standardTo}
-              <div class="flex items-center justify-between font-proto text-smaller text-text-muted pt-1">
-                <span>{i18n.t.currentBalance}: {formatMinorToDisplay(toBalance, toAcc?.currency ?? currency)}</span>
+              <div
+                class="font-proto text-smaller text-text-muted flex items-center justify-between pt-1"
+              >
+                <span
+                  >{i18n.t.currentBalance}: {formatMinorToDisplay(
+                    toBalance,
+                    toAcc?.currency ?? currency
+                  )}</span
+                >
                 {#if minorAmount > 0}
                   <span class="text-text-dim flex items-center gap-1">
                     <span>{i18n.t.projectedBalance}:</span>
-                    <span class="tabular-nums">{formatMinorToDisplay(projectedTo, toAcc?.currency ?? currency)}</span>
+                    <span class="tabular-nums"
+                      >{formatMinorToDisplay(projectedTo, toAcc?.currency ?? currency)}</span
+                    >
                   </span>
                 {/if}
               </div>
@@ -890,7 +927,7 @@
           bind:feeAccount={adminFeeAccount}
           bind:feeAmount={adminFee}
           bind:showFee
-          currency={currency}
+          {currency}
           {accounts}
           {accountsById}
         />
@@ -899,7 +936,9 @@
           <div
             class="border-warning/50 bg-warning/5 font-proto text-smaller flex items-center justify-between border p-2"
           >
-            <span class="badge-warn font-proto text-smaller font-bold">{fromAcc?.currency} ≠ {toAcc?.currency}</span>
+            <span class="badge-warn font-proto text-smaller font-bold"
+              >{fromAcc?.currency} ≠ {toAcc?.currency}</span
+            >
             <span class="text-text-base">
               {i18n.t.simpleCurrencyMismatch
                 .replace('{from}', fromAcc?.name ?? '')
@@ -911,15 +950,15 @@
         {/if}
       </div>
 
-      <div class="border border-line bg-bg-app p-3 space-y-2">
+      <div class="border-line bg-bg-app space-y-2 border p-3">
         <div class="flex items-center justify-between">
-          <span class="label-xs font-proto text-smaller font-bold uppercase tracking-wider">
+          <span class="label-xs font-proto text-smaller font-bold tracking-wider uppercase">
             {i18n.t.amount} ({currency}) *
           </span>
         </div>
 
         <div class="relative flex items-center">
-          <span class="absolute left-3 font-proto text-base font-bold text-teal select-none">
+          <span class="font-proto text-teal absolute left-3 text-base font-bold select-none">
             {getCurrencyPrefix(currency)}
           </span>
           <input
@@ -929,18 +968,23 @@
             placeholder={i18n.t.transferAmountExample}
             inputmode="decimal"
             autocomplete="off"
-            class="sharp-input font-proto text-lg h-10 w-full pl-10 pr-3 text-right tabular-nums font-bold tracking-wide"
+            class="sharp-input font-proto h-10 w-full pr-3 pl-10 text-right text-lg font-bold tracking-wide tabular-nums"
           />
         </div>
 
         {#if standardAmount && minorAmount > 0}
-          <div class="flex items-center justify-between font-proto text-smaller text-teal bg-teal/5 border border-teal/30 px-2 py-1">
+          <div
+            class="font-proto text-smaller text-teal bg-teal/5 border-teal/30 flex items-center justify-between border px-2 py-1"
+          >
             <span class="text-text-dim text-smaller font-bold">
               {hasMathExpression(standardAmount) ? i18n.t.calcResult : i18n.t.formattedAmount}:
             </span>
             <span class="font-bold tabular-nums">
-              {formatMinorGrouping(minorAmount, currency)} {currency}
-              <span class="text-text-muted font-normal">({formatMinorToDisplay(minorAmount, currency)})</span>
+              {formatMinorGrouping(minorAmount, currency)}
+              {currency}
+              <span class="text-text-muted font-normal"
+                >({formatMinorToDisplay(minorAmount, currency)})</span
+              >
             </span>
           </div>
         {/if}
@@ -952,7 +996,7 @@
               <button
                 type="button"
                 onclick={() => addQuickAmount(chip)}
-                class="border-line bg-bg-card hover:bg-bg-btn hover:text-teal font-proto text-smaller h-6 px-1.5 border transition-colors"
+                class="border-line bg-bg-card hover:bg-bg-btn hover:text-teal font-proto text-smaller h-6 border px-1.5 transition-colors"
               >
                 +{chip >= 1000000
                   ? i18n.locale === 'id'
@@ -966,7 +1010,7 @@
               <button
                 type="button"
                 onclick={() => addQuickAmount(chip)}
-                class="border-line bg-bg-card hover:bg-bg-btn hover:text-teal font-proto text-smaller h-6 px-1.5 border transition-colors"
+                class="border-line bg-bg-card hover:bg-bg-btn hover:text-teal font-proto text-smaller h-6 border px-1.5 transition-colors"
               >
                 +{getCurrencyPrefix(currency)}{chip}
               </button>
@@ -976,7 +1020,7 @@
             <button
               type="button"
               onclick={clearStandardAmount}
-              class="border-line text-text-muted hover:text-danger font-proto text-smaller h-6 px-1.5 border transition-colors ml-auto"
+              class="border-line text-text-muted hover:text-danger font-proto text-smaller ml-auto h-6 border px-1.5 transition-colors"
             >
               {i18n.t.clearAmount}
             </button>
@@ -1010,7 +1054,7 @@
       </div>
     {/if}
 
-    <div class="border-line bg-bg-app border p-2.5 space-y-2">
+    <div class="border-line bg-bg-app space-y-2 border p-2.5">
       <div>
         <label for="inspector-desc" class="label-xs mb-1 block">
           {i18n.t.description} *
@@ -1031,13 +1075,12 @@
           bind:value={notes}
           rows="2"
           class="sharp-input font-aux text-small w-full resize-none px-3 py-1.5"
-          placeholder={i18n.t.txNotesPlaceholder}
-        ></textarea>
+          placeholder={i18n.t.txNotesPlaceholder}></textarea>
       </div>
     </div>
   </div>
 
-  <footer class="border-line bg-bg-card/70 shrink-0 border-t p-3 flex items-center justify-between">
+  <footer class="border-line bg-bg-card/70 flex shrink-0 items-center justify-between border-t p-3">
     <div class="flex items-center gap-1.5">
       <Button
         variant={showScanner ? 'primary' : 'tactical'}
@@ -1076,14 +1119,10 @@
       >
         <span class="inline-flex items-center gap-1.5">
           <span>
-            {saving
-              ? i18n.t.savingBtn
-              : entry
-                ? i18n.t.saveTransaction
-                : i18n.t.createTransaction}
+            {saving ? i18n.t.savingBtn : entry ? i18n.t.saveTransaction : i18n.t.createTransaction}
           </span>
           <span
-            class="border-line/60 bg-bg-app/40 font-proto border px-1 py-0.5 text-smaller opacity-80"
+            class="border-line/60 bg-bg-app/40 font-proto text-smaller border px-1 py-0.5 opacity-80"
           >
             Ctrl+↵
           </span>

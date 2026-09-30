@@ -172,16 +172,12 @@
   }
 </script>
 
-<PageLayout
-  crumb={i18n.t.report}
-  crumbHref="/app/reports"
-  title={currentTabLabel}
->
+<PageLayout crumb={i18n.t.report} crumbHref="/app/reports" title={currentTabLabel}>
   {#snippet actions()}
     <Button
       variant="ghost"
       onclick={() => (exportOpen = true)}
-      class="border border-line hover:border-teal hover:text-teal font-proto text-smaller h-8 px-3 font-bold tracking-wider uppercase whitespace-nowrap flex items-center gap-1.5"
+      class="border-line hover:border-teal hover:text-teal font-proto text-smaller flex h-8 items-center gap-1.5 border px-3 font-bold tracking-wider whitespace-nowrap uppercase"
     >
       <Icon name="export" size={12} />
       <span>{i18n.t.exportReportBtn}</span>
@@ -189,7 +185,9 @@
   {/snippet}
 
   <!-- Top Toolbar with 3 Dropdown Tabs on Left & Date Filter Controls on Right -->
-  <div class="border-line relative z-20 mb-2 flex shrink-0 items-center justify-between gap-2 border-b pb-2">
+  <div
+    class="border-line relative z-20 mb-2 flex shrink-0 items-center justify-between gap-2 border-b pb-2"
+  >
     <div class="flex min-w-0 items-center gap-1">
       <ReportDropdownTabs
         currentTab={tabRouter.current}

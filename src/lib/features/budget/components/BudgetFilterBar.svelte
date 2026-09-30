@@ -42,7 +42,8 @@
     </button>
     <button
       type="button"
-      class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {filterStatus === 'funded'
+      class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {filterStatus ===
+      'funded'
         ? 'bg-bg-row-active text-teal font-bold'
         : 'text-text-muted hover:text-text-base'}"
       onclick={() => (filterStatus = 'funded')}
@@ -51,7 +52,8 @@
     </button>
     <button
       type="button"
-      class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {filterStatus === 'overspent'
+      class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {filterStatus ===
+      'overspent'
         ? 'bg-danger-bg text-danger font-bold'
         : 'text-text-muted hover:text-text-base'}"
       onclick={() => (filterStatus = 'overspent')}
@@ -60,7 +62,8 @@
     </button>
     <button
       type="button"
-      class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {filterStatus === 'unassigned'
+      class="border-line font-proto text-smaller border-l px-2.5 py-1.5 transition-colors {filterStatus ===
+      'unassigned'
         ? 'bg-bg-btn text-text-dim font-bold'
         : 'text-text-muted hover:text-text-base'}"
       onclick={() => (filterStatus = 'unassigned')}

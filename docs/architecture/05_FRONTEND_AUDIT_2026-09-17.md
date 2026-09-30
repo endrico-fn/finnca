@@ -29,15 +29,15 @@ Standar rapi: `package.json` → `vite.define.__APP_*__` → satu modul `appInfo
 (`APP_NAME` mentah + `APP_SLUG` + `APP_VERSION`) → satu komponen `AppBrand`
 (`showVersion`, `size`) dipakai TopBar/splash/about/settings/export.
 
-| ID | Bukti | Temuan | Verdict |
-|---|---|---|---|
-| APP-01 | `src/vite-env.d.ts:5` → `declare const __APP_NAME__: strin;` | Typo fatal, `svelte-check` error / jatuh ke `any` | VALID (P0) → DIPERBAIKI |
-| APP-02 | `src/app.d.ts:1-12` hanya deklarasikan `__APP_VERSION__` | Dua sumber deklarasi tak sinkron; kanonik SvelteKit = `app.d.ts` global, hapus duplikat `vite-env.d.ts` | VALID (P0) → DIPERBAIKI |
-| APP-03 | `src/lib/core/types.ts:4` → `export const version_app` vs `APP_NAME` | snake_case vs SCREAMING dalam satu modul; import `VaultBrandHeader:2` ikut snake | VALID (P0) → DIPERBAIKI (`APP_VERSION` + codemod 1 import) |
-| APP-04 | `types.ts:3` → `(__APP_NAME__ \|\| 'finnca').toUpperCase()` | Casing display dikunci di data layer; `VaultIdentityCard:12-13` harus `toLowerCase()` untuk path, judul PDF ikut UPPERCASE. Casing = urusan CSS (`uppercase`) | VALID (P1) → DITINGKATKAN (`APP_SLUG` turunan) |
-| APP-05 | Fallback `'finnca'` / `'0.1.0'` di `types.ts:3-4` | Duplikat `package.json#name/version`; bump version lupa edit = drift | VALID (P0) → DIPERBAIKI |
-| APP-06 | `APP_NAME` diimport 8 tempat; versi `v{version_app}` **hanya** `VaultBrandHeader:22` | TopBar tanpa versi, splash tanpa versi, format brand beda (`tracking-[0.25em]` vs `tracking-widest`). Tidak ada `AppBrand.svelte` | VALID (P1) → DITINGKATKAN |
-| APP-07 | `ReportViewer:115` → `` `finnca_${tab}_...csv` `` literal | Ganti nama app = filename tetap `finnca_` | VALID (P1) → DIPERBAIKI (`APP_SLUG`) |
+| ID     | Bukti                                                                                | Temuan                                                                                                                                                        | Verdict                                                    |
+| ------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| APP-01 | `src/vite-env.d.ts:5` → `declare const __APP_NAME__: strin;`                         | Typo fatal, `svelte-check` error / jatuh ke `any`                                                                                                             | VALID (P0) → DIPERBAIKI                                    |
+| APP-02 | `src/app.d.ts:1-12` hanya deklarasikan `__APP_VERSION__`                             | Dua sumber deklarasi tak sinkron; kanonik SvelteKit = `app.d.ts` global, hapus duplikat `vite-env.d.ts`                                                       | VALID (P0) → DIPERBAIKI                                    |
+| APP-03 | `src/lib/core/types.ts:4` → `export const version_app` vs `APP_NAME`                 | snake_case vs SCREAMING dalam satu modul; import `VaultBrandHeader:2` ikut snake                                                                              | VALID (P0) → DIPERBAIKI (`APP_VERSION` + codemod 1 import) |
+| APP-04 | `types.ts:3` → `(__APP_NAME__ \|\| 'finnca').toUpperCase()`                          | Casing display dikunci di data layer; `VaultIdentityCard:12-13` harus `toLowerCase()` untuk path, judul PDF ikut UPPERCASE. Casing = urusan CSS (`uppercase`) | VALID (P1) → DITINGKATKAN (`APP_SLUG` turunan)             |
+| APP-05 | Fallback `'finnca'` / `'0.1.0'` di `types.ts:3-4`                                    | Duplikat `package.json#name/version`; bump version lupa edit = drift                                                                                          | VALID (P0) → DIPERBAIKI                                    |
+| APP-06 | `APP_NAME` diimport 8 tempat; versi `v{version_app}` **hanya** `VaultBrandHeader:22` | TopBar tanpa versi, splash tanpa versi, format brand beda (`tracking-[0.25em]` vs `tracking-widest`). Tidak ada `AppBrand.svelte`                             | VALID (P1) → DITINGKATKAN                                  |
+| APP-07 | `ReportViewer:115` → `` `finnca_${tab}_...csv` `` literal                            | Ganti nama app = filename tetap `finnca_`                                                                                                                     | VALID (P1) → DIPERBAIKI (`APP_SLUG`)                       |
 
 ---
 
@@ -45,15 +45,15 @@ Standar rapi: `package.json` → `vite.define.__APP_*__` → satu modul `appInfo
 
 Patuh: **0 `rounded-*`, 0 `shadow-*`** di seluruh `src/**/*.svelte`. Dilanggar:
 
-| ID | Bukti | Temuan | Verdict |
-|---|---|---|---|
-| HC-01 | `core/format/account.ts:7-11` fallback `, #eab308` dkk; `AccountForm:50,58-59` `DEFAULT_SWATCH_HEX` + cek `#fff/#000` | Hex di TS bypass `@theme` | VALID (P1) → DIPERBAIKI |
-| HC-02 | `report/export.ts:148,178,227,243-248` → `#333/#222/#111/#eeeeee` (7 titik) | Tema PDF di luar token | VALID (P1) → DITINGKATKAN (`pdfTheme` mapping token) |
-| HC-03 | Arbitrary (12 titik): `w-[330px]` ×2, `max-h-[90vh]`, `text-[10px]` ×4, `tracking-[0.08em]` ×2, `h-[500px]`, `min-h-[540px]`, `tracking-[0.25em]`, `top-[calc(100%+4px)]` | Langgar Rule 13 eksplisit | VALID (P1) → DIPERBAIKI (token) |
-| HC-04 | `style=` inline (14 titik): Tabs dot ×2, FilterOption dot, progress width ×5, notif `border-left` ×2, swatch ×2, calendar rows, DebtReport width | `dot/accent` terima CSS mentah dari caller = lubang drift; progress width legit tapi tanpa komponen bersama | VALID (P1) → DITINGKATKAN (allowlist tone + `ProgressBar`) |
-| HC-05 | Literal non-i18n: `ARGON2ID • SQLCIPHER` ×2, `A = L + E`, spesimen `1,234,567.89 [COMMA]` dkk | Perlu klausul pengecualian Rule 5, bukan pelanggaran diam-diam | VALID (P2-dok) → DITINGKATKAN (dok) |
-| HC-06 | `JournalTable:91-95` `{n} SPLITS`; `commandPaletteSearch:170,218` `toLocaleString` manual; `Rp {amount}` di dalam string i18n | Bypass `formatMinorToDisplay`; double-format `Rp` | VALID (P1) → DIPERBAIKI |
-| HC-07 | `bg-line/90`, `hover:bg-line/20`, `bg-line/20` header (Tabs, DateDropdown ×3, ReconcileTable, BudgetEnvelopeTable) | Border token dipakai sebagai background | VALID (P1) → DIPERBAIKI |
+| ID    | Bukti                                                                                                                                                                     | Temuan                                                                                                      | Verdict                                                    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| HC-01 | `core/format/account.ts:7-11` fallback `, #eab308` dkk; `AccountForm:50,58-59` `DEFAULT_SWATCH_HEX` + cek `#fff/#000`                                                     | Hex di TS bypass `@theme`                                                                                   | VALID (P1) → DIPERBAIKI                                    |
+| HC-02 | `report/export.ts:148,178,227,243-248` → `#333/#222/#111/#eeeeee` (7 titik)                                                                                               | Tema PDF di luar token                                                                                      | VALID (P1) → DITINGKATKAN (`pdfTheme` mapping token)       |
+| HC-03 | Arbitrary (12 titik): `w-[330px]` ×2, `max-h-[90vh]`, `text-[10px]` ×4, `tracking-[0.08em]` ×2, `h-[500px]`, `min-h-[540px]`, `tracking-[0.25em]`, `top-[calc(100%+4px)]` | Langgar Rule 13 eksplisit                                                                                   | VALID (P1) → DIPERBAIKI (token)                            |
+| HC-04 | `style=` inline (14 titik): Tabs dot ×2, FilterOption dot, progress width ×5, notif `border-left` ×2, swatch ×2, calendar rows, DebtReport width                          | `dot/accent` terima CSS mentah dari caller = lubang drift; progress width legit tapi tanpa komponen bersama | VALID (P1) → DITINGKATKAN (allowlist tone + `ProgressBar`) |
+| HC-05 | Literal non-i18n: `ARGON2ID • SQLCIPHER` ×2, `A = L + E`, spesimen `1,234,567.89 [COMMA]` dkk                                                                             | Perlu klausul pengecualian Rule 5, bukan pelanggaran diam-diam                                              | VALID (P2-dok) → DITINGKATKAN (dok)                        |
+| HC-06 | `JournalTable:91-95` `{n} SPLITS`; `commandPaletteSearch:170,218` `toLocaleString` manual; `Rp {amount}` di dalam string i18n                                             | Bypass `formatMinorToDisplay`; double-format `Rp`                                                           | VALID (P1) → DIPERBAIKI                                    |
+| HC-07 | `bg-line/90`, `hover:bg-line/20`, `bg-line/20` header (Tabs, DateDropdown ×3, ReconcileTable, BudgetEnvelopeTable)                                                        | Border token dipakai sebagai background                                                                     | VALID (P1) → DIPERBAIKI                                    |
 
 ---
 
@@ -82,8 +82,8 @@ Patuh: **0 `rounded-*`, 0 `shadow-*`** di seluruh `src/**/*.svelte`. Dilanggar:
 ### 3.3 Journal (15 file, 2691 baris — paling parah) — VALID semua
 
 - **J-01 (P1):** tiga implementasi transfer (`JournalSimpleTransfer` 244 + `TransferModal` 314
-  + mode-simple `JournalEntryForm`) — validasi same-account/currency/fee diduplikasi
-  (`EntryForm:199-209` vs `TransferModal:69-122`). Target: 1 `TransferForm` + 2 shell.
+  - mode-simple `JournalEntryForm`) — validasi same-account/currency/fee diduplikasi
+    (`EntryForm:199-209` vs `TransferModal:69-122`). Target: 1 `TransferForm` + 2 shell.
 - **J-02 (P1):** empat renderer baris (`LineRow`/`SplitsTable`/`SplitsDetail`/`JournalTable`).
   Target: 1 `LedgerTable` terkonfigurasi.
 - **J-03 (P1):** `JournalEntryForm` 408 baris god-form; dua sumber kebenaran
@@ -109,7 +109,7 @@ Patuh: **0 `rounded-*`, 0 `shadow-*`** di seluruh `src/**/*.svelte`. Dilanggar:
 - **R-01 (P1):** 7× wrapper `<div class="flex min-h-0 flex-1 flex-col w-full">` identik
   (`ReportViewer:188-225`). Target: snippet/outlet.
 - **R-02 (P1):** dua gaya tab — group buttons custom `border-b-2` (`ReportTabBar:75-83`)
-  + `<Tabs>`. Target: `Tabs variant="segmented"`.
+  - `<Tabs>`. Target: `Tabs variant="segmented"`.
 - **R-03 (P1):** KPI strip diduplikasi 3× (BS/PnL/BvA). Target: `ReportKpiStrip`.
 - **R-04 (P2):** `th/td.px-3` ganda di atas `.sharp-table` padding; nama akun
   `font-aux text-text-white` overemphasis vs angka.
@@ -189,28 +189,28 @@ Patuh: **0 `rounded-*`, 0 `shadow-*`** di seluruh `src/**/*.svelte`. Dilanggar:
 
 ## 5. Dead vs unused vs stub (hapus vs perbaiki)
 
-| Simbol | Bukti pakai | Vonis | Aksi |
-|---|---|---|---|
-| `BalanceCard/DebtCard/HealthCard` | via `SummaryCards` | USED (bukan dead) | Migrasi ke `KpiCard` bertahap |
-| `KpiCard` | Plan/Report | USED; props ≠ spec | Perbaiki **spec**, bukan kode |
-| `Pagination` | AccountList/JournalTotalsBar/AuditLogViewer | USED | Pertahankan |
-| `DateRangeCalendarPicker` | internal `DateRangeDropdown` | USED | Pertahankan |
-| `ReceiptScanner` | dynamic-import `JournalEntryForm:60`, `[STUB/PLANNED]` | STUB — larang hapus (§14) | Tetap stub + tandai, atau OCR parser |
-| `JournalQuickPresets` | `EntryForm:356` (mode simple baru saja) | USED tersembunyi | Evaluasi visibilitas |
-| `ACCOUNT_TONE` (dihapus, `git diff badgeTone.ts`) | tak ada referensi | PURGED tanpa catat registry §3 | Catat atau kembalikan (amnesia) |
-| `journalEntryToTransaction` di `types.ts` | `DashboardViewer:12` | Smell: mapper IPC→UI di `core/` — pindah `core/ipc/mappers.ts` | Pindah |
-| `AccountLedger*` | hanya `AccountDetail` | USED terisolasi — stack ledger kedua | Kandidat unifikasi jangka panjang |
-| Klaim "Transaction duplikat" (audit chat) | `journalDraft:22,26` hanya **re-export** `core/types` | FALSE-POSITIVE → turun ke: inkonsistensi **jalur import** (`core/types` vs `journalDraft`) | P1-ringan: unifikasi import |
+| Simbol                                            | Bukti pakai                                            | Vonis                                                                                      | Aksi                                 |
+| ------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------ |
+| `BalanceCard/DebtCard/HealthCard`                 | via `SummaryCards`                                     | USED (bukan dead)                                                                          | Migrasi ke `KpiCard` bertahap        |
+| `KpiCard`                                         | Plan/Report                                            | USED; props ≠ spec                                                                         | Perbaiki **spec**, bukan kode        |
+| `Pagination`                                      | AccountList/JournalTotalsBar/AuditLogViewer            | USED                                                                                       | Pertahankan                          |
+| `DateRangeCalendarPicker`                         | internal `DateRangeDropdown`                           | USED                                                                                       | Pertahankan                          |
+| `ReceiptScanner`                                  | dynamic-import `JournalEntryForm:60`, `[STUB/PLANNED]` | STUB — larang hapus (§14)                                                                  | Tetap stub + tandai, atau OCR parser |
+| `JournalQuickPresets`                             | `EntryForm:356` (mode simple baru saja)                | USED tersembunyi                                                                           | Evaluasi visibilitas                 |
+| `ACCOUNT_TONE` (dihapus, `git diff badgeTone.ts`) | tak ada referensi                                      | PURGED tanpa catat registry §3                                                             | Catat atau kembalikan (amnesia)      |
+| `journalEntryToTransaction` di `types.ts`         | `DashboardViewer:12`                                   | Smell: mapper IPC→UI di `core/` — pindah `core/ipc/mappers.ts`                             | Pindah                               |
+| `AccountLedger*`                                  | hanya `AccountDetail`                                  | USED terisolasi — stack ledger kedua                                                       | Kandidat unifikasi jangka panjang    |
+| Klaim "Transaction duplikat" (audit chat)         | `journalDraft:22,26` hanya **re-export** `core/types`  | FALSE-POSITIVE → turun ke: inkonsistensi **jalur import** (`core/types` vs `journalDraft`) | P1-ringan: unifikasi import          |
 
 ---
 
 ## 6. Redundansi → tindak lanjut
 
-1. Transfer 3× → 1 `TransferForm` + 2 shell (DRY + validasi divergen). 
-2. Tabel 4× → 1 `LedgerTable` terkonfigurasi. 
-3. KPI 2 sistem → 1 `KpiCard` + `KpiStrip`. 
-4. MonthPager 2× → 1; tab 3 gaya → 1 (+`segmented`); overlay size → token S/M/L. 
-5. Larang `formatIDR` untuk nominal campuran (CI grep); `formatIDR` hanya label IDR-murni. 
+1. Transfer 3× → 1 `TransferForm` + 2 shell (DRY + validasi divergen).
+2. Tabel 4× → 1 `LedgerTable` terkonfigurasi.
+3. KPI 2 sistem → 1 `KpiCard` + `KpiStrip`.
+4. MonthPager 2× → 1; tab 3 gaya → 1 (+`segmented`); overlay size → token S/M/L.
+5. Larang `formatIDR` untuk nominal campuran (CI grep); `formatIDR` hanya label IDR-murni.
 6. Larang `parseFloat→toMinor` (RC-01); wajib `parseStringAmountToMinor`.
 
 ---
@@ -232,19 +232,19 @@ Patuh: **0 `rounded-*`, 0 `shadow-*`** di seluruh `src/**/*.svelte`. Dilanggar:
 
 ## 8. Re-audit log (koreksi terhadap audit chat 2026-09-17)
 
-| # | Verifikasi | Hasil |
-|---|---|---|
-| T1 | `variant="pill/outline"` = bug Button? | FALSE-POSITIVE — milik `<Tabs>` (`Tabs:6,13`); `inline` milik `<Splash:15>`. Konteks DebtSimulator:50, AccountList:62, CashflowCard:54, NotificationDrawer:111 terkonfirmasi Tabs/Splash |
-| T2 | "Transaction didefinisikan 2 tempat"? | FALSE-POSITIVE — `journalDraft:22,26` re-export; jadi inkonsistensi jalur import saja |
-| T3 | "BudgetEnvelope tak di-clamp"? | FALSE (klaim spesifik) — `:32` sudah `Math.min(100,…)`; dipertahankan sebagai kebutuhan `ProgressBar` bersama + clamp backend NEEDS-VERIFY |
-| T4 | Arbitrary 12 titik | VALID — daftar T5 grep |
-| T5 | OFX/QIF di registry | VALID (dok-vs-kode) — grep `OFX\|QIF` di `src/` = nol |
-| T6 | Focus-trap ModalShell | VALID (klaim palsu) — grep `trap` = nol |
-| T7 | Hotkey tanpa registry | VALID — 3 sistem tersebar |
-| T8 | APP-01/02/03/05 | VALID — dibaca langsung |
-| T9 | `rounded/shadow` nol | VALID (patuh) |
-| T10 | 89 bypass Button | VALID (hitungan grep) |
-| T11 | Kontras muted/dim gagal AA | NEEDS-RENDER — hitungan manual, wajib alat ukur + screenshot |
+| #   | Verifikasi                             | Hasil                                                                                                                                                                                    |
+| --- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | `variant="pill/outline"` = bug Button? | FALSE-POSITIVE — milik `<Tabs>` (`Tabs:6,13`); `inline` milik `<Splash:15>`. Konteks DebtSimulator:50, AccountList:62, CashflowCard:54, NotificationDrawer:111 terkonfirmasi Tabs/Splash |
+| T2  | "Transaction didefinisikan 2 tempat"?  | FALSE-POSITIVE — `journalDraft:22,26` re-export; jadi inkonsistensi jalur import saja                                                                                                    |
+| T3  | "BudgetEnvelope tak di-clamp"?         | FALSE (klaim spesifik) — `:32` sudah `Math.min(100,…)`; dipertahankan sebagai kebutuhan `ProgressBar` bersama + clamp backend NEEDS-VERIFY                                               |
+| T4  | Arbitrary 12 titik                     | VALID — daftar T5 grep                                                                                                                                                                   |
+| T5  | OFX/QIF di registry                    | VALID (dok-vs-kode) — grep `OFX\|QIF` di `src/` = nol                                                                                                                                    |
+| T6  | Focus-trap ModalShell                  | VALID (klaim palsu) — grep `trap` = nol                                                                                                                                                  |
+| T7  | Hotkey tanpa registry                  | VALID — 3 sistem tersebar                                                                                                                                                                |
+| T8  | APP-01/02/03/05                        | VALID — dibaca langsung                                                                                                                                                                  |
+| T9  | `rounded/shadow` nol                   | VALID (patuh)                                                                                                                                                                            |
+| T10 | 89 bypass Button                       | VALID (hitungan grep)                                                                                                                                                                    |
+| T11 | Kontras muted/dim gagal AA             | NEEDS-RENDER — hitungan manual, wajib alat ukur + screenshot                                                                                                                             |
 
 Working-tree saat audit: M ModalHost, Sidebar, TopBar, badgeTone, format/date, i18n/en,
 i18n/id, prefs, types, AccountDetail, AccountsViewer, DashboardViewer, TransferModal
@@ -255,12 +255,12 @@ i18n/id, prefs, types, AccountDetail, AccountsViewer, DashboardViewer, TransferM
 ## 9. Rencana refaktor (rekomendasi: fondasi → kontrak → halaman)
 
 - **P0 (1 sesi):** APP-01/02/03/05, Badge default→`neutral`, RC-01, B-03-sisa.
-  Hijau: `svelte-check` + `cargo test` tak tersentuh. 
+  Hijau: `svelte-check` + `cargo test` tak tersentuh.
 - **P1 (2 sesi):** `AppBrand`, `MonthPager`, `TransferForm`, `Tabs+segmented`,
   overlay S/M/L, focus-trap benar, update `02_COMPONENT_SPEC` + `04_FEATURE_REGISTRY`
-  (catat `ACCOUNT_TONE`, klaim OFX/QIF, klausul HC-05). 
+  (catat `ACCOUNT_TONE`, klaim OFX/QIF, klausul HC-05).
 - **P2 (per page):** Journal → Report → Dashboard → Settings (hapus arbitrary, gap/scroll,
-  migrasi KpiCard/LedgerTable). 
+  migrasi KpiCard/LedgerTable).
 - **P3:** kontras AA, reduced-motion, `transition-colors`-only, hotkey registry, print CSS.
 
 **Pre-mortem:** (1) tree dirty → commit/stash dulu; (2) `bindings.ts` auto-generate —

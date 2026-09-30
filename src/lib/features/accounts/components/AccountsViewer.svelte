@@ -253,7 +253,7 @@
   {:else}
     <Card
       title="{i18n.t.chartOfAccounts} ({filteredAccounts.length})"
-      class="border-line bg-bg-card min-h-0 flex-1 flex flex-col overflow-hidden border"
+      class="border-line bg-bg-card flex min-h-0 flex-1 flex-col overflow-hidden border"
       padding={false}
       borderHeader
     >
@@ -283,11 +283,13 @@
         </div>
       {/if}
 
-      <div class="min-h-0 flex-1 flex flex-col xl:flex-row overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden xl:flex-row">
         <div class="font-proto text-small min-h-0 flex-1 overflow-y-auto py-0">
           {#if filteredAccounts.length === 0}
             {#if accountsState.items.length === 0}
-              <div class="flex h-full flex-col items-center justify-center space-y-3 p-8 text-center">
+              <div
+                class="flex h-full flex-col items-center justify-center space-y-3 p-8 text-center"
+              >
                 <p class="text-text-muted">{i18n.t.noAccountsYet}</p>
                 <Button variant="primary" onclick={() => accountsState.seedRoots()}>
                   <span class="font-proto text-small inline-flex items-center gap-1.5 font-bold">
@@ -313,7 +315,9 @@
         </div>
 
         {#if selectedAccount && selectedItem}
-          <div class="w-full xl:w-80 shrink-0 border-t xl:border-t-0 xl:border-l border-line bg-bg-card flex flex-col min-h-0 overflow-y-auto">
+          <div
+            class="border-line bg-bg-card flex min-h-0 w-full shrink-0 flex-col overflow-y-auto border-t xl:w-80 xl:border-t-0 xl:border-l"
+          >
             <AccountInspectorPane
               account={selectedAccount}
               directBalance={selectedItem.direct_balance}

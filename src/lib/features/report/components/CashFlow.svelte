@@ -499,7 +499,7 @@
             onclick={() => (viewMode = 'table')}
             class="font-proto text-smaller flex h-7 cursor-pointer items-center px-2.5 uppercase transition-colors {viewMode ===
             'table'
-              ? 'border-line/80 bg-bg-card text-text-white font-bold border'
+              ? 'border-line/80 bg-bg-card text-text-white border font-bold'
               : 'text-text-muted hover:text-text-white hover:bg-bg-btn'}"
           >
             {i18n.t.cashFlowTable}
@@ -509,7 +509,7 @@
             onclick={() => (viewMode = 'waterfall')}
             class="font-proto text-smaller flex h-7 cursor-pointer items-center gap-1 px-2.5 uppercase transition-colors {viewMode ===
             'waterfall'
-              ? 'border-teal bg-teal/15 text-teal font-bold border'
+              ? 'border-teal bg-teal/15 text-teal border font-bold'
               : 'text-text-muted hover:text-text-white hover:bg-bg-btn'}"
           >
             <Icon name="chart" size={12} />
@@ -520,7 +520,7 @@
             onclick={() => (viewMode = 'sankey')}
             class="font-proto text-smaller flex h-7 cursor-pointer items-center gap-1 px-2.5 uppercase transition-colors {viewMode ===
             'sankey'
-              ? 'border-teal bg-teal/15 text-teal font-bold border'
+              ? 'border-teal bg-teal/15 text-teal border font-bold'
               : 'text-text-muted hover:text-text-white hover:bg-bg-btn'}"
           >
             <Icon name="chart" size={12} />

@@ -2,10 +2,7 @@
   import { i18n } from '$lib/core/i18n.svelte';
 </script>
 
-<div
-  class="flex min-h-0 flex-1 animate-pulse flex-col gap-2 overflow-hidden"
-  aria-hidden="true"
->
+<div class="flex min-h-0 flex-1 animate-pulse flex-col gap-2 overflow-hidden" aria-hidden="true">
   <div class="grid shrink-0 grid-cols-12 gap-2">
     {#each [0, 1, 2, 3] as i (i)}
       <div class="border-line bg-bg-card col-span-12 h-20 border sm:col-span-6 lg:col-span-3"></div>

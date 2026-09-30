@@ -45,7 +45,11 @@
 {#if modalState.inspectorOpen}
   <FloatingInspectorWindow
     open={true}
-    title={modalState.inspectorEntry ? i18n.t.editEntryTitle : modalState.inspectorMode === 'transfer' ? i18n.t.quickTransferTitle : i18n.t.newEntryTitle}
+    title={modalState.inspectorEntry
+      ? i18n.t.editEntryTitle
+      : modalState.inspectorMode === 'transfer'
+        ? i18n.t.quickTransferTitle
+        : i18n.t.newEntryTitle}
     onClose={() => modalState.closeInspector()}
   >
     <EntryInspector

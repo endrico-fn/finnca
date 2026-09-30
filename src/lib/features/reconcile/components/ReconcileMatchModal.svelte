@@ -25,7 +25,11 @@
     accounts?: Account[];
     onApply: (selectedPostingIds: string[]) => Promise<void>;
     onClose: () => void;
-    onQuickAdd: (row: StatementRow, suggestedAccountId?: string, overrideDescription?: string) => void;
+    onQuickAdd: (
+      row: StatementRow,
+      suggestedAccountId?: string,
+      overrideDescription?: string
+    ) => void;
     onQuickBankFee?: (row: StatementRow, adjustmentType: 'FEE' | 'INTEREST') => void;
   } = $props();
 
@@ -238,7 +242,8 @@
                       {#if row.rule_match}
                         <div class="flex items-center gap-1">
                           <Badge size="s" tone="ok">
-                            {i18n.t.reconcileRuleBadgeMatch}: [{row.rule_match.account_code}] {row.rule_match.account_name}
+                            {i18n.t.reconcileRuleBadgeMatch}: [{row.rule_match.account_code}] {row
+                              .rule_match.account_name}
                           </Badge>
                         </div>
                       {/if}
@@ -257,7 +262,11 @@
                           size="sm"
                           class="font-proto text-smaller px-2 font-bold tracking-wider"
                           onclick={() => {
-                            onQuickAdd(row, row.rule_match?.account_id, row.rule_match?.description_override ?? undefined);
+                            onQuickAdd(
+                              row,
+                              row.rule_match?.account_id,
+                              row.rule_match?.description_override ?? undefined
+                            );
                             open = false;
                           }}
                         >

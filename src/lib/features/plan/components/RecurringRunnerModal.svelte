@@ -174,7 +174,7 @@
                     <span class="text-teal">{plan.to_account_name}</span>
                   </div>
                 </td>
-                <td class="text-text-dim px-3 py-2 font-proto">
+                <td class="text-text-dim font-proto px-3 py-2">
                   {plan.next_due_date}
                 </td>
                 <td class="px-3 py-2">
@@ -182,7 +182,7 @@
                     {badge.text}
                   </Badge>
                 </td>
-                <td class="text-text-base px-3 py-2 text-right font-proto font-bold">
+                <td class="text-text-base font-proto px-3 py-2 text-right font-bold">
                   {formatMinorToDisplay(plan.amount, plan.currency)}
                 </td>
               </tr>

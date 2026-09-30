@@ -132,10 +132,7 @@
 
       {@const tipW = 105}
       {@const tipH = 22}
-      {@const tipX = Math.max(
-        padX,
-        Math.min(chartWidth - padX - tipW, hoveredCoord.x - tipW / 2)
-      )}
+      {@const tipX = Math.max(padX, Math.min(chartWidth - padX - tipW, hoveredCoord.x - tipW / 2))}
       {@const tipY = hoveredCoord.y > 36 ? hoveredCoord.y - tipH - 8 : hoveredCoord.y + 10}
       <g class="pointer-events-none">
         <rect

@@ -45,7 +45,8 @@
         planTitle = ep.title;
         planType = ep.type;
         planTotal = ep.totalAmount > 0 ? String(fromMinor(curr, ep.totalAmount)) : '';
-        planInstallment = ep.installmentAmount > 0 ? String(fromMinor(curr, ep.installmentAmount)) : '';
+        planInstallment =
+          ep.installmentAmount > 0 ? String(fromMinor(curr, ep.installmentAmount)) : '';
         planFrequency = ep.frequency;
         planDayOfMonth = ep.dayOfMonth ?? 10;
         planAutoPost = ep.autoPost ?? false;

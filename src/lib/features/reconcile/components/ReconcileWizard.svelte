@@ -129,12 +129,11 @@
   function resolveAdjustmentAccount(adjType: 'FEE' | 'INTEREST'): string {
     if (adjType === 'INTEREST') {
       const inc = accounts.find(
-        (a) =>
-          !a.placeholder &&
-          a.account_type === 'INCOME' &&
-          /bunga|interest|giro/i.test(a.name)
+        (a) => !a.placeholder && a.account_type === 'INCOME' && /bunga|interest|giro/i.test(a.name)
       );
-      return inc?.id || accounts.find((a) => !a.placeholder && a.account_type === 'INCOME')?.id || '';
+      return (
+        inc?.id || accounts.find((a) => !a.placeholder && a.account_type === 'INCOME')?.id || ''
+      );
     } else {
       const exp = accounts.find(
         (a) =>
@@ -142,7 +141,9 @@
           a.account_type === 'EXPENSE' &&
           /adm|admin|biaya bank|bank fee/i.test(a.name)
       );
-      return exp?.id || accounts.find((a) => !a.placeholder && a.account_type === 'EXPENSE')?.id || '';
+      return (
+        exp?.id || accounts.find((a) => !a.placeholder && a.account_type === 'EXPENSE')?.id || ''
+      );
     }
   }
 
@@ -151,7 +152,11 @@
     handleQuickAdd(row, targetAccId);
   }
 
-  function handleQuickAdd(row: StatementRow, suggestedAccountId = '', overrideDescription?: string) {
+  function handleQuickAdd(
+    row: StatementRow,
+    suggestedAccountId = '',
+    overrideDescription?: string
+  ) {
     if (!reconcileState.selectedAccountId) return;
     const isIncome = row.amount > 0;
     const finalDesc = overrideDescription || row.description || '';
@@ -255,7 +260,4 @@
   onQuickBankFee={handleQuickBankFee}
 />
 
-<ReconcileRulesModal
-  bind:open={showRulesModal}
-  {accounts}
-/>
+<ReconcileRulesModal bind:open={showRulesModal} {accounts} />

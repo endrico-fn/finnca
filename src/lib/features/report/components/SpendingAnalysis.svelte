@@ -194,9 +194,7 @@
             <span class="font-proto text-text-dim text-smaller font-bold tracking-wider uppercase">
               {i18n.t.spendingDistribution}
             </span>
-            <span class="font-proto text-text-muted text-smaller tabular-nums">
-              100%
-            </span>
+            <span class="font-proto text-text-muted text-smaller tabular-nums"> 100% </span>
           </div>
           <div class="border-line/60 bg-bg-app flex h-3 w-full overflow-hidden border">
             {#each expenseRows as row, idx (row.account_id)}
@@ -205,11 +203,14 @@
               <button
                 type="button"
                 onclick={() => toggleCategory(row.account_id)}
-                class="h-full transition-opacity cursor-pointer {isSel
+                class="h-full cursor-pointer transition-opacity {isSel
                   ? 'ring-1 ring-white ring-inset'
                   : 'hover:opacity-80'}"
                 style="width: {share}%; background-color: {getCategoryColor(idx)};"
-                title="{row.name}: {share.toFixed(1)}% ({formatMinorToDisplay(row.amount, row.currency || 'IDR')})"
+                title="{row.name}: {share.toFixed(1)}% ({formatMinorToDisplay(
+                  row.amount,
+                  row.currency || 'IDR'
+                )})"
                 aria-label="{row.name}: {share.toFixed(1)}%"
               ></button>
             {/each}

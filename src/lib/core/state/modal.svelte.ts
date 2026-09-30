@@ -33,10 +33,15 @@ class ModalState {
   inspectorIsNew = $state(true);
   inspectorInitialFrom = $state('');
   inspectorInitialTo = $state('');
-  inspectorLayout = $state<'docked' | 'modal' | 'adaptive'>(getPref('finnca_inspector_layout', 'adaptive'));
+  inspectorLayout = $state<'docked' | 'modal' | 'adaptive'>(
+    getPref('finnca_inspector_layout', 'adaptive')
+  );
 
   toggleInspectorLayout(currentEffective?: 'docked' | 'modal') {
-    const next = (currentEffective ?? (this.inspectorLayout === 'docked' ? 'docked' : 'modal')) === 'docked' ? 'modal' : 'docked';
+    const next =
+      (currentEffective ?? (this.inspectorLayout === 'docked' ? 'docked' : 'modal')) === 'docked'
+        ? 'modal'
+        : 'docked';
     this.inspectorLayout = next;
     setPref('finnca_inspector_layout', next);
   }

@@ -50,7 +50,10 @@
       if (notif.actionHref === 'app:update') {
         updaterState.openScreen();
         updaterState.checkForUpdate();
-      } else if (notif.actionHref.startsWith('http://') || notif.actionHref.startsWith('https://')) {
+      } else if (
+        notif.actionHref.startsWith('http://') ||
+        notif.actionHref.startsWith('https://')
+      ) {
         try {
           await openUrl(notif.actionHref);
         } catch {

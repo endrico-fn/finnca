@@ -58,8 +58,18 @@
           size={36}
           strokeWidth={6}
           data={[
-            { id: 'assigned', label: 'Assigned', value: budgetData.totalAssigned, color: 'var(--color-teal)' },
-            { id: 'unassigned', label: 'Unassigned', value: Math.max(0, budgetData.toBeBudgeted), color: 'var(--color-bg-row-active)' }
+            {
+              id: 'assigned',
+              label: 'Assigned',
+              value: budgetData.totalAssigned,
+              color: 'var(--color-teal)',
+            },
+            {
+              id: 'unassigned',
+              label: 'Unassigned',
+              value: Math.max(0, budgetData.toBeBudgeted),
+              color: 'var(--color-bg-row-active)',
+            },
           ]}
         />
       {/if}
@@ -87,8 +97,18 @@
           size={36}
           strokeWidth={6}
           data={[
-            { id: 'spent', label: 'Spent', value: budgetData.totalActivity, color: 'var(--color-expense)' },
-            { id: 'remaining', label: 'Remaining', value: Math.max(0, budgetData.totalAssigned - budgetData.totalActivity), color: 'var(--color-bg-row-active)' }
+            {
+              id: 'spent',
+              label: 'Spent',
+              value: budgetData.totalActivity,
+              color: 'var(--color-expense)',
+            },
+            {
+              id: 'remaining',
+              label: 'Remaining',
+              value: Math.max(0, budgetData.totalAssigned - budgetData.totalActivity),
+              color: 'var(--color-bg-row-active)',
+            },
           ]}
         />
       {/if}

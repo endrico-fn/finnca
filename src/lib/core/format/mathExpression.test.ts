@@ -4,7 +4,7 @@ import { evaluateFinancialExpression, hasMathExpression } from './mathExpression
 describe('evaluateFinancialExpression', () => {
   it('evaluates basic numbers', () => {
     expect(evaluateFinancialExpression('50000', 'IDR')).toBe(50000);
-    expect(evaluateFinancialExpression('150.50', 'USD')).toBe(150.50);
+    expect(evaluateFinancialExpression('150.50', 'USD')).toBe(150.5);
   });
 
   it('evaluates unit abbreviations k, rb, m, jt', () => {
@@ -47,12 +47,8 @@ describe('hasMathExpression', () => {
 
 describe('parseStringAmountToMinor integration', () => {
   it('parses math expressions to integer minor units', async () => {
-    const {
-      parseStringAmountToMinor,
-      getCurrencyPrefix,
-      getCurrencyFactor,
-      formatMinorGrouping,
-    } = await import('./currency');
+    const { parseStringAmountToMinor, getCurrencyPrefix, getCurrencyFactor, formatMinorGrouping } =
+      await import('./currency');
     expect(parseStringAmountToMinor('50k + 12k', 'IDR')).toBe(62000);
     expect(parseStringAmountToMinor('1.5m', 'IDR')).toBe(1500000);
     expect(parseStringAmountToMinor('10.50 + 2.50', 'USD')).toBe(1300);

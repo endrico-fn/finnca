@@ -128,7 +128,9 @@
   }
 </script>
 
-<div class="border-line bg-bg-card relative w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto border">
+<div
+  class="border-line bg-bg-card relative max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto border"
+>
   <div class="grid min-h-135 grid-cols-12 items-stretch">
     <div class="bg-bg-app border-line col-span-5 flex flex-col justify-between border-r p-7">
       <div>
@@ -152,7 +154,9 @@
             <span class="text-text-dim text-smaller font-proto block tracking-wider uppercase">
               {i18n.t.encryptionScheme}
             </span>
-            <span class="text-text-base text-smaller font-proto">Argon2id · SQLCipher AES-256-GCM</span>
+            <span class="text-text-base text-smaller font-proto"
+              >Argon2id · SQLCipher AES-256-GCM</span
+            >
           </div>
 
           <div class="border-line border-t pt-2">

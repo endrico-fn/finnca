@@ -47,19 +47,19 @@
 {#if open}
   {#if isDocked}
     <div
-      class="fixed inset-y-0 right-0 z-50 flex flex-col border-l-2 border-line bg-bg-app rounded-none w-full sm:w-(--layout-inspector-docked) max-w-full overflow-hidden transition-all duration-150 animate-in slide-in-from-right"
+      class="border-line bg-bg-app animate-in slide-in-from-right fixed inset-y-0 right-0 z-50 flex w-full max-w-full flex-col overflow-hidden rounded-none border-l-2 transition-all duration-150 sm:w-(--layout-inspector-docked)"
       role="dialog"
       tabindex="-1"
       aria-modal="false"
       aria-label={title || i18n.t.entryInspectorTitle}
     >
-      <div class="min-h-0 flex-1 flex flex-col overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         {@render children()}
       </div>
     </div>
   {:else}
     <div
-      class="bg-overlay fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-subtle transition-opacity"
+      class="bg-overlay backdrop-blur-subtle fixed inset-0 z-50 flex items-center justify-center p-3 transition-opacity sm:p-4"
       role="presentation"
       onclick={(e) => {
         if (e.target === e.currentTarget && onClose) {
@@ -68,13 +68,13 @@
       }}
     >
       <div
-        class="flex flex-col border-2 border-line bg-bg-app rounded-none w-full sm:w-(--layout-inspector-float) max-w-(--layout-inspector-max) h-(--layout-inspector-height) max-h-[calc(100dvh-2.5rem)] overflow-hidden"
+        class="border-line bg-bg-app flex h-(--layout-inspector-height) max-h-[calc(100dvh-2.5rem)] w-full max-w-(--layout-inspector-max) flex-col overflow-hidden rounded-none border-2 sm:w-(--layout-inspector-float)"
         role="dialog"
         tabindex="-1"
         aria-modal="true"
         aria-label={title || i18n.t.entryInspectorTitle}
       >
-        <div class="min-h-0 flex-1 flex flex-col overflow-hidden">
+        <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
           {@render children()}
         </div>
       </div>

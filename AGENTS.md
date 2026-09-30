@@ -1,33 +1,33 @@
 # 📐 Finnca Architecture & Autonomous Agent Guidelines
 
-Aplikasi desktop pencatatan keuangan pribadi tingkat lanjut (*advanced personal finance note & double-entry ledger*) dengan pendekatan estetika **utilitarian-brutalist industrial tech**, arsitektur privasi terisolasi (*vault-centric*), dan komputasi presisi tinggi tanpa kompromi (*zero-float invariant*).
+Aplikasi desktop pencatatan keuangan pribadi tingkat lanjut (_advanced personal finance note & double-entry ledger_) dengan pendekatan estetika **utilitarian-brutalist industrial tech**, arsitektur privasi terisolasi (_vault-centric_), dan komputasi presisi tinggi tanpa kompromi (_zero-float invariant_).
 
 ---
 
-## 🏛️ 1. Prinsip Fundamental & Filosofi Sistem (*System Axioms*)
+## 🏛️ 1. Prinsip Fundamental & Filosofi Sistem (_System Axioms_)
 
 1. **Estetika & Kategori Desain**:
    - **Industrial Tech & Utilitarian Brutalist**: Sudut border tajam mutlak (`rounded-none`), border fungsional (`border-line`), palet warna gelap kontras tinggi tanpa gradasi dekoratif berlebihan.
    - **Zero CSS Drift**: Dilarang keras menggunakan warna hex/rgb sembarangan (`#1a1a1a`, `rgb(...)`) atau arbitrary spacing (`px-[13px]`) di komponen Svelte. Wajib menggunakan semantic design tokens Tailwind v4 (`bg-bg-app`, `bg-bg-card`, `bg-bg-btn`, `border-line`, `text-teal`, `text-asset`, `text-expense`, dll).
 2. **Tipografi & Hierarki Disiplin**:
-   - `Proto Mono` (`font-proto`): Wajib untuk semua *heading*, metrik/angka, kode akun, label aksi/tombol, tab, tanggal, status badge, dan header tabel.
-   - `Aux Mono` (`font-aux`): Digunakan khusus untuk teks narasi *body*, deskripsi panjang, catatan transaksi, dan field input data-entry (natural case, tanpa pemaksaan huruf kapital).
-3. **Presisi Finansial (*Zero-Float Arithmetic Invariant*)**:
+   - `Proto Mono` (`font-proto`): Wajib untuk semua _heading_, metrik/angka, kode akun, label aksi/tombol, tab, tanggal, status badge, dan header tabel.
+   - `Aux Mono` (`font-aux`): Digunakan khusus untuk teks narasi _body_, deskripsi panjang, catatan transaksi, dan field input data-entry (natural case, tanpa pemaksaan huruf kapital).
+3. **Presisi Finansial (_Zero-Float Arithmetic Invariant_)**:
    - Dilarang keras menggunakan tipe data `float` / `f64` / `number` untuk perhitungan saldo atau jurnal!
    - Semua angka moneter dikelola dalam **integer minor units** (misal sen USD atau satuan IDR terkecil) menggunakan tipe `i128` / `i64` di Rust.
    - Frontend **hanya menerima hasil kalkulasi dari Rust** dan memformatnya secara display-only melalui modul tunggal terpusat: `src/lib/core/format/currency.ts`.
-4. **Penyajian Struktur Akun (*Flat Path Model*)**:
-   - Akun buku besar **tidak ditampilkan sebagai deep nested tree**, melainkan representasi lintasan datar (*breadcrumb path*): `RootAccount > SubAccount > LeafAccount` (misal: `Assets > Banking > BCA`).
-5. **Privasi & Keamanan Vault (*Obsidian-Inspired Local Vault*)**:
+4. **Penyajian Struktur Akun (_Flat Path Model_)**:
+   - Akun buku besar **tidak ditampilkan sebagai deep nested tree**, melainkan representasi lintasan datar (_breadcrumb path_): `RootAccount > SubAccount > LeafAccount` (misal: `Assets > Banking > BCA`).
+5. **Privasi & Keamanan Vault (_Obsidian-Inspired Local Vault_)**:
    - Data finansial terisolasi penuh di folder lokal pilihan pengguna: `finnca-<nama-vault>/`.
-   - **Envelope Encryption**: Kata sandi pengguna diturunkan via Argon2id menjadi KEK (*Key Encryption Key*), yang kemudian membuka DEK (*Data Encryption Key*) ChaCha20-Poly1305 untuk membuka SQLite terenkripsi SQLCipher.
+   - **Envelope Encryption**: Kata sandi pengguna diturunkan via Argon2id menjadi KEK (_Key Encryption Key_), yang kemudian membuka DEK (_Data Encryption Key_) ChaCha20-Poly1305 untuk membuka SQLite terenkripsi SQLCipher.
    - Pergantian kata sandi hanya me-rewrap DEK tanpa perlu mengenkripsi ulang seluruh database SQLCipher.
-   - **Auto-Lock Security Policy**: Mendukung penguncian otomatis berbasis timeout inaktivitas, penutupan jendela (*on-close*), atau reboot sistem.
+   - **Auto-Lock Security Policy**: Mendukung penguncian otomatis berbasis timeout inaktivitas, penutupan jendela (_on-close_), atau reboot sistem.
 6. **I18n Strictness & Anti-Hardcoding**:
-   - Dilarang menulis teks UI mentah secara *hardcoded*. Semua string teks antarmuka wajib melalui `src/lib/core/i18n.svelte.ts` (kamus `en.ts` dan `id.ts`).
+   - Dilarang menulis teks UI mentah secara _hardcoded_. Semua string teks antarmuka wajib melalui `src/lib/core/i18n.svelte.ts` (kamus `en.ts` dan `id.ts`).
    - Identitas aplikasi seperti nama dan versi tidak boleh ditulis manual sebagai string sembarangan, melainkan diimpor dari modul `src/lib/core/types.ts` (`APP_NAME`) dan `src/lib/core/state/appInfo.svelte.ts` (`appInfo.version`).
-7. **Pemusnahan Kode Usang (*Dead Code vs Planned Stubs*)**:
-   - **Dead Code**: Kode usang, skrip sementara, atau logika usang yang digantikan wajib langsung dimusnahkan (*purged*), bukan ditinggalkan dalam kondisi rusak.
+7. **Pemusnahan Kode Usang (_Dead Code vs Planned Stubs_)**:
+   - **Dead Code**: Kode usang, skrip sementara, atau logika usang yang digantikan wajib langsung dimusnahkan (_purged_), bukan ditinggalkan dalam kondisi rusak.
    - **Unwired Stubs**: Algoritma atau prototipe UI yang sengaja dipersiapkan untuk masa depan wajib dicatat di `docs/architecture/04_FEATURE_REGISTRY.md` dengan status `[STUB/PLANNED]` dan tidak boleh dihapus sembarangan.
 8. **Least Privilege & Sandboxed IPC**:
    - Hak akses filesystem langsung dari frontend (`fs:default`) dicabut. Seluruh I/O berkas wajib melewati Rust IPC command yang terotentikasi session aktif, dengan batasan kuota payload (max 5 MB) dan validasi path traversal (`..`).
@@ -45,8 +45,8 @@ Aplikasi desktop pencatatan keuangan pribadi tingkat lanjut (*advanced personal 
 3. **Contract-First Component Interface**:
    - Komponen atomik dan molekul wajib menggunakan antarmuka standar: Svelte 5 Snippets (`children`, `header`, `actions`).
    - Varian nada warna tombol dan status dibakukan pada token: `neutral`, `ok`, `err`, `warn`, `teal`.
-4. **Komentar Kode Minimalis (*Zero Inline Noise*)**:
-   - Hindari komentar inline yang hanya menjelaskan apa yang sudah jelas terbaca dari kode (*self-documenting code*).
+4. **Komentar Kode Minimalis (_Zero Inline Noise_)**:
+   - Hindari komentar inline yang hanya menjelaskan apa yang sudah jelas terbaca dari kode (_self-documenting code_).
    - Komentar hanya diizinkan untuk rasionalisasi arsitektural penting atau formula matematis yang tidak intuitif.
 
 ---
@@ -129,7 +129,7 @@ finnca/
 
 ---
 
-## ⚡ 6. Kriteria Kesiapan Sebelum Commit (*Quality Gates*)
+## ⚡ 6. Kriteria Kesiapan Sebelum Commit (_Quality Gates_)
 
 Setiap agen pengembang wajib memastikan seluruh perintah ini keluar dengan status hijau (`exit code 0`) sebelum melakukan commit:
 
