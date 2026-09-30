@@ -134,7 +134,7 @@
   }
 </script>
 
-<div class="grid grid-cols-1 gap-2 select-none lg:grid-cols-2">
+<div class="grid grid-cols-1 gap-4 select-none lg:grid-cols-2">
   <div class="flex flex-col gap-2">
     <Card title={i18n.t.usdExchangeRateTitle} class="gap-2">
       {#snippet header()}

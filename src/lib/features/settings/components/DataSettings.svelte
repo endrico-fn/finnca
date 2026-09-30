@@ -10,7 +10,6 @@
     exportEncryptedVault,
     exportBeancountLedger,
   } from '../state/exportBackupUtils';
-  import NotificationSettings from './NotificationSettings.svelte';
   import DeleteVaultModal from './DeleteVaultModal.svelte';
 
   let deleteModalOpen = $state(false);
@@ -123,8 +122,8 @@
   }
 </script>
 
-<div class="grid grid-cols-1 gap-2 select-none lg:grid-cols-2">
-  <div class="flex flex-col gap-2">
+<div class="flex flex-col gap-4 select-none">
+  <div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
     <Card
       title={i18n.t.backupExportTitle}
       badge={i18n.t.badgeStorageArchive}
@@ -135,12 +134,12 @@
           {i18n.t.backupExportDesc}
         </p>
 
-        <div class="flex flex-col gap-2.5">
+        <div class="flex flex-col gap-2">
           <Button variant="primary" onclick={handleEncryptedBackup}>
             <span>{i18n.t.backupEncryptedVaultBtn}</span>
           </Button>
 
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-2 gap-2">
             <Button
               variant="ghost"
               onclick={handleExportJson}
@@ -168,27 +167,6 @@
         {i18n.t.backupEncryptedNote}
       </p>
     </Card>
-
-    <Card
-      title={i18n.t.dangerZoneTitle}
-      badge={i18n.t.badgeDestructive}
-      badgeTone="err"
-      class="border-expense/40 bg-expense/5 justify-between"
-    >
-      <div>
-        <p class="text-text-dim text-smaller font-aux mb-3 leading-relaxed">
-          {i18n.t.deleteVaultWarning}
-        </p>
-      </div>
-
-      <Button variant="danger" onclick={() => (deleteModalOpen = true)}>
-        {i18n.t.deleteVaultBtn}
-      </Button>
-    </Card>
-  </div>
-
-  <div class="flex flex-col gap-2">
-    <NotificationSettings />
 
     <Card
       title={i18n.t.vaultHealthDiagnosticsTitle}
@@ -232,6 +210,23 @@
       </div>
     </Card>
   </div>
+
+  <Card
+    title={i18n.t.dangerZoneTitle}
+    badge={i18n.t.badgeDestructive}
+    badgeTone="err"
+    class="border-expense/40 bg-expense/5 justify-between"
+  >
+    <div>
+      <p class="text-text-dim text-smaller font-aux mb-3 leading-relaxed">
+        {i18n.t.deleteVaultWarning}
+      </p>
+    </div>
+
+    <Button variant="danger" onclick={() => (deleteModalOpen = true)}>
+      {i18n.t.deleteVaultBtn}
+    </Button>
+  </Card>
 </div>
 
 <DeleteVaultModal bind:open={deleteModalOpen} onClose={() => (deleteModalOpen = false)} />

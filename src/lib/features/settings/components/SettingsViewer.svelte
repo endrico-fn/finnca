@@ -61,7 +61,7 @@
       </div>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+    <div class="min-h-0 flex-1 overflow-y-auto pb-4">
       {#if tabRouter.current === 'general'}
         <GeneralSettings />
       {:else if tabRouter.current === 'finance'}

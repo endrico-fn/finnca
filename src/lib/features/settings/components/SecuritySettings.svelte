@@ -48,7 +48,7 @@
   }
 </script>
 
-<div class="grid grid-cols-1 gap-2 select-none lg:grid-cols-2">
+<div class="grid grid-cols-1 gap-4 select-none lg:grid-cols-2">
   <AutoLockSettings />
 
   <Card title={i18n.t.changePasswordTitle} badge={i18n.t.securityKeyBadge} class="justify-between">
