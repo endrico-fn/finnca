@@ -112,7 +112,7 @@ jobs:
           releaseBody: |
             ## Finnca ${{ github.ref_name }}
 
-            Personal double-entry finance notes — brutalist, privacy-first.
+            Personal double-entry ledger notes — privacy-first, local encrypted vault, zero tracking.
 
             ### Linux
             - `.AppImage` — portable, tidak perlu install

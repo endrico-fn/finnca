@@ -1,7 +1,7 @@
 [package]
 name = "finnca"
 version = "0.1.0"
-description = "Personal double-entry finance notes — brutalist, privacy-first desktop app"
+description = "Personal double-entry ledger notes — privacy-first, local encrypted vault, zero tracking"
 authors = ["finnca contributors"]
 repository = "https://github.com/endrico-fn/finnca"
 license = "MIT"
