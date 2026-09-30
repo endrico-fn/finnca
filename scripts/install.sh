@@ -108,6 +108,12 @@ install_finnca() {
   ${SUDO_CMD} mkdir -p "$(dirname "${BIN_LINK}")"
   ${SUDO_CMD} ln -sf "${INSTALL_DIR}/AppRun" "${BIN_LINK}"
 
+  local base_icons_dir="${ICON_DIR%/*/*}"
+  local icon_entry_value="${APP_NAME}"
+  if [[ "${INSTALL_DIR}" == "${HOME}/.local/share/${APP_NAME}" ]]; then
+    icon_entry_value="${base_icons_dir}/128x128/apps/${APP_NAME}.png"
+  fi
+
   _info "Installing .desktop entry..."
   ${SUDO_CMD} mkdir -p "$(dirname "${DESKTOP_FILE}")"
   cat << EOF | ${SUDO_CMD} tee "${DESKTOP_FILE}" > /dev/null
@@ -115,15 +121,19 @@ install_finnca() {
 Name=Finnca
 Comment=Personal double-entry finance notes
 Exec=${BIN_LINK}
-Icon=${APP_NAME}
+Icon=${icon_entry_value}
 Type=Application
 Categories=Office;Finance;
 Keywords=finance;accounting;budget;
 StartupNotify=true
 EOF
+  ${SUDO_CMD} chmod 644 "${DESKTOP_FILE}"
 
   _info "Installing app icons (multi-resolution)..."
-  local base_icons_dir="${ICON_DIR%/*/*}"
+  if [[ ! -f "${base_icons_dir}/index.theme" && -f "/usr/share/icons/hicolor/index.theme" ]]; then
+    ${SUDO_CMD} cp "/usr/share/icons/hicolor/index.theme" "${base_icons_dir}/index.theme" 2>/dev/null || true
+    ${SUDO_CMD} chmod 644 "${base_icons_dir}/index.theme" 2>/dev/null || true
+  fi
   for size in 32x32 64x64 128x128 256x256 512x512; do
     ${SUDO_CMD} mkdir -p "${base_icons_dir}/${size}/apps"
     if [[ -f "${INSTALL_DIR}/usr/share/icons/hicolor/${size}/apps/${APP_NAME}.png" ]]; then
