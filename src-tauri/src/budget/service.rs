@@ -283,13 +283,18 @@ mod tests {
         )
         .unwrap();
 
-        let summary = get_budget_month_summary(&conn, "2026-02").expect("summary succeeded without panic");
+        let summary =
+            get_budget_month_summary(&conn, "2026-02").expect("summary succeeded without panic");
         assert_eq!(summary.month, "2026-02");
         assert_eq!(summary.total_assigned, 500_000);
         assert_eq!(summary.total_activity, 200_000);
         assert_eq!(summary.to_be_budgeted, 500_000);
 
-        let food_env = summary.envelopes.iter().find(|e| e.account_id == "acc_food").unwrap();
+        let food_env = summary
+            .envelopes
+            .iter()
+            .find(|e| e.account_id == "acc_food")
+            .unwrap();
         assert_eq!(food_env.assigned, 500_000);
         assert_eq!(food_env.activity, 200_000);
         assert_eq!(food_env.available, 300_000);

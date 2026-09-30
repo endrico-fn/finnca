@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -42,7 +45,8 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            rpm
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -68,6 +72,8 @@ jobs:
 
       - name: Sync App Version from Git Tag
         shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
           TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"
@@ -80,6 +86,16 @@ jobs:
 
             const tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
             tauri.version = '${VERSION}';
+            const signingKey = process.env.SIGNING_KEY || '';
+            if (!signingKey.trim()) {
+              console.log('NOTE: TAURI_SIGNING_PRIVATE_KEY is not configured in GitHub Secrets. Disabling updater artifact generation to allow package builds.');
+              tauri.bundle.createUpdaterArtifacts = false;
+              if (tauri.plugins && tauri.plugins.updater) {
+                delete tauri.plugins.updater.pubkey;
+              }
+            } else {
+              console.log('SUCCESS: TAURI_SIGNING_PRIVATE_KEY detected. Signing updater artifacts.');
+            }
             fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tauri, null, 2) + '\n');
           "
           sed -i "0,/^version = .*/s//version = \"${VERSION}\"/" src-tauri/Cargo.toml
