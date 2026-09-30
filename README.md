@@ -3,10 +3,10 @@
   <h1>finnca</h1>
   <p>pencatatan keuangan double-entry yang serius, tapi tidak ribet</p>
 
-![License](https://img.shields.io/github/license/endrico-fn/finnca)
-![Version](https://img.shields.io/github/v/release/endrico-fn/finnca?label=release)
-![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows-informational)
-![Status](https://img.shields.io/badge/status-active%20development-orange)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/endrico-fn/finnca?label=release&color=teal)](https://github.com/endrico-fn/finnca/releases)
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows-informational)](https://github.com/endrico-fn/finnca/releases)
+[![Status](https://img.shields.io/badge/status-active%20development-orange)](https://github.com/endrico-fn/finnca)
 </div>
 
 ---
