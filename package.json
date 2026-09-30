@@ -16,7 +16,12 @@
     "format:fix": "prettier --write .",
     "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
     "test": "vitest run",
-    "check:all": "pnpm check && pnpm lint && pnpm test && pnpm check:rust",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:all": "pnpm test && pnpm test:rust",
+    "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
+    "fmt:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
+    "fmt:rust:fix": "cargo fmt --manifest-path src-tauri/Cargo.toml",
+    "check:all": "pnpm check && pnpm lint && pnpm format && pnpm test && pnpm check:rust && pnpm test:rust",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"

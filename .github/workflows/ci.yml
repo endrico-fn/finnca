@@ -39,6 +39,9 @@ jobs:
       - name: Prettier Code Style Check
         run: pnpm format
 
+      - name: Vitest Unit Tests
+        run: pnpm test
+
   backend:
     name: Rust Backend Quality Gate
     runs-on: ubuntu-latest
