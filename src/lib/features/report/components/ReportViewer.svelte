@@ -183,6 +183,18 @@
   crumbAction={() => tabRouter.setTab(activeGroupMeta.defaultTab)}
   title={currentTabLabel}
 >
+  {#snippet actions()}
+    <Button
+      variant="ghost"
+      size="sm"
+      onclick={() => (exportOpen = true)}
+      class="border border-line hover:border-teal hover:text-teal font-proto text-smaller font-bold tracking-wider uppercase whitespace-nowrap flex items-center gap-1.5"
+    >
+      <Icon name="export" size={12} />
+      <span>{i18n.t.exportReportBtn}</span>
+    </Button>
+  {/snippet}
+
   <ExportOverlay
     bind:open={exportOpen}
     reportTitle={currentTabLabel}
@@ -190,93 +202,80 @@
     onExport={handleExport}
   />
 
-  <div class="border-line flex min-h-0 flex-1 flex-col overflow-hidden border bg-bg-app">
-    <!-- Top Canvas Toolbar with Dropdown Tabs & Date / Export Controls -->
-    <div
-      class="border-line/60 bg-bg-card/40 relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-2 select-none"
-    >
-      <!-- 3 Prominent Category Dropdown Buttons -->
+  <!-- Top Toolbar with 3 Dropdown Tabs on Left & Date Filter Controls on Right -->
+  <div class="border-line relative z-20 mb-2 flex shrink-0 items-center justify-between gap-2 border-b pb-2">
+    <div class="flex min-w-0 items-center gap-1">
       <ReportDropdownTabs
         currentTab={tabRouter.current}
         onSelectTab={(tab) => tabRouter.setTab(tab)}
       />
-
-      <!-- Right Side: Date Controls & Export Action -->
-      <div class="flex items-center gap-2.5">
-        {#if isRangeTab}
-          <DateRangeDropdown bind:from bind:to />
-        {:else if isAsOfTab}
-          <div class="flex h-7 items-center gap-2">
-            <span class="font-proto text-text-dim text-smaller tracking-wider uppercase">
-              {i18n.t.asOfTodayLabel}:
-            </span>
-            <DateDropdown bind:value={to} />
-            {#if to && to > todayString()}
-              <span class="text-teal font-proto text-smaller animate-pulse font-bold">
-                {i18n.t.forecastBadge}
-              </span>
-            {/if}
-          </div>
-        {/if}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onclick={() => (exportOpen = true)}
-          class="border border-line hover:border-teal hover:text-teal font-bold tracking-wider whitespace-nowrap flex items-center gap-1.5"
-        >
-          <Icon name="export" size={12} />
-          <span>{i18n.t.exportReportBtn}</span>
-        </Button>
-      </div>
     </div>
 
-    <!-- Canvas Scroll Area (100% Full Width) -->
-    <div class="flex min-h-0 w-full flex-1 flex-col overflow-y-auto p-4">
-      {#key tabRouter.current}
-        <div
-          class="flex min-h-0 flex-1 flex-col"
-          in:fly={{ y: 4, duration: 140, easing: cubicOut }}
-          out:fade={{ duration: 60 }}
-        >
-          {#if tabRouter.current === 'networth'}
-            <NetWorthProgression
-              {bs}
-              monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
-              {historicalPoints}
-              {trendsDateRange}
-              bind:trendsPeriod
-            />
-          {:else if tabRouter.current === 'income-exp'}
-            <IncomeExpenseChart {from} {to} />
-          {:else if tabRouter.current === 'bs'}
-            <BalanceSheet asOf={to} />
-          {:else if tabRouter.current === 'pnl'}
-            <ProfitLoss {from} {to} />
-          {:else if tabRouter.current === 'cashflow'}
-            <CashFlow {from} {to} />
-          {:else if tabRouter.current === 'tb'}
-            <TrialBalance asOf={to} />
-          {:else if tabRouter.current === 'debt'}
-            <DebtReport asOf={to} />
-          {:else if tabRouter.current === 'trends'}
-            <Trends
-              {bs}
-              monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
-              bind:trendsPeriod
-              bind:trendsMetric
-              {trendsDateRange}
-              {historicalPoints}
-            />
-          {:else if tabRouter.current === 'spending'}
-            <SpendingAnalysis {from} {to} />
-          {:else if tabRouter.current === 'forecast'}
-            <CashForecast />
-          {:else if tabRouter.current === 'fx'}
-            <FxReport />
+    <!-- Right Side: Date Filter positioned directly beneath the Header Export Action -->
+    <div class="flex shrink-0 items-center gap-2">
+      {#if isRangeTab}
+        <DateRangeDropdown bind:from bind:to />
+      {:else if isAsOfTab}
+        <div class="flex h-7 items-center gap-2">
+          <span class="font-proto text-text-dim text-smaller tracking-wider uppercase">
+            {i18n.t.asOfTodayLabel}:
+          </span>
+          <DateDropdown bind:value={to} />
+          {#if to && to > todayString()}
+            <span class="text-teal font-proto text-smaller animate-pulse font-bold">
+              {i18n.t.forecastBadge}
+            </span>
           {/if}
         </div>
-      {/key}
+      {/if}
     </div>
+  </div>
+
+  <!-- Content Canvas Scroll Area -->
+  <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+    {#key tabRouter.current}
+      <div
+        class="flex min-h-full flex-col"
+        in:fly={{ y: 4, duration: 140, easing: cubicOut }}
+        out:fade={{ duration: 60 }}
+      >
+        {#if tabRouter.current === 'networth'}
+          <NetWorthProgression
+            {bs}
+            monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
+            {historicalPoints}
+            {trendsDateRange}
+            bind:trendsPeriod
+          />
+        {:else if tabRouter.current === 'income-exp'}
+          <IncomeExpenseChart {from} {to} />
+        {:else if tabRouter.current === 'bs'}
+          <BalanceSheet asOf={to} />
+        {:else if tabRouter.current === 'pnl'}
+          <ProfitLoss {from} {to} />
+        {:else if tabRouter.current === 'cashflow'}
+          <CashFlow {from} {to} />
+        {:else if tabRouter.current === 'tb'}
+          <TrialBalance asOf={to} />
+        {:else if tabRouter.current === 'debt'}
+          <DebtReport asOf={to} />
+        {:else if tabRouter.current === 'trends'}
+          <Trends
+            {bs}
+            monthlyExpense={monthlyBurn > 0 ? monthlyBurn : 1}
+            bind:trendsPeriod
+            bind:trendsMetric
+            {trendsDateRange}
+            {historicalPoints}
+          />
+        {:else if tabRouter.current === 'spending'}
+          <SpendingAnalysis {from} {to} />
+        {:else if tabRouter.current === 'forecast'}
+          <CashForecast />
+        {:else if tabRouter.current === 'fx'}
+          <FxReport />
+        {/if}
+      </div>
+    {/key}
   </div>
 </PageLayout>

@@ -145,7 +145,7 @@
 
 <nav
   bind:this={navContainerEl}
-  class="flex items-center gap-2 flex-wrap"
+  class="flex items-center gap-1 flex-wrap"
   aria-label={i18n.t.report}
 >
   {#each REPORT_GROUPS as group (group.id)}
@@ -175,20 +175,17 @@
             ? 'border-line/80 bg-bg-card text-text-white font-semibold'
             : 'border-line bg-bg-btn text-text-muted hover:text-text-white hover:border-line/80 font-semibold'}"
       >
+        {#if isCategoryActive}
+          <span class="size-1.5 shrink-0 bg-teal"></span>
+        {/if}
+
+        <span class="uppercase tracking-wider">{i18n.t[group.labelKey]}</span>
+
         <span
           class="inline-flex transition-transform duration-150 {isOpen ? 'rotate-180' : ''}"
         >
           <Icon name="chev-down" size={10} />
         </span>
-
-        <span class="uppercase tracking-wider">{i18n.t[group.labelKey]}</span>
-
-        {#if isCategoryActive}
-          <span class="text-teal/60 font-normal">:</span>
-          <span class="text-text-white font-bold uppercase truncate max-w-44 sm:max-w-none">
-            {i18n.t[REPORT_TAB_LABELS[currentTab]]}
-          </span>
-        {/if}
       </button>
 
       {#if isOpen}
