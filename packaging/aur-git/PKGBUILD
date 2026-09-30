@@ -1,0 +1,72 @@
+# Maintainer: finnca contributors <https://github.com/endrico-fn/finnca>
+
+pkgname=finnca-git
+pkgver=r0.g0000000
+pkgrel=1
+pkgdesc="Personal double-entry finance notes — brutalist, privacy-first desktop app (git)"
+arch=('x86_64')
+url="https://github.com/endrico-fn/finnca"
+license=('MIT')
+depends=(
+  'webkit2gtk-4.1'
+  'libayatana-appindicator'
+)
+makedepends=(
+  'git'
+  'rust'
+  'cargo'
+  'nodejs'
+  'pnpm'
+  'base-devel'
+  'libssl'
+  'libxdo'
+)
+provides=('finnca')
+conflicts=('finnca' 'finnca-bin')
+source=("${pkgname}::git+https://github.com/endrico-fn/finnca.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "${srcdir}/${pkgname}"
+  printf "r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  cd "${srcdir}/${pkgname}"
+  pnpm install --frozen-lockfile
+  pnpm tauri build --bundles appimage
+}
+
+package() {
+  cd "${srcdir}/${pkgname}"
+
+  local _appimage
+  _appimage="$(find src-tauri/target/release/bundle/appimage -name '*.AppImage' | head -1)"
+
+  chmod +x "${_appimage}"
+  "${_appimage}" --appimage-extract
+
+  install -dm755 "${pkgdir}/opt/finnca"
+  cp -r squashfs-root/. "${pkgdir}/opt/finnca/"
+
+  install -dm755 "${pkgdir}/usr/bin"
+  ln -s /opt/finnca/AppRun "${pkgdir}/usr/bin/finnca"
+
+  install -dm755 "${pkgdir}/usr/share/applications"
+  cat > "${pkgdir}/usr/share/applications/finnca.desktop" << EOF
+[Desktop Entry]
+Name=Finnca
+Comment=Personal double-entry finance notes
+Exec=/usr/bin/finnca
+Icon=finnca
+Type=Application
+Categories=Office;Finance;
+Keywords=finance;accounting;budget;
+StartupNotify=true
+EOF
+
+  install -Dm644 squashfs-root/usr/share/icons/hicolor/128x128/apps/finnca.png \
+    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/finnca.png" 2>/dev/null || true
+
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE" 2>/dev/null || true
+}

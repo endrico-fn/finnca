@@ -3,5 +3,10 @@
   "identifier": "settings-capability",
   "description": "Capability for application configuration, external folder opening, and preferences",
   "windows": ["main"],
-  "permissions": ["core:default", "opener:default"]
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "updater:default",
+    "process:default"
+  ]
 }

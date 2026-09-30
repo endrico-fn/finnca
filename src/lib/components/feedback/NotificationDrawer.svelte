@@ -40,11 +40,25 @@
     })
   );
 
-  function handleAction(notif: AppNotification) {
+  import { openUrl } from '@tauri-apps/plugin-opener';
+  import { updaterState } from '$lib/core/updater/updaterState.svelte';
+
+  async function handleAction(notif: AppNotification) {
     notificationState.markAsRead(notif.id);
     notificationState.closeDrawer();
     if (notif.actionHref) {
-      goto(resolve(notif.actionHref as '/app'));
+      if (notif.actionHref === 'app:update') {
+        updaterState.openScreen();
+        updaterState.checkForUpdate();
+      } else if (notif.actionHref.startsWith('http://') || notif.actionHref.startsWith('https://')) {
+        try {
+          await openUrl(notif.actionHref);
+        } catch {
+          window.open(notif.actionHref, '_blank');
+        }
+      } else {
+        goto(resolve(notif.actionHref as '/app'));
+      }
     }
   }
 

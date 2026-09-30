@@ -12,6 +12,8 @@ export interface PrefSchema {
   finnca_snoozed_notifs: Record<string, number>;
   finnca_lock_timeout: string;
   finnca_inspector_layout: 'docked' | 'modal' | 'adaptive';
+  finnca_last_update_check: number;
+  finnca_last_notified_version: string;
 }
 
 export type PrefKey = keyof PrefSchema;

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    { "action": "edit", "resource": "src/lib/core/ipc/bindings*", "effect": "deny" }
+  ],
+  "references": {
+    "second-brain": {
+      "path": "./docs/architecture",
+      "description": "Use before large changes: manifesto, design tokens, component spec, domain catalog, feature registry"
+    }
+  }
+}

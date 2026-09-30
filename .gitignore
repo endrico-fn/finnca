@@ -35,16 +35,30 @@ Thumbs.db
 *.local
 *.tsbuildinfo
 
-# finnca vault secrets — never commit
+# finnca vault & signing secrets — never commit
 *.db
 *.db-wal
 *.db-shm
 *.age
 *.key
+*.key.pub
+*.pem
+*.sig
 *.meta.json
 .finnca-test
 finnca-*/
 finnca-*-backup/
+
+# packaging & local build artifacts (makepkg, tarballs, updater json)
+*.pkg.tar.zst
+*.pkg.tar.xz
+*.AppImage
+*.deb
+*.rpm
+latest.json
+packaging/**/src/
+packaging/**/pkg/
+packaging/**/*.AppImage
 
 # scratch / one-off scripts — never commit
 extract-calendar.cjs

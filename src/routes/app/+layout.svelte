@@ -15,6 +15,7 @@ import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
   import { modalState } from '$lib/core/state/modal.svelte';
   import { evaluateSmartNotifications } from '$lib/core/notification/smartEvaluator';
   import { runDailyFxSync } from '$lib/features/settings/fxSync';
+  import { checkAppUpdates } from '$lib/core/updater/updateChecker';
   import { privacyState } from '$lib/core/state/privacy.svelte';
 
   import TopBar from '$lib/components/layout/TopBar.svelte';
@@ -73,6 +74,7 @@ import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
 
         evaluateSmartNotifications(i18n.t);
         runDailyFxSync(i18n.t);
+        checkAppUpdates(i18n.t);
       }
     })();
 

@@ -12,6 +12,8 @@
   import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
   import EntryInspector from '$lib/features/journal/components/EntryInspector.svelte';
   import FloatingInspectorWindow from '$lib/components/layout/FloatingInspectorWindow.svelte';
+  import UpdateScreen from '$lib/features/updater/components/UpdateScreen.svelte';
+  import { updaterState } from '$lib/core/updater/updaterState.svelte';
 
   let {
     healthStats = null,
@@ -86,4 +88,8 @@
     }}
     onCancel={() => modalState.closeConfirm()}
   />
+{/if}
+
+{#if updaterState.screenOpen}
+  <UpdateScreen onClose={() => updaterState.closeScreen()} />
 {/if}

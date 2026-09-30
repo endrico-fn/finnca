@@ -1,0 +1,52 @@
+# Maintainer: finnca contributors <https://github.com/endrico-fn/finnca>
+
+pkgname=finnca-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Personal double-entry finance notes — brutalist, privacy-first desktop app"
+arch=('x86_64')
+url="https://github.com/endrico-fn/finnca"
+license=('MIT')
+depends=(
+  'webkit2gtk-4.1'
+  'libayatana-appindicator'
+)
+provides=('finnca')
+conflicts=('finnca' 'finnca-git')
+
+source_x86_64=("${pkgname}-${pkgver}.AppImage::https://github.com/endrico-fn/finnca/releases/download/v${pkgver}/finnca_${pkgver}_amd64.AppImage")
+sha256sums_x86_64=('SKIP')
+
+prepare() {
+  chmod +x "${srcdir}/${pkgname}-${pkgver}.AppImage"
+  "${srcdir}/${pkgname}-${pkgver}.AppImage" --appimage-extract
+}
+
+package() {
+  install -dm755 "${pkgdir}/opt/finnca"
+  cp -r "${srcdir}/squashfs-root/." "${pkgdir}/opt/finnca/"
+
+  install -dm755 "${pkgdir}/usr/bin"
+  ln -s /opt/finnca/AppRun "${pkgdir}/usr/bin/finnca"
+
+  install -dm755 "${pkgdir}/usr/share/applications"
+  cat > "${pkgdir}/usr/share/applications/finnca.desktop" << EOF
+[Desktop Entry]
+Name=Finnca
+Comment=Personal double-entry finance notes
+Exec=/usr/bin/finnca
+Icon=finnca
+Type=Application
+Categories=Office;Finance;
+Keywords=finance;accounting;budget;
+StartupNotify=true
+EOF
+
+  install -dm755 "${pkgdir}/usr/share/icons/hicolor/128x128/apps"
+  install -Dm644 "${srcdir}/squashfs-root/usr/share/icons/hicolor/128x128/apps/finnca.png" \
+    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/finnca.png" 2>/dev/null || \
+  install -Dm644 "${srcdir}/squashfs-root/finnca.png" \
+    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/finnca.png" 2>/dev/null || true
+
+  install -Dm644 "${srcdir}/squashfs-root/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE" 2>/dev/null || true
+}

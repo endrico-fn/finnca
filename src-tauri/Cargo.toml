@@ -1,8 +1,11 @@
 [package]
 name = "finnca"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Personal double-entry finance notes — brutalist, privacy-first desktop app"
+authors = ["finnca contributors"]
+repository = "https://github.com/endrico-fn/finnca"
+license = "MIT"
+keywords = ["finance", "accounting", "double-entry", "personal", "tauri"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -21,6 +24,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-single-instance = "2"
 age = "0.12"
