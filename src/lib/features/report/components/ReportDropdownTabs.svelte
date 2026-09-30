@@ -169,11 +169,11 @@
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls="report-dropdown-{group.id}"
-        class="sharp-btn font-proto text-smaller h-7 px-2.5 transition-colors select-none inline-flex items-center gap-1.5 border rounded-none cursor-pointer {isCategoryActive
-          ? 'border-teal text-teal bg-teal/10 font-bold hover:bg-teal/15 hover:border-teal'
+        class="font-proto text-smaller inline-flex h-6 cursor-pointer items-center justify-center gap-1.5 border px-2 whitespace-nowrap transition-colors select-none rounded-none {isCategoryActive
+          ? 'bg-bg-row-active border-line text-text-strong font-semibold'
           : isOpen
             ? 'border-line/80 bg-bg-card text-text-white font-semibold'
-            : 'border-line bg-bg-btn text-text-muted hover:text-text-white hover:border-line/80 font-semibold'}"
+            : 'border-transparent bg-transparent text-text-muted hover:border-line/40 hover:bg-bg-card hover:text-text-base font-semibold'}"
       >
         {#if isCategoryActive}
           <span class="size-1.5 shrink-0 bg-teal"></span>

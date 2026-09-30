@@ -216,7 +216,7 @@
       {#if isRangeTab}
         <DateRangeDropdown bind:from bind:to />
       {:else if isAsOfTab}
-        <div class="flex h-7 items-center gap-2">
+        <div class="flex h-6 items-center gap-2">
           <span class="font-proto text-text-dim text-smaller tracking-wider uppercase">
             {i18n.t.asOfTodayLabel}:
           </span>
