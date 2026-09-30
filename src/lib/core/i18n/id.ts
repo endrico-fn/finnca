@@ -653,6 +653,9 @@ export const id: TranslationDict = {
   notifFxAlertsLabel: 'Peringatan Kurs FX',
   notifExpenseSpikeLabel: 'Lonjakan Pengeluaran',
   notifLedgerIntegrityLabel: 'Integritas Ledger',
+  notifAutoUpdateLabel: 'Cek Pembaruan Otomatis (GitHub)',
+  notifAutoUpdateDesc:
+    'Periksa rilis baru saat startup. Matikan untuk isolasi jaringan total (Air-Gapped).',
   notifStoredLocally: 'Preferensi tersimpan secara lokal di perangkat ini.',
   usernameEmptyError: 'Username tidak boleh kosong.',
   usernameTooShortError: 'Terlalu pendek (minimum 2 karakter).',

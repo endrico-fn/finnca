@@ -9,6 +9,7 @@
     fx: true,
     spike: true,
     integrity: true,
+    autoUpdate: true,
   });
 
   function loadLocalPrefs() {
@@ -128,6 +129,36 @@
             : 'text-text-muted'}"
         >
           {notifToggles.integrity ? i18n.t.enabledLabel : i18n.t.disabledLabel}
+        </span>
+      </label>
+
+      <label
+        class="border-line/40 bg-bg-app hover:border-text-dim group flex cursor-pointer items-center justify-between border p-2.5 transition-colors"
+      >
+        <div class="flex items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={notifToggles.autoUpdate}
+            onchange={() => toggle('autoUpdate')}
+            class="accent-teal size-3.5 shrink-0"
+          />
+          <div class="flex flex-col">
+            <span
+              class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
+            >
+              {i18n.t.notifAutoUpdateLabel}
+            </span>
+            <span class="font-aux text-text-muted text-smaller leading-tight">
+              {i18n.t.notifAutoUpdateDesc}
+            </span>
+          </div>
+        </div>
+        <span
+          class="font-proto text-smaller shrink-0 pl-2 {notifToggles.autoUpdate
+            ? 'text-teal font-bold'
+            : 'text-text-muted'}"
+        >
+          {notifToggles.autoUpdate ? i18n.t.enabledLabel : i18n.t.disabledLabel}
         </span>
       </label>
     </div>

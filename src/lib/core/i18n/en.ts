@@ -647,6 +647,9 @@ export const en = {
   notifFxAlertsLabel: 'FX Alerts',
   notifExpenseSpikeLabel: 'Expense Spike',
   notifLedgerIntegrityLabel: 'Ledger Integrity',
+  notifAutoUpdateLabel: 'Auto-Check Updates (GitHub)',
+  notifAutoUpdateDesc:
+    'Check for new releases on startup. Disable for 100% offline air-gapped isolation.',
   notifStoredLocally: 'Preferences stored locally on this workstation.',
   usernameEmptyError: 'Username cannot be empty.',
   usernameTooShortError: 'Too short (minimum 2 characters).',
