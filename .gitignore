@@ -49,16 +49,11 @@ Thumbs.db
 finnca-*/
 finnca-*-backup/
 
-# packaging & local build artifacts (makepkg, tarballs, updater json)
-*.pkg.tar.zst
-*.pkg.tar.xz
+# local build artifacts (installer packages, updater json)
 *.AppImage
 *.deb
 *.rpm
 latest.json
-packaging/**/src/
-packaging/**/pkg/
-packaging/**/*.AppImage
 
 # scratch / one-off scripts — never commit
 extract-calendar.cjs

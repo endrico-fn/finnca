@@ -53,18 +53,6 @@ curl -fsSL https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/inst
 
 Atau download `.AppImage` langsung dari [Releases](https://github.com/endrico-fn/finnca/releases), kasih permission execute, jalankan.
 
-### Arch Linux
-
-```bash
-paru -S finnca-bin
-```
-
-Atau kalau mau build dari source:
-
-```bash
-paru -S finnca-git
-```
-
 ### Windows
 
 Download `.msi` atau `_x64-setup.exe` dari [Releases](https://github.com/endrico-fn/finnca/releases), klik install.

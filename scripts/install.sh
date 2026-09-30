@@ -35,8 +35,8 @@ _require_cmd() {
 }
 
 _get_latest_version() {
-  curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
-    | grep '"tag_name"' | sed 's/.*"tag_name": "\(.*\)".*/\1/'
+  curl -sSL "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null \
+    | grep '"tag_name"' | head -n 1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' || true
 }
 
 install_finnca() {
@@ -45,23 +45,51 @@ install_finnca() {
   _require_cmd curl
 
   local version="${1:-}"
+  local local_appimage=""
+  
+  # Cek jika ada biner AppImage lokal di folder project
+  if [[ -f "./src-tauri/target/release/bundle/appimage/${APP_NAME}_0.1.0_amd64.AppImage" ]]; then
+    local_appimage="./src-tauri/target/release/bundle/appimage/${APP_NAME}_0.1.0_amd64.AppImage"
+  elif ls ./src-tauri/target/release/bundle/appimage/*.AppImage &>/dev/null; then
+    local_appimage="$(ls ./src-tauri/target/release/bundle/appimage/*.AppImage | head -n 1)"
+  fi
+
   if [[ "${version}" == "--system" || -z "${version}" ]]; then
     version="$(_get_latest_version)"
   fi
-  local ver_num="${version#v}"
 
-  _info "Target Version: ${version}"
+  if [[ -z "${version}" && -z "${local_appimage}" ]]; then
+    _err "Belum ada rilis resmi yang dipublish di https://github.com/${REPO}/releases."
+    _info "Pastikan rilis GitHub Actions sudah selesai dibuat."
+    exit 1
+  fi
+
+  local ver_num="${version#v}"
+  if [[ -z "${ver_num}" ]]; then
+    ver_num="0.1.0"
+  fi
+
+  _info "Target Version: ${version:-v0.1.0 (local)}"
   _info "Destination   : ${INSTALL_DIR}"
 
-  local tmp_dir
+  local tmp_dir=""
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "${tmp_dir}"' EXIT
+  trap '[[ -n "${tmp_dir:-}" ]] && rm -rf "${tmp_dir}"' EXIT RETURN
 
-  local appimage_url="https://github.com/${REPO}/releases/download/${version}/${APP_NAME}_${ver_num}_amd64.AppImage"
   local appimage_path="${tmp_dir}/${APP_NAME}.AppImage"
 
-  _info "Downloading AppImage..."
-  curl -fSL --progress-bar "${appimage_url}" -o "${appimage_path}"
+  if [[ -n "${local_appimage}" && -f "${local_appimage}" && -z "${version}" ]]; then
+    _info "Menggunakan biner AppImage lokal (${local_appimage})..."
+    cp "${local_appimage}" "${appimage_path}"
+  else
+    local appimage_url="https://github.com/${REPO}/releases/download/${version}/${APP_NAME}_${ver_num}_amd64.AppImage"
+    _info "Downloading AppImage from GitHub Releases..."
+    if ! curl -fSL --progress-bar "${appimage_url}" -o "${appimage_path}"; then
+      _err "Gagal mengunduh AppImage dari ${appimage_url}"
+      _info "Kemungkinan rilis ${version} belum memiliki aset AppImage atau belum dipublish."
+      exit 1
+    fi
+  fi
 
   chmod +x "${appimage_path}"
 
@@ -107,7 +135,7 @@ EOF
     gtk-update-icon-cache -f "${ICON_DIR%/*/*}" 2>/dev/null || true
   fi
 
-  _ok "Finnca ${version} successfully installed!"
+  _ok "Finnca ${version:-v0.1.0} successfully installed!"
   if [[ "${BIN_LINK}" == "${HOME}/.local/bin/${APP_NAME}" ]]; then
     if [[ ":${PATH}:" != *":${HOME}/.local/bin:"* ]]; then
       _info "Notice: Add ~/.local/bin to your PATH to run 'finnca' directly from terminal."

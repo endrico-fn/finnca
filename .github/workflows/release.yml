@@ -50,9 +50,7 @@ jobs:
           node-version: 20
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+        uses: pnpm/action-setup@v4
 
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -65,7 +63,7 @@ jobs:
           workspaces: src-tauri
 
       - name: Install Frontend Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
@@ -89,9 +87,6 @@ jobs:
             ### Windows
             - `.msi` — Windows Installer (recommended)
             - `_x64-setup.exe` — NSIS installer
-
-            ---
-            Arch Linux: lihat [AUR](https://aur.archlinux.org/packages/finnca-bin) atau gunakan `paru -S finnca-bin`
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}
