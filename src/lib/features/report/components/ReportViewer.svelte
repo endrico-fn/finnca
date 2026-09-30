@@ -19,7 +19,7 @@
     type TrendsMetric,
   } from '../state/trendsChartUtils';
   import ReportDropdownTabs from './ReportDropdownTabs.svelte';
-  import { REPORT_GROUPS, REPORT_TAB_LABELS, reportGroupOf } from '../state/reportNav';
+  import { REPORT_TAB_LABELS } from '../state/reportNav';
 
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import BalanceSheet from './BalanceSheet.svelte';
@@ -53,10 +53,6 @@
   let from = $state('');
   let to = $state('');
   let exportOpen = $state(false);
-
-  const activeGroupMeta = $derived(
-    REPORT_GROUPS.find((g) => g.id === reportGroupOf(tabRouter.current)) ?? REPORT_GROUPS[0]
-  );
 
   const currentTabLabel = $derived.by(() => {
     const labelKey = REPORT_TAB_LABELS[tabRouter.current];
@@ -177,30 +173,20 @@
 </script>
 
 <PageLayout
-  parentCrumb={i18n.t.report}
-  parentHref="/app/reports"
-  crumb={i18n.t[activeGroupMeta.labelKey]}
-  crumbAction={() => tabRouter.setTab(activeGroupMeta.defaultTab)}
+  crumb={i18n.t.report}
+  crumbHref="/app/reports"
   title={currentTabLabel}
 >
   {#snippet actions()}
     <Button
       variant="ghost"
-      size="sm"
       onclick={() => (exportOpen = true)}
-      class="border border-line hover:border-teal hover:text-teal font-proto text-smaller font-bold tracking-wider uppercase whitespace-nowrap flex items-center gap-1.5"
+      class="border border-line hover:border-teal hover:text-teal font-proto text-smaller h-8 px-3 font-bold tracking-wider uppercase whitespace-nowrap flex items-center gap-1.5"
     >
       <Icon name="export" size={12} />
       <span>{i18n.t.exportReportBtn}</span>
     </Button>
   {/snippet}
-
-  <ExportOverlay
-    bind:open={exportOpen}
-    reportTitle={currentTabLabel}
-    supportsPDF={tabRouter.current !== 'trends' && tabRouter.current !== 'income-exp'}
-    onExport={handleExport}
-  />
 
   <!-- Top Toolbar with 3 Dropdown Tabs on Left & Date Filter Controls on Right -->
   <div class="border-line relative z-20 mb-2 flex shrink-0 items-center justify-between gap-2 border-b pb-2">
@@ -278,4 +264,11 @@
       </div>
     {/key}
   </div>
+
+  <ExportOverlay
+    bind:open={exportOpen}
+    reportTitle={currentTabLabel}
+    supportsPDF={tabRouter.current !== 'trends' && tabRouter.current !== 'income-exp'}
+    onExport={handleExport}
+  />
 </PageLayout>
