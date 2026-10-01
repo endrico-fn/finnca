@@ -4,11 +4,9 @@ export type NotificationType =
   | 'FX_ALERT'
   | 'EXPENSE_SPIKE'
   | 'CASHFLOW_DEFICIT'
-  | 'INACTIVITY'
   | 'LEDGER_INTEGRITY'
   | 'INFO'
-  | 'GREETING'
-  | 'LIQUIDITY_ALERT';
+  | 'GREETING';
 
 export interface AppNotification {
   id: string;
@@ -23,25 +21,6 @@ export interface AppNotification {
   actionLabel?: string;
 }
 
-export function getNotificationAccent(type: NotificationType): string {
-  switch (type) {
-    case 'DUE_DATE':
-      return 'var(--color-expense)';
-    case 'FX_ALERT':
-      return 'var(--color-income)';
-    case 'EXPENSE_SPIKE':
-    case 'CASHFLOW_DEFICIT':
-      return 'var(--color-warning)';
-    case 'LEDGER_INTEGRITY':
-      return 'var(--color-expense)';
-    case 'GREETING':
-      return 'var(--color-teal)';
-    case 'LIQUIDITY_ALERT':
-      return 'var(--color-warning)';
-    default:
-      return 'var(--color-teal)';
-  }
-}
 
 export function getNotificationBorderClass(type: NotificationType): string {
   switch (type) {
@@ -52,7 +31,6 @@ export function getNotificationBorderClass(type: NotificationType): string {
       return 'border-l-income';
     case 'EXPENSE_SPIKE':
     case 'CASHFLOW_DEFICIT':
-    case 'LIQUIDITY_ALERT':
       return 'border-l-warning';
     case 'GREETING':
     default:

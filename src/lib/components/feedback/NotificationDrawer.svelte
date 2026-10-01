@@ -20,7 +20,7 @@
       DUE: all.filter((n) => n.type === 'DUE_DATE').length,
       FX: all.filter((n) => n.type === 'FX_ALERT').length,
       ACTIVITY: all.filter((n) =>
-        ['EXPENSE_SPIKE', 'CASHFLOW_DEFICIT', 'INACTIVITY', 'LEDGER_INTEGRITY'].includes(n.type)
+        ['EXPENSE_SPIKE', 'CASHFLOW_DEFICIT', 'LEDGER_INTEGRITY'].includes(n.type)
       ).length,
     };
   });
@@ -33,7 +33,6 @@
         return (
           n.type === 'EXPENSE_SPIKE' ||
           n.type === 'CASHFLOW_DEFICIT' ||
-          n.type === 'INACTIVITY' ||
           n.type === 'LEDGER_INTEGRITY'
         );
       return true;

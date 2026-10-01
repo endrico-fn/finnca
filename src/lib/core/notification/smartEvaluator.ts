@@ -160,9 +160,9 @@ export async function evaluateSmartNotifications(t: TranslationDict): Promise<vo
               });
               evaluatedKeys.add(key);
             }
-          } else if (env.activity / env.assigned >= 0.85) {
+          } else if (Math.abs(env.activity) * 100 >= Math.abs(env.assigned) * 85) {
             const key = `budget-near:${env.account_id}:${currentMonth}`;
-            const pct = Math.round((env.activity / env.assigned) * 100);
+            const pct = Math.floor((Math.abs(env.activity) * 100) / Math.abs(env.assigned));
             if (!evaluatedKeys.has(key)) {
               notificationState.addNotification({
                 type: 'EXPENSE_SPIKE',

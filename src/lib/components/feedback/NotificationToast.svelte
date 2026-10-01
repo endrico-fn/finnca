@@ -43,8 +43,6 @@
         return 'alert';
       case 'GREETING':
         return 'bell';
-      case 'LIQUIDITY_ALERT':
-        return 'alert';
       default:
         return 'bell';
     }
