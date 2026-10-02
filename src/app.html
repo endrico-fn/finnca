@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--color-bg-app, #0e0f0f);
+        color: var(--color-text-base, #a2a9a9);
+        touch-action: pan-x pan-y;
+        -webkit-text-size-adjust: 100%;
+      }
+    </style>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+    <script>
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '0')) e.preventDefault();
+      });
+      document.addEventListener(
+        'wheel',
+        (e) => {
+          if (e.ctrlKey) e.preventDefault();
+        },
+        { passive: false }
+      );
+    </script>
+  </body>
+</html>

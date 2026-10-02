@@ -1,0 +1,68 @@
+import { defineConfig } from 'vite';
+import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
+import pkg from './package.json';
+
+const host = process.env.TAURI_DEV_HOST;
+
+// https://vite.dev/config/
+export default defineConfig(async () => {
+  const kitPlugins = await sveltekit();
+
+  // In Vite 6, secondary_build_started module state in @sveltejs/kit is not shared across
+  // isolated config evaluations. When the secondary client build starts (ssr: false),
+  // buildStart() would mistakenly execute rimraf(out), deleting .svelte-kit/output/server
+  // and causing ENOENT when manifest-full.js is regenerated at index.js:1512.
+  // We guard buildStart so it only clears the output directory during the primary SSR build.
+  const compilePlugin = kitPlugins.find(
+    (p) => p && typeof p === 'object' && 'name' in p && p.name === 'vite-plugin-sveltekit-compile'
+  );
+  if (
+    compilePlugin &&
+    'buildStart' in compilePlugin &&
+    typeof compilePlugin.buildStart === 'function'
+  ) {
+    const origBuildStart = compilePlugin.buildStart;
+    compilePlugin.buildStart = function (...args) {
+      if (
+        this.environment?.name === 'client' ||
+        Boolean(Reflect.get(globalThis, '__sveltekit_secondary_build_started'))
+      ) {
+        return;
+      }
+      Reflect.set(globalThis, '__sveltekit_secondary_build_started', true);
+      return origBuildStart.apply(this, args);
+    };
+  }
+
+  return {
+    plugins: [tailwindcss(), ...kitPlugins],
+
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __APP_NAME__: JSON.stringify(pkg.name),
+    },
+
+    // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
+    //
+    // 1. prevent Vite from obscuring rust errors
+    clearScreen: false,
+    // 2. tauri expects a fixed port, fail if that port is not available
+    server: {
+      port: 1420,
+      strictPort: true,
+      host: host || false,
+      hmr: host
+        ? {
+            protocol: 'ws',
+            host,
+            port: 1421,
+          }
+        : undefined,
+      watch: {
+        // 3. tell Vite to ignore watching `src-tauri`
+        ignored: ['**/src-tauri/**'],
+      },
+    },
+  };
+});

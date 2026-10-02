@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "ledger-capability",
+  "description": "Capability for double-entry ledger postings, accounts, and bank statement import",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:default"]
+}

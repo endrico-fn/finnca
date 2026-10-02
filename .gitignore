@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.svelte-kit/
+build/
+dist/
+
+# Tauri / Rust
+target/
+src-tauri/target/
+src-tauri/gen/schemas/
+**/*.rs.bk
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs & caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
+
+# Environment configurations
+.env
+.env.*
+!.env.example
+*.local
+
+# Finnca encrypted vaults, databases & cryptographic keys (NEVER commit)
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.age
+*.key
+*.key.pub
+*.pem
+*.sig
+*.meta.json
+.finnca-test/
+finnca-*/
+finnca-*-backup/
+
+# Local distribution artifacts & packages
+*.AppImage
+*.deb
+*.rpm
+*.msi
+*.exe
+latest.json
+
+# Scratch & temporary workspace
+scratch/
+*.tmp
+*.temp
+*.out

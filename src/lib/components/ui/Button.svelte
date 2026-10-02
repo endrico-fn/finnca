@@ -1,0 +1,83 @@
+<script lang="ts">
+  import type { Snippet } from 'svelte';
+  import { resolve } from '$app/paths';
+
+  let {
+    variant = 'primary',
+    size = 'md',
+    disabled = false,
+    loading = false,
+    type = 'button',
+    onclick,
+    href,
+    ariaLabel,
+    pressed,
+    title,
+    class: extraClass = '',
+    children,
+  }: {
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'pager' | 'tactical' | 'outline';
+    size?: 'sm' | 'md' | 'lg' | 'icon';
+    disabled?: boolean;
+    loading?: boolean;
+    type?: 'button' | 'submit';
+    onclick?: (e: MouseEvent) => void;
+    href?: string;
+    ariaLabel?: string;
+    pressed?: boolean;
+    title?: string;
+    class?: string;
+    children: Snippet;
+  } = $props();
+
+  const isBusy = $derived(disabled || loading);
+
+  const cls = $derived.by(() => {
+    if (variant === 'pager') {
+      const icon = size === 'icon' ? 'btn-pager-icon' : '';
+      return `sharp-btn btn-pager font-proto ${icon} ${extraClass}`.trim().replace(/\s+/g, ' ');
+    }
+    const sizing =
+      size === 'sm'
+        ? 'h-7 px-2.5 text-smaller'
+        : size === 'lg'
+          ? 'h-9 px-4 text-small'
+          : size === 'icon'
+            ? 'w-7 h-7 p-0 shrink-0'
+            : 'h-8 px-3.5 text-small';
+    const dim = isBusy ? 'opacity-50 cursor-not-allowed' : '';
+    return `sharp-btn btn-${variant} font-proto ${sizing} ${dim} ${extraClass}`
+      .trim()
+      .replace(/\s+/g, ' ');
+  });
+</script>
+
+{#if href}
+  <a
+    href={resolve(href as '/app')}
+    class={cls}
+    aria-disabled={isBusy}
+    aria-label={ariaLabel}
+    {title}
+  >
+    {#if loading}
+      <span class="spinner-sm mr-1.5" aria-hidden="true"></span>
+    {/if}
+    {@render children()}
+  </a>
+{:else}
+  <button
+    {type}
+    disabled={isBusy}
+    {onclick}
+    class={cls}
+    aria-label={ariaLabel}
+    aria-pressed={pressed}
+    {title}
+  >
+    {#if loading}
+      <span class="spinner-sm mr-1.5" aria-hidden="true"></span>
+    {/if}
+    {@render children()}
+  </button>
+{/if}
