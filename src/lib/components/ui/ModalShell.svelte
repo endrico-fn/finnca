@@ -35,6 +35,7 @@
     onClose,
     children,
     size = 'md',
+    zIndex = 'z-50',
   }: {
     open: boolean;
     title: string;
@@ -42,6 +43,7 @@
     onClose?: () => void;
     children: Snippet;
     size?: OverlaySize;
+    zIndex?: string;
   } = $props();
 
   let dialogEl: HTMLDivElement | null = $state(null);
@@ -95,7 +97,7 @@
 
 {#if open}
   <div
-    class="bg-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
+    class="bg-overlay fixed inset-0 {zIndex} flex items-center justify-center p-4"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) close();
@@ -106,7 +108,7 @@
       bind:this={dialogEl}
       class="sharp-card w-full {OVERLAY_SIZES[
         size
-      ]} anim-modal flex max-h-[calc(100dvh-2rem)] flex-col overflow-y-auto p-4"
+      ]} anim-modal flex max-h-[calc(100dvh-2rem)] flex-col"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -114,14 +116,16 @@
       onkeydown={handleDialogKey}
       tabindex="-1"
     >
-      <div class="flex h-8 shrink-0 items-center justify-between pb-2.5">
+      <div class="flex h-8 shrink-0 items-center justify-between p-4 pb-2.5">
         <div class="flex items-center gap-2.5">
           <span class="{TONE_CLASSES[tone]} size-2 shrink-0"></span>
           <h2 class="label-title text-medium leading-none">{title}</h2>
         </div>
         <CloseButton onclick={close} />
       </div>
-      {@render children()}
+      <div class="flex-1 overflow-y-auto p-4 pt-0">
+        {@render children()}
+      </div>
     </div>
   </div>
 {/if}

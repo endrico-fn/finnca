@@ -108,7 +108,9 @@
   count={filteredTransactions.length}
   class="flex h-full flex-col {extraClass}"
 >
-  <div class="mt-2 min-h-0 flex-1 overflow-y-auto pr-3">
+  <div
+    class="mt-2 min-h-0 flex-1 overflow-y-auto {filteredTransactions.length === 0 ? '' : 'pr-3'}"
+  >
     {#if filteredTransactions.length === 0}
       <EmptyState
         title={i18n.t.noTransactionsFound}

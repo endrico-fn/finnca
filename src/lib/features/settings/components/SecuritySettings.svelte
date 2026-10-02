@@ -2,7 +2,7 @@
   import { session } from '$lib/core/state/session.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { changePassword } from '$lib/core/ipc/bindings';
-  import { Card, Button } from '$lib/components/ui';
+  import { Button, Badge } from '$lib/components/ui';
   import AutoLockSettings from '$lib/features/security/components/AutoLockSettings.svelte';
 
   let oldPassword = $state('');
@@ -48,16 +48,26 @@
   }
 </script>
 
-<div class="grid grid-cols-1 gap-4 select-none lg:grid-cols-2">
+<section class="border-line bg-bg-app flex flex-col border p-4 sm:p-6 select-none max-w-4xl">
   <AutoLockSettings />
 
-  <Card title={i18n.t.changePasswordTitle} badge={i18n.t.securityKeyBadge} class="justify-between">
+  <div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex flex-col gap-1">
+        <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.changePasswordTitle}</h3>
+        <p class="text-text-dim text-smaller font-aux">
+          {i18n.t.reEncryptNote}
+        </p>
+      </div>
+      <Badge size="m" tone="neutral">{i18n.t.securityKeyBadge}</Badge>
+    </div>
+    
     <div>
       <p class="text-text-dim text-small font-aux mb-3">{i18n.t.changePasswordNotice}</p>
 
       <div class="flex flex-col gap-2.5">
         <div>
-          <label for="old-pwd" class="label-xs text-text-muted mb-1 block"
+          <label for="old-pwd" class="font-proto text-text-muted text-smaller tracking-widest uppercase mb-1 block"
             >{i18n.t.currentPasswordLabel}</label
           >
           <input
@@ -71,7 +81,7 @@
 
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <div>
-            <label for="new-pwd" class="label-xs text-text-muted mb-1 block"
+            <label for="new-pwd" class="font-proto text-text-muted text-smaller tracking-widest uppercase mb-1 block"
               >{i18n.t.newPasswordLabel}</label
             >
             <input
@@ -84,7 +94,7 @@
           </div>
 
           <div>
-            <label for="confirm-pwd" class="label-xs text-text-muted mb-1 block"
+            <label for="confirm-pwd" class="font-proto text-text-muted text-smaller tracking-widest uppercase mb-1 block"
               >{i18n.t.confirmNewPasswordLabel}</label
             >
             <input
@@ -113,9 +123,5 @@
         </Button>
       </div>
     </div>
-
-    <p class="text-text-dim border-line/30 text-smaller font-aux mt-auto border-t pt-2">
-      {i18n.t.reEncryptNote}
-    </p>
-  </Card>
-</div>
+  </div>
+</section>

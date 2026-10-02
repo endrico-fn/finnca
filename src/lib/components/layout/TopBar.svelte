@@ -4,6 +4,7 @@
   import { privacyState } from '$lib/core/state/privacy.svelte';
   import { notificationState } from '$lib/core/state/notification.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
+  import { modalState } from '$lib/core/state/modal.svelte';
   import { Badge, Icon, AppBrand, Tooltip } from '$lib/components/ui';
   import { formatIDR } from '$lib/core/format/currency';
 
@@ -116,13 +117,14 @@
     </Tooltip>
 
     <Tooltip content={i18n.t.settings} placement="bottom" delay={200}>
-      <a
-        href={resolve('/app/setting')}
-        class="border-line hover:border-text-dim bg-bg-btn hover:bg-bg-card text-text-base hover:text-text-strong focus-visible:outline-teal inline-flex h-7 w-7 items-center justify-center border outline-offset-1 transition-colors"
+      <button
+        type="button"
+        onclick={() => modalState.openSettings()}
+        class="border-line hover:border-text-dim bg-bg-btn hover:bg-bg-card text-text-base hover:text-text-strong focus-visible:outline-teal inline-flex h-7 w-7 cursor-pointer items-center justify-center border outline-offset-1 transition-colors"
         aria-label={i18n.t.settings}
       >
         <Icon name="gear" size={14} />
-      </a>
+      </button>
     </Tooltip>
   </div>
 </header>

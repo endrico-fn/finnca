@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { Badge } from '$lib/components/ui';
   import { onMount } from 'svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { getPref, setPref } from '$lib/core/state/prefs';
-  import { Card } from '$lib/components/ui';
+  
 
   let notifToggles = $state({
     due: true,
@@ -29,142 +30,93 @@
   }
 </script>
 
-<Card title={i18n.t.notificationsTitle} badge={i18n.t.badgeAlerts} class="justify-between">
+<div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+  <div class="flex items-start justify-between mb-4">
+    <div class="flex flex-col gap-1">
+    <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.notificationsTitle}</h3>
+      <p class="text-text-dim text-smaller font-aux">
+        {i18n.t.notifStoredLocally}
+      </p>
+    </div>
+    <Badge size="m" tone="neutral">{i18n.t.badgeAlerts}</Badge>
+  </div>
   <div>
     <div class="flex flex-col gap-2">
-      <label
-        class="border-line/40 bg-bg-app hover:border-text-dim group flex cursor-pointer items-center justify-between border p-2.5 transition-colors"
+      <button
+        type="button"
+        onclick={() => toggle('due')}
+        class="border flex items-center justify-between p-2.5 transition-colors {notifToggles.due ? 'border-teal bg-teal/5' : 'border-line bg-bg-app hover:border-text-dim'}"
       >
-        <div class="flex items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={notifToggles.due}
-            onchange={() => toggle('due')}
-            class="accent-teal size-3.5"
-          />
-          <span
-            class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
-          >
-            {i18n.t.notifDueDatesLabel}
+        <span class="font-proto text-small {notifToggles.due ? 'text-teal font-bold' : 'text-text-strong'} tracking-wider uppercase text-left">
+          {i18n.t.notifDueDatesLabel}
+        </span>
+        <div class="flex items-center gap-1 font-proto text-smaller font-bold">
+          <span class="px-2 py-0.5 border {notifToggles.due ? 'border-teal bg-teal text-bg-app' : 'border-transparent text-text-dim'}">ON</span>
+          <span class="px-2 py-0.5 border {!notifToggles.due ? 'border-line bg-bg-row-active text-text-base' : 'border-transparent text-text-dim'}">OFF</span>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onclick={() => toggle('fx')}
+        class="border flex items-center justify-between p-2.5 transition-colors {notifToggles.fx ? 'border-teal bg-teal/5' : 'border-line bg-bg-app hover:border-text-dim'}"
+      >
+        <span class="font-proto text-small {notifToggles.fx ? 'text-teal font-bold' : 'text-text-strong'} tracking-wider uppercase text-left">
+          {i18n.t.notifFxAlertsLabel}
+        </span>
+        <div class="flex items-center gap-1 font-proto text-smaller font-bold">
+          <span class="px-2 py-0.5 border {notifToggles.fx ? 'border-teal bg-teal text-bg-app' : 'border-transparent text-text-dim'}">ON</span>
+          <span class="px-2 py-0.5 border {!notifToggles.fx ? 'border-line bg-bg-row-active text-text-base' : 'border-transparent text-text-dim'}">OFF</span>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onclick={() => toggle('spike')}
+        class="border flex items-center justify-between p-2.5 transition-colors {notifToggles.spike ? 'border-teal bg-teal/5' : 'border-line bg-bg-app hover:border-text-dim'}"
+      >
+        <span class="font-proto text-small {notifToggles.spike ? 'text-teal font-bold' : 'text-text-strong'} tracking-wider uppercase text-left">
+          {i18n.t.notifExpenseSpikeLabel}
+        </span>
+        <div class="flex items-center gap-1 font-proto text-smaller font-bold">
+          <span class="px-2 py-0.5 border {notifToggles.spike ? 'border-teal bg-teal text-bg-app' : 'border-transparent text-text-dim'}">ON</span>
+          <span class="px-2 py-0.5 border {!notifToggles.spike ? 'border-line bg-bg-row-active text-text-base' : 'border-transparent text-text-dim'}">OFF</span>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onclick={() => toggle('integrity')}
+        class="border flex items-center justify-between p-2.5 transition-colors {notifToggles.integrity ? 'border-teal bg-teal/5' : 'border-line bg-bg-app hover:border-text-dim'}"
+      >
+        <span class="font-proto text-small {notifToggles.integrity ? 'text-teal font-bold' : 'text-text-strong'} tracking-wider uppercase text-left">
+          {i18n.t.notifLedgerIntegrityLabel}
+        </span>
+        <div class="flex items-center gap-1 font-proto text-smaller font-bold">
+          <span class="px-2 py-0.5 border {notifToggles.integrity ? 'border-teal bg-teal text-bg-app' : 'border-transparent text-text-dim'}">ON</span>
+          <span class="px-2 py-0.5 border {!notifToggles.integrity ? 'border-line bg-bg-row-active text-text-base' : 'border-transparent text-text-dim'}">OFF</span>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onclick={() => toggle('autoUpdate')}
+        class="border flex items-center justify-between p-2.5 transition-colors {notifToggles.autoUpdate ? 'border-teal bg-teal/5' : 'border-line bg-bg-app hover:border-text-dim'}"
+      >
+        <div class="flex flex-col items-start text-left">
+          <span class="font-proto text-small {notifToggles.autoUpdate ? 'text-teal font-bold' : 'text-text-strong'} tracking-wider uppercase">
+            {i18n.t.notifAutoUpdateLabel}
+          </span>
+          <span class="font-aux text-text-muted text-smaller mt-0.5">
+            {i18n.t.notifAutoUpdateDesc}
           </span>
         </div>
-        <span
-          class="font-proto text-smaller {notifToggles.due
-            ? 'text-teal font-bold'
-            : 'text-text-muted'}"
-        >
-          {notifToggles.due ? i18n.t.enabledLabel : i18n.t.disabledLabel}
-        </span>
-      </label>
-
-      <label
-        class="border-line/40 bg-bg-app hover:border-text-dim group flex cursor-pointer items-center justify-between border p-2.5 transition-colors"
-      >
-        <div class="flex items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={notifToggles.fx}
-            onchange={() => toggle('fx')}
-            class="accent-teal size-3.5"
-          />
-          <span
-            class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
-          >
-            {i18n.t.notifFxAlertsLabel}
-          </span>
+        <div class="flex items-center gap-1 font-proto text-smaller font-bold shrink-0 ml-4">
+          <span class="px-2 py-0.5 border {notifToggles.autoUpdate ? 'border-teal bg-teal text-bg-app' : 'border-transparent text-text-dim'}">ON</span>
+          <span class="px-2 py-0.5 border {!notifToggles.autoUpdate ? 'border-line bg-bg-row-active text-text-base' : 'border-transparent text-text-dim'}">OFF</span>
         </div>
-        <span
-          class="font-proto text-smaller {notifToggles.fx
-            ? 'text-teal font-bold'
-            : 'text-text-muted'}"
-        >
-          {notifToggles.fx ? i18n.t.enabledLabel : i18n.t.disabledLabel}
-        </span>
-      </label>
-
-      <label
-        class="border-line/40 bg-bg-app hover:border-text-dim group flex cursor-pointer items-center justify-between border p-2.5 transition-colors"
-      >
-        <div class="flex items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={notifToggles.spike}
-            onchange={() => toggle('spike')}
-            class="accent-teal size-3.5"
-          />
-          <span
-            class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
-          >
-            {i18n.t.notifExpenseSpikeLabel}
-          </span>
-        </div>
-        <span
-          class="font-proto text-smaller {notifToggles.spike
-            ? 'text-teal font-bold'
-            : 'text-text-muted'}"
-        >
-          {notifToggles.spike ? i18n.t.enabledLabel : i18n.t.disabledLabel}
-        </span>
-      </label>
-
-      <label
-        class="border-line/40 bg-bg-app hover:border-text-dim group flex cursor-pointer items-center justify-between border p-2.5 transition-colors"
-      >
-        <div class="flex items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={notifToggles.integrity}
-            onchange={() => toggle('integrity')}
-            class="accent-teal size-3.5"
-          />
-          <span
-            class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
-          >
-            {i18n.t.notifLedgerIntegrityLabel}
-          </span>
-        </div>
-        <span
-          class="font-proto text-smaller {notifToggles.integrity
-            ? 'text-teal font-bold'
-            : 'text-text-muted'}"
-        >
-          {notifToggles.integrity ? i18n.t.enabledLabel : i18n.t.disabledLabel}
-        </span>
-      </label>
-
-      <label
-        class="border-line/40 bg-bg-app hover:border-text-dim group flex cursor-pointer items-center justify-between border p-2.5 transition-colors"
-      >
-        <div class="flex items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={notifToggles.autoUpdate}
-            onchange={() => toggle('autoUpdate')}
-            class="accent-teal size-3.5 shrink-0"
-          />
-          <div class="flex flex-col">
-            <span
-              class="font-proto text-text-strong group-hover:text-text-white text-small transition-colors"
-            >
-              {i18n.t.notifAutoUpdateLabel}
-            </span>
-            <span class="font-aux text-text-muted text-smaller leading-tight">
-              {i18n.t.notifAutoUpdateDesc}
-            </span>
-          </div>
-        </div>
-        <span
-          class="font-proto text-smaller shrink-0 pl-2 {notifToggles.autoUpdate
-            ? 'text-teal font-bold'
-            : 'text-text-muted'}"
-        >
-          {notifToggles.autoUpdate ? i18n.t.enabledLabel : i18n.t.disabledLabel}
-        </span>
-      </label>
+      </button>
     </div>
   </div>
 
-  <p class="text-text-muted text-smaller font-aux border-line/40 mt-auto border-t pt-2">
-    {i18n.t.notifStoredLocally}
-  </p>
-</Card>
+  </div>

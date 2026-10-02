@@ -3,7 +3,7 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { setAutoLockMode, getBootId } from '$lib/core/ipc/bindings';
   import type { Settings } from '$lib/core/types';
-  import { Card, Button } from '$lib/components/ui';
+  import { Button, Badge } from '$lib/components/ui';
   import { lockPolicy } from '$lib/features/security/state/lockPolicy.svelte';
   import { session } from '$lib/core/state/session.svelte';
 
@@ -61,7 +61,17 @@
   }
 </script>
 
-<Card title={i18n.t.autoLockTitle} badge={i18n.t.badgeAccessControl} class="justify-between">
+<div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+  <div class="flex items-start justify-between mb-4">
+    <div class="flex flex-col gap-1">
+      <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.autoLockTitle}</h3>
+      <p class="text-text-dim text-smaller font-aux">
+        {i18n.t.inactivityHeartbeatNote}
+      </p>
+    </div>
+    <Badge size="m" tone="neutral">{i18n.t.badgeAccessControl}</Badge>
+  </div>
+
   <div>
     <p class="text-text-dim text-small font-aux mb-3">{i18n.t.autoLockDesc}</p>
 
@@ -112,7 +122,7 @@
     {#if mode === 'always'}
       <div class="border-line/40 mt-3 flex flex-col gap-2 border-t pt-3">
         <div class="flex items-center justify-between">
-          <span class="label-xs text-text-muted block">
+          <span class="font-proto text-text-muted text-smaller tracking-widest uppercase block">
             {i18n.t.sessionTimeoutTitle}
           </span>
           <span class="font-proto text-teal text-smaller font-bold">
@@ -153,8 +163,4 @@
       </Button>
     </div>
   </div>
-
-  <p class="text-text-dim border-line/30 text-smaller font-aux mt-auto border-t pt-2">
-    {i18n.t.inactivityHeartbeatNote}
-  </p>
-</Card>
+</div>

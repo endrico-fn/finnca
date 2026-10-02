@@ -91,7 +91,7 @@
               <span class="font-proto text-text-strong text-small font-bold">{debt.name}</span>
             </div>
 
-            <div class="mt-2 grid grid-cols-3 gap-4">
+            <div class="mt-2 grid grid-cols-3 gap-2">
               <div>
                 <span class="text-text-muted font-proto text-smaller block uppercase"
                   >{i18n.t.currentBalance}</span

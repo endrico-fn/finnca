@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { i18n } from '$lib/core/i18n.svelte';
+  import { modalState } from '$lib/core/state/modal.svelte';
   import { getAppNavItems } from '$lib/core/router/nav';
   import VaultPicker from '$lib/features/vault/components/VaultPicker.svelte';
 
@@ -33,14 +34,24 @@
   <nav class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2.5 py-2">
     {#each nav as item (item.href)}
       {@const active = isActive(item.href)}
-      <a
-        href={resolve(item.href as '/app')}
-        class="btn-nav text-small flex h-8 w-full items-center px-3 tracking-wider uppercase {active
-          ? 'active font-medium'
-          : ''}"
-      >
-        <span class="truncate">{item.label}</span>
-      </a>
+      {#if item.href === '/app/setting'}
+        <button
+          type="button"
+          class="btn-nav text-small flex h-8 w-full cursor-pointer items-center px-3 tracking-wider uppercase"
+          onclick={() => modalState.openSettings()}
+        >
+          <span class="truncate">{item.label}</span>
+        </button>
+      {:else}
+        <a
+          href={resolve(item.href as '/app')}
+          class="btn-nav text-small flex h-8 w-full items-center px-3 tracking-wider uppercase {active
+            ? 'active font-medium'
+            : ''}"
+        >
+          <span class="truncate">{item.label}</span>
+        </a>
+      {/if}
     {/each}
   </nav>
 

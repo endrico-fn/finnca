@@ -85,8 +85,8 @@
   }
 </script>
 
-<div class="flex min-h-0 w-full flex-1 flex-col gap-4">
-  <div class="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-3">
+<div class="flex min-h-0 w-full flex-1 flex-col gap-2">
+  <div class="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-3">
     <KpiCard label={i18n.t.expense} labelClass="text-expense">
       <AnimatedCounter
         value={totalExpense}
@@ -130,7 +130,7 @@
       <EmptyState title={i18n.t.noSpendingData} hint={i18n.t.adjustFilterHint} icon="chart" />
     </div>
   {:else}
-    <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-12">
       <Card
         title={i18n.t.categoryDistribution}
         class="flex min-h-0 flex-col justify-between p-4 lg:col-span-4"

@@ -36,6 +36,7 @@
     await syncVaultsFromBackend();
   });
 
+  let step = $state<1 | 2>(1);
   let vaultName = $state('');
   let vaultPath = $state('');
   let username = $state('');
@@ -67,6 +68,31 @@
   async function pickFolder() {
     const dir = await pickDirectory();
     if (dir) vaultPath = dir;
+  }
+
+  function handleNext() {
+    error = '';
+    if (!vaultName.trim()) {
+      error = i18n.t.vaultNameRequired;
+      return;
+    }
+    if (!vaultPath) {
+      error = i18n.t.vaultPathRequired;
+      return;
+    }
+    if (!username.trim()) {
+      error = i18n.t.usernameRequired;
+      return;
+    }
+    if (password.length < 8) {
+      error = i18n.t.passwordMin8;
+      return;
+    }
+    if (password !== confirm) {
+      error = i18n.t.passwordMismatch;
+      return;
+    }
+    step = 2;
   }
 
   async function doCreateVault() {
@@ -144,8 +170,10 @@
             <span class="text-text-strong font-proto text-small mt-1 block font-medium">
               {#if showImport}
                 {i18n.t.importVaultTitle}
+              {:else if step === 1}
+                STEP 1: IDENTITY
               {:else}
-                {i18n.t.stepVault} & {i18n.t.stepAccount}
+                STEP 2: LEDGER
               {/if}
             </span>
           </div>
@@ -191,7 +219,11 @@
                 <h2
                   class="text-text-strong font-proto text-medium font-medium tracking-wide uppercase"
                 >
-                  {i18n.t.stepVault} & {i18n.t.stepAccount}
+                  {#if step === 1}
+                    {i18n.t.stepVault} & IDENTITY
+                  {:else}
+                    LEDGER CONFIGURATION
+                  {/if}
                 </h2>
                 <p class="text-text-dim font-proto text-smaller mt-0.5">
                   {i18n.t.setupFormSubtitle}
@@ -220,6 +252,7 @@
             </div>
 
             <RegisterFields
+              {step}
               bind:vaultName
               bind:vaultPath
               bind:username
@@ -239,25 +272,47 @@
           </div>
 
           <div class="border-line mt-5 flex items-center justify-between border-t pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onclick={() => {
-                showImport = true;
-                error = '';
-              }}
-            >
-              <span class="font-proto text-teal text-small inline-flex items-center gap-1.5">
-                <Icon name="wallet" size={13} />
-                {i18n.t.importVaultTitle}
-              </span>
-            </Button>
+            {#if step === 1}
+              <Button
+                type="button"
+                variant="ghost"
+                onclick={() => {
+                  showImport = true;
+                  error = '';
+                }}
+              >
+                <span class="font-proto text-teal text-small inline-flex items-center gap-1.5">
+                  <Icon name="wallet" size={13} />
+                  {i18n.t.importVaultTitle}
+                </span>
+              </Button>
 
-            <Button variant="primary" onclick={doCreateVault} disabled={busy}>
-              <span class="font-proto text-small font-bold tracking-wider">
-                {busy ? i18n.t.creatingVault : i18n.t.btnCreateVault}
-              </span>
-            </Button>
+              <Button type="button" variant="primary" onclick={handleNext}>
+                <span class="font-proto text-small font-bold tracking-wider">
+                  NEXT STEP &rarr;
+                </span>
+              </Button>
+            {:else}
+              <Button
+                type="button"
+                variant="ghost"
+                onclick={() => {
+                  step = 1;
+                  error = '';
+                }}
+              >
+                <span class="font-proto text-text-strong text-small inline-flex items-center gap-1.5">
+                  <Icon name="chev-left" size={13} />
+                  BACK
+                </span>
+              </Button>
+
+              <Button variant="primary" onclick={doCreateVault} disabled={busy}>
+                <span class="font-proto text-small font-bold tracking-wider">
+                  {busy ? i18n.t.creatingVault : i18n.t.btnCreateVault}
+                </span>
+              </Button>
+            {/if}
           </div>
         </div>
       {/if}

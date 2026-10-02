@@ -9,7 +9,7 @@
   import { getPref, setPref } from '$lib/core/state/prefs';
   import { formatIDR } from '$lib/core/format/currency';
   import { todayString } from '$lib/core/format/date';
-  import { Badge, Card, Button } from '$lib/components/ui';
+  import { Badge, Button } from '$lib/components/ui';
 
   let syncing = $state(false);
   let syncMsg = $state<{ text: string; type: 'ok' | 'err' } | null>(null);
@@ -134,24 +134,30 @@
   }
 </script>
 
-<div class="grid grid-cols-1 gap-4 select-none lg:grid-cols-2">
-  <div class="flex flex-col gap-2">
-    <Card title={i18n.t.usdExchangeRateTitle} class="gap-2">
-      {#snippet header()}
-        <Badge size="m" tone="neutral">{i18n.t.fxOneShotBadge}</Badge>
-        <div class="font-proto text-small flex items-center gap-2 leading-none">
-          <span class="size-2 {isOnline ? 'bg-income' : 'bg-warning'} animate-pulse"></span>
-          <span
-            class="{isOnline
-              ? 'text-income'
-              : 'text-warning'} text-smaller leading-none tracking-wider"
-          >
-            {isOnline ? i18n.t.fxOnlineStatus : i18n.t.fxOfflineStatus}
-          </span>
+<section class="border-line bg-bg-app flex flex-col border p-4 sm:p-6 select-none max-w-4xl">
+    <div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex flex-col gap-1">
+          <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.usdExchangeRateTitle}</h3>
         </div>
-      {/snippet}
+      
+        <div class="flex items-center gap-2">
+          <Badge size="m" tone="neutral">{i18n.t.fxOneShotBadge}</Badge>
+          <div class="font-proto text-small flex items-center gap-2 leading-none">
+            <span class="size-2 {isOnline ? 'bg-income' : 'bg-warning'} animate-pulse"></span>
+            <span
+              class="{isOnline
+                ? 'text-income'
+                : 'text-warning'} text-smaller leading-none tracking-wider"
+            >
+              {isOnline ? i18n.t.fxOnlineStatus : i18n.t.fxOfflineStatus}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div>
 
-      <div class="mt-1 flex items-start justify-between gap-4">
+      <div class="mt-1 flex items-start justify-between gap-2">
         <div>
           <p class="font-proto text-text-dim text-smaller mb-1 tracking-widest uppercase">
             {i18n.t.fxOneShotTitle}
@@ -181,7 +187,7 @@
       </div>
 
       <div
-        class="border-line/40 font-proto text-text-muted text-smaller mt-auto flex items-center justify-between border-t pt-2.5"
+        class="border-line/40 font-proto text-text-muted text-smaller mt-auto flex items-center justify-between border-t pt-2.5 mt-4"
       >
         <span>
           {i18n.t.fxLastSynced}: <strong class="text-text-base">{lastSyncStr}</strong>
@@ -200,25 +206,37 @@
           {syncMsg.text}
         </div>
       {/if}
-    </Card>
+    </div>
+    </div>
 
-    <Card
-      title={i18n.t.notifFxAlertsLabel}
-      badge={i18n.t.activeStatusWord}
-      badgeTone="ok"
-      class="gap-2.5"
-    >
-      <p class="text-text-base text-small font-aux mt-1 leading-relaxed">
-        {i18n.t.fxDailyNotificationInfo}
-      </p>
+    <div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex flex-col gap-1">
+          <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.notifFxAlertsLabel}</h3>
+          <p class="text-text-dim text-smaller font-aux">
+            {i18n.t.fxOneShotDesc}
+          </p>
+        </div>
+        <Badge size="m" tone="ok">{i18n.t.activeStatusWord}</Badge>
+      </div>
+      <div>
+        <p class="text-text-base text-small font-aux leading-relaxed">
+          {i18n.t.fxDailyNotificationInfo}
+        </p>
+      </div>
+    </div>
 
-      <p class="text-text-muted border-line/30 text-smaller font-aux border-t pt-2 leading-relaxed">
-        {i18n.t.fxOneShotDesc}
-      </p>
-    </Card>
-  </div>
-
-  <Card title={i18n.t.fxHistoryTitle} badge={i18n.t.fxAuditLogBadge} class="justify-between">
+  <div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex flex-col gap-1">
+        <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.fxHistoryTitle}</h3>
+        <p class="text-text-dim text-smaller font-aux">
+          {i18n.t.fxConversionNote}
+        </p>
+      </div>
+      <Badge size="m" tone="neutral">{i18n.t.fxAuditLogBadge}</Badge>
+    </div>
+    <div>
     <div>
       {#if recentHistory.length > 1}
         <div class="font-proto text-small flex flex-col gap-1.5">
@@ -250,7 +268,7 @@
         </div>
       {:else}
         <div
-          class="border-line/60 bg-bg-app flex flex-col items-center gap-2 border border-dashed p-6 text-center"
+          class="border-line/60 bg-bg-app flex flex-col items-center gap-2 border border-dashed p-3 text-center"
         >
           <span class="font-proto text-text-dim text-smaller tracking-wider uppercase">
             {i18n.t.fxNoHistoryTitle}
@@ -262,19 +280,21 @@
       {/if}
     </div>
 
-    <p class="text-text-dim border-line/30 text-smaller font-aux mt-auto border-t pt-2">
-      {i18n.t.fxConversionNote}
-    </p>
-  </Card>
+    </div>
+  </div>
 
-  <Card
-    title={i18n.t.closingBooksTitle}
-    description={i18n.t.closingBooksDesc}
-    badge={closingBooksState.closingDate ? i18n.t.lockedPeriodBadge : i18n.t.openPeriodBadge}
-    badgeTone={closingBooksState.closingDate ? 'warn' : 'ok'}
-    class="gap-3 lg:col-span-2"
-  >
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+  <div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex flex-col">
+        <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.closingBooksTitle}</h3>
+        <span class="font-aux text-text-muted text-smaller">{i18n.t.closingBooksDesc}</span>
+      </div>
+      <Badge size="m" tone={closingBooksState.closingDate ? 'warn' : 'ok'}>
+        {closingBooksState.closingDate ? i18n.t.lockedPeriodBadge : i18n.t.openPeriodBadge}
+      </Badge>
+    </div>
+    <div>
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <div class="flex flex-col gap-1">
         <span class="font-proto text-text-dim text-smaller tracking-wider uppercase">
           {i18n.t.currentLockDate}
@@ -330,5 +350,6 @@
         {/if}
       </div>
     </div>
-  </Card>
-</div>
+  </div>
+  </div>
+</section>

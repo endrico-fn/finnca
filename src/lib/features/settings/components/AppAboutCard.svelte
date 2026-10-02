@@ -2,13 +2,19 @@
   import { APP_NAME } from '$lib/core/types';
   import { appInfo } from '$lib/core/state/appInfo.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Card, Badge, AppBrand, Button, Icon } from '$lib/components/ui';
+  import { Badge, AppBrand, Button, Icon } from '$lib/components/ui';
   import { updaterState } from '$lib/core/updater/updaterState.svelte';
 </script>
 
-<Card title={i18n.t.aboutAppTitle} badge="v{appInfo.version}">
-  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-    <div class="flex items-center gap-3">
+<div class="flex flex-col border-b border-line pb-6 mb-6 last:border-0 last:mb-0 last:pb-0">
+  <div class="flex items-start justify-between mb-4">
+    <div class="flex flex-col gap-1">
+    <h3 class="font-proto text-text-strong text-small tracking-widest uppercase">{i18n.t.aboutAppTitle}</h3>
+    </div>
+    <Badge size="m" tone="neutral">v{appInfo.version}</Badge>
+  </div>
+  <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+    <div class="flex items-center gap-2">
       <AppBrand variant="hero" />
     </div>
 
@@ -17,7 +23,7 @@
     >
       <div class="flex flex-col gap-1 sm:pr-4">
         <div class="flex items-center justify-between">
-          <span class="label-xs text-text-muted">{i18n.t.aboutLocalDb}</span>
+          <span class="font-proto text-text-muted text-smaller tracking-widest uppercase">{i18n.t.aboutLocalDb}</span>
           <Badge size="s" tone="ok">{i18n.t.aboutEngineBadge}</Badge>
         </div>
         <p class="font-aux text-text-dim text-smaller leading-relaxed">
@@ -27,7 +33,7 @@
 
       <div class="flex flex-col gap-1 pt-2 sm:pt-0 sm:pl-4">
         <div class="flex items-center justify-between">
-          <span class="label-xs text-text-muted">{i18n.t.aboutSandboxedIpc}</span>
+          <span class="font-proto text-text-muted text-smaller tracking-widest uppercase">{i18n.t.aboutSandboxedIpc}</span>
           <Badge size="s" tone="teal">TAURI v2</Badge>
         </div>
         <p class="font-aux text-text-dim text-smaller leading-relaxed">
@@ -37,26 +43,26 @@
     </div>
   </div>
 
-  <div
-    class="border-line/40 font-proto text-smaller text-text-muted mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3"
-  >
-    <div class="flex items-center gap-4">
-      <span>{APP_NAME} &copy; {new Date().getFullYear()}</span>
-      <span class="tracking-widest uppercase">{i18n.t.aboutLicense}: MIT</span>
-    </div>
+  <div class="border-line mt-4 border-t pt-4">
+    <div class="font-proto text-smaller text-text-muted flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span>{APP_NAME} &copy; {new Date().getFullYear()}</span>
+        <span class="tracking-widest uppercase">{i18n.t.aboutLicense}: MIT</span>
+      </div>
 
-    <Button
-      size="sm"
-      variant="secondary"
-      onclick={() => {
-        updaterState.openScreen();
-        updaterState.checkForUpdate();
-      }}
-    >
-      <span class="inline-flex items-center gap-1.5">
-        <Icon name="refresh" size={12} />
-        {i18n.t.checkForUpdates}
-      </span>
-    </Button>
+      <Button
+        size="sm"
+        variant="secondary"
+        onclick={() => {
+          updaterState.openScreen();
+          updaterState.checkForUpdate();
+        }}
+      >
+        <span class="inline-flex items-center gap-1.5 uppercase tracking-wider">
+          <Icon name="refresh" size={12} />
+          {i18n.t.checkForUpdates}
+        </span>
+      </Button>
+    </div>
   </div>
-</Card>
+</div>

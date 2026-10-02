@@ -13,6 +13,7 @@
   import EntryInspector from '$lib/features/journal/components/EntryInspector.svelte';
   import FloatingInspectorWindow from '$lib/components/layout/FloatingInspectorWindow.svelte';
   import UpdateScreen from '$lib/features/updater/components/UpdateScreen.svelte';
+  import SettingsModal from '$lib/features/settings/components/SettingsModal.svelte';
   import { updaterState } from '$lib/core/updater/updaterState.svelte';
 
   let {
@@ -96,4 +97,8 @@
 
 {#if updaterState.screenOpen}
   <UpdateScreen onClose={() => updaterState.closeScreen()} />
+{/if}
+
+{#if modalState.settingsOpen}
+  <SettingsModal />
 {/if}

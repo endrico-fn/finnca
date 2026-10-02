@@ -328,8 +328,8 @@
   });
 </script>
 
-<div class="flex min-h-0 w-full flex-1 flex-col gap-4">
-  <div class="grid shrink-0 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+<div class="flex min-h-0 w-full flex-1 flex-col gap-2">
+  <div class="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
     <KpiCard label={i18n.t.startingCash} subValue={i18n.t.startingCashDesc}>
       <AnimatedCounter
         value={startingCash}

@@ -24,7 +24,16 @@ export interface InspectorOpenOptions {
 class ModalState {
   commandPaletteOpen = $state(false);
   healthPulseOpen = $state(false);
+  settingsOpen = $state(false);
   confirmConfig = $state<ConfirmModalConfig | null>(null);
+
+  openSettings() {
+    this.settingsOpen = true;
+  }
+
+  closeSettings() {
+    this.settingsOpen = false;
+  }
 
   inspectorOpen = $state(false);
   inspectorMode = $state<'transfer' | 'journal'>('transfer');

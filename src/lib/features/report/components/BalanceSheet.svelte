@@ -25,8 +25,8 @@
   const isBalanced = $derived(bs?.is_balanced ?? true);
 </script>
 
-<div class="flex min-h-0 w-full flex-1 flex-col gap-4">
-  <div class="grid shrink-0 grid-cols-2 gap-4 sm:grid-cols-4">
+<div class="flex min-h-0 w-full flex-1 flex-col gap-2">
+  <div class="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
     <KpiCard label={i18n.t.totalAssetsLabel} labelClass="text-asset">
       <AnimatedCounter
         value={totalAssets}
@@ -81,7 +81,7 @@
     </KpiCard>
   </div>
 
-  <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
+  <div class="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-2">
     <Card divided title={i18n.t.assetsTitle} class="flex min-h-0 flex-1 flex-col">
       {#snippet header()}
         <span class="font-proto text-text-white text-small font-bold tabular-nums">
@@ -137,7 +137,7 @@
       {/if}
     </Card>
 
-    <div class="grid min-h-0 flex-1 grid-rows-2 gap-4">
+    <div class="grid min-h-0 flex-1 grid-rows-2 gap-2">
       <Card divided title={i18n.t.liabilitiesTitle} class="flex min-h-0 flex-1 flex-col">
         {#snippet header()}
           <span class="font-proto text-text-white text-small font-bold tabular-nums">

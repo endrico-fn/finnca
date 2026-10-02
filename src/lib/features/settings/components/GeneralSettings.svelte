@@ -12,13 +12,11 @@
   });
 </script>
 
-<div class="flex flex-col gap-4 select-none">
-  <div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
-    <UserProfileCard />
-    <VaultIdentityCard />
-  </div>
+<section class="border-line bg-bg-app flex flex-col border p-4 sm:p-6 select-none max-w-4xl">
+  <UserProfileCard />
+  <VaultIdentityCard />
 
   <LocalizationCard />
   <NotificationSettings />
   <AppAboutCard />
-</div>
+</section>
