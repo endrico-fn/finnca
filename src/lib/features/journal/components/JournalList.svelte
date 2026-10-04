@@ -6,8 +6,8 @@
   import { modalState } from '$lib/core/state/modal.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { todayString } from '$lib/core/format/date';
   import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
+  import { cloneJournalEntry } from '../state/journalFormUtils';
   import JournalFilterBar from './JournalFilterBar.svelte';
   import JournalTotalsBar from './JournalTotalsBar.svelte';
   import JournalTable from './JournalTable.svelte';
@@ -42,7 +42,7 @@
         accounts = [];
       });
     if (page.url.searchParams.get('new') === '1' || page.url.searchParams.get('new') === 'true') {
-      modalState.openQuickTx();
+      modalState.openInspector({ mode: 'journal' });
     }
     const filterParam = page.url.searchParams.get('filter');
     if (filterParam === 'due' || filterParam === 'overdue') {
@@ -88,6 +88,7 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (
+      modalState.isAnyModalOpen ||
       e.target instanceof HTMLInputElement ||
       e.target instanceof HTMLTextAreaElement ||
       e.target instanceof HTMLSelectElement
@@ -130,32 +131,19 @@
     } else if (e.key === 'n' || e.key === 'N') {
       e.preventDefault();
       expandedId = null;
-      modalState.openQuickTx();
+      modalState.openInspector({ mode: 'journal' });
     } else if (e.key === 't' || e.key === 'T') {
       e.preventDefault();
       expandedId = null;
-      modalState.openTransfer();
+      modalState.openInspector({ mode: 'transfer' });
     } else if (e.altKey && (e.key === 'd' || e.key === 'D')) {
       if (selectedRowIndex !== null && pagedTxs[selectedRowIndex]) {
         e.preventDefault();
         const tx = pagedTxs[selectedRowIndex];
         expandedId = null;
-        modalState.openQuickTx({
-          id: crypto.randomUUID(),
-          date: todayString(),
-          description: `${tx.description} (Copy)`,
-          reference_no: '',
-          due_date: null,
-          plan_id: null,
-          currency: tx.currency,
-          fx_rate: tx.fx_rate,
-          notes: tx.notes,
-          postings: tx.postings.map((p) => ({
-            account_id: p.account_id,
-            amount: p.amount,
-            memo: p.memo,
-            reconcile: 'n',
-          })),
+        modalState.openInspector({
+          draft: cloneJournalEntry(tx),
+          isNew: true,
         });
       }
     } else if (e.key === 'Escape') {
@@ -227,7 +215,7 @@
         ariaLabel={i18n.t.quickTransferTitle}
         onclick={() => {
           expandedId = null;
-          modalState.openTransfer();
+          modalState.openInspector({ mode: 'transfer' });
         }}
       >
         <span class="flex items-center gap-1.5">
@@ -243,7 +231,7 @@
         ariaLabel={i18n.t.newEntry}
         onclick={() => {
           expandedId = null;
-          modalState.openQuickTx();
+          modalState.openInspector({ mode: 'journal' });
         }}
       >
         <span class="flex items-center gap-1.5">

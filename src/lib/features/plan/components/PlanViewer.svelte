@@ -9,6 +9,8 @@
   import { notificationState } from '$lib/core/state/notification.svelte';
   import { modalState } from '$lib/core/state/modal.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
+  import { createTransferDraft } from '$lib/features/journal/state/journalFormUtils';
+  import type { Currency } from '$lib/core/types';
   import {
     buildCalendarDays,
     todayString,
@@ -114,31 +116,16 @@
       const toAcc = accountsById.get(p.toAccountId);
       if (!fromAcc || !toAcc) return;
       if (fromAcc.currency !== toAcc.currency) throw new Error(i18n.t.planCurrencyMismatch);
-      modalState.openQuickTx(
-        {
-          id: crypto.randomUUID(),
-          date: selectedDate,
-          description: `${i18n.t.planInstallmentFor} ${p.title}`,
-          notes: `[Plan: ${p.id}]`,
-          currency: fromAcc.currency || 'IDR',
-          fx_rate: null,
-          postings: [
-            {
-              id: crypto.randomUUID(),
-              account_id: p.fromAccountId,
-              amount: -p.installmentAmount,
-              reconcile: 'n',
-            },
-            {
-              id: crypto.randomUUID(),
-              account_id: p.toAccountId,
-              amount: p.installmentAmount,
-              reconcile: 'n',
-            },
-          ],
-        },
-        true
-      );
+      const draft = createTransferDraft({
+        fromId: p.fromAccountId,
+        toId: p.toAccountId,
+        amount: p.installmentAmount,
+        currency: (fromAcc.currency as Currency) || 'IDR',
+        description: `${i18n.t.planInstallmentFor} ${p.title}`,
+        notes: `[Plan: ${p.id}]`,
+        date: selectedDate,
+      });
+      modalState.openInspector({ draft, isNew: true });
     } catch (e) {
       notificationState.addNotification({
         type: 'LEDGER_INTEGRITY',

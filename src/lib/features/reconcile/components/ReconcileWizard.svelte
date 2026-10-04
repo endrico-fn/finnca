@@ -9,6 +9,8 @@
   import { pickOpenFile } from '$lib/core/dialog';
   import { parseCsvStatement } from '../state/statementParser';
   import { modalState } from '$lib/core/state/modal.svelte';
+  import { createReconciledStatementDraft } from '$lib/features/journal/state/journalFormUtils';
+  import type { Currency } from '$lib/core/types';
   import type { MatchStatementOutput, StatementRow } from '../state/reconcile.svelte';
   import ReconcileSidebar from './ReconcileSidebar.svelte';
   import ReconcileTable from './ReconcileTable.svelte';
@@ -50,7 +52,7 @@
 
   const difference = $derived(targetBalance - effectiveClearedBalance);
 
-  async function handleAccountChange(id: string) {
+  async function selectReconcileAccount(id: string) {
     await reconcileState.selectAccount(id);
   }
 
@@ -74,7 +76,7 @@
     }
   }
 
-  async function handleCsvUpload() {
+  async function uploadBankStatementCsv() {
     if (!reconcileState.selectedAccountId) {
       notificationState.addNotification({
         type: 'LEDGER_INTEGRITY',
@@ -107,7 +109,7 @@
     }
   }
 
-  async function handleApplyMatches(postingIds: string[]) {
+  async function applyReconciliationMatches(postingIds: string[]) {
     try {
       await reconcileState.applyMatchedPostings(postingIds);
       notificationState.addNotification({
@@ -147,60 +149,27 @@
     }
   }
 
-  function handleQuickBankFee(row: StatementRow, adjType: 'FEE' | 'INTEREST') {
+  function recordQuickBankFee(row: StatementRow, adjType: 'FEE' | 'INTEREST') {
     const targetAccId = resolveAdjustmentAccount(adjType);
-    handleQuickAdd(row, targetAccId);
+    recordQuickStatementTransaction(row, targetAccId);
   }
 
-  function handleQuickAdd(
+  function recordQuickStatementTransaction(
     row: StatementRow,
     suggestedAccountId = '',
     overrideDescription?: string
   ) {
     if (!reconcileState.selectedAccountId) return;
-    const isIncome = row.amount > 0;
     const finalDesc = overrideDescription || row.description || '';
-    modalState.openQuickTx({
-      id: crypto.randomUUID(),
+    const draft = createReconciledStatementDraft({
       date: row.date,
       description: finalDesc,
-      notes: '[From Bank Statement]',
-      currency: account?.currency || 'IDR',
-      fx_rate: null,
-      postings: isIncome
-        ? [
-            {
-              id: crypto.randomUUID(),
-              account_id: reconcileState.selectedAccountId,
-              amount: row.amount,
-              memo: row.description || null,
-              reconcile: 'c',
-            },
-            {
-              id: crypto.randomUUID(),
-              account_id: suggestedAccountId,
-              amount: -row.amount,
-              memo: null,
-              reconcile: 'n',
-            },
-          ]
-        : [
-            {
-              id: crypto.randomUUID(),
-              account_id: suggestedAccountId,
-              amount: -row.amount,
-              memo: null,
-              reconcile: 'n',
-            },
-            {
-              id: crypto.randomUUID(),
-              account_id: reconcileState.selectedAccountId,
-              amount: row.amount,
-              memo: row.description || null,
-              reconcile: 'c',
-            },
-          ],
+      amount: row.amount,
+      currency: (account?.currency as Currency) || 'IDR',
+      bankAccountId: reconcileState.selectedAccountId,
+      offsetAccountId: suggestedAccountId,
     });
+    modalState.openInspector({ draft });
   }
 </script>
 
@@ -239,11 +208,11 @@
     <ReconcileSidebar
       {account}
       {accounts}
-      onSelectAccount={handleAccountChange}
+      onSelectAccount={selectReconcileAccount}
       {effectiveStartingBalance}
       {effectiveClearedBalance}
       {difference}
-      onUploadCsv={handleCsvUpload}
+      onUploadCsv={uploadBankStatementCsv}
     />
     <ReconcileTable currency={account?.currency || 'IDR'} />
   </div>
@@ -254,10 +223,10 @@
   {matchResult}
   {accounts}
   currency={account?.currency || 'IDR'}
-  onApply={handleApplyMatches}
+  onApply={applyReconciliationMatches}
   onClose={() => (showMatchModal = false)}
-  onQuickAdd={handleQuickAdd}
-  onQuickBankFee={handleQuickBankFee}
+  onQuickAdd={recordQuickStatementTransaction}
+  onQuickBankFee={recordQuickBankFee}
 />
 
 <ReconcileRulesModal bind:open={showRulesModal} {accounts} />

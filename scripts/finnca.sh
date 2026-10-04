@@ -108,6 +108,9 @@ cmd_install() {
   local is_system=false
   local explicit_dir=""
 
+  local target_format="appimage"
+  local use_local=false
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --system) is_system=true; shift ;;
@@ -115,7 +118,14 @@ cmd_install() {
       --version) target_ver="${2:-}"; shift 2 ;;
       --dir=*) explicit_dir="${1#*=}"; shift ;;
       --dir) explicit_dir="${2:-}"; shift 2 ;;
+      --format=*) target_format="${1#*=}"; shift ;;
+      --format) target_format="${2:-}"; shift 2 ;;
+      --appimage) target_format="appimage"; shift ;;
+      --deb) target_format="deb"; shift ;;
+      --rpm) target_format="rpm"; shift ;;
+      --local) use_local=true; shift ;;
       v[0-9]*|[0-9]*) target_ver="$1"; shift ;;
+      local) use_local=true; shift ;;
       *) shift ;;
     esac
   done
@@ -126,36 +136,61 @@ cmd_install() {
   fi
 
   log_title "Finnca Deployment & Installation Workstation"
-  require_tool curl
 
-  # Check local build artifact fallback first (developer workstation convenience)
+  # Check local build artifact fallback (developer workstation convenience)
   local local_appimage=""
+  local local_deb=""
+  local local_rpm=""
   local script_source="${BASH_SOURCE[0]:-}"
+  local search_dirs=()
   if [[ -n "${script_source}" && -f "${script_source}" ]]; then
     local project_root="$(cd "$(dirname "${script_source}")/.." 2>/dev/null && pwd || true)"
-    if [[ -n "${project_root}" && -f "${project_root}/src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage" ]]; then
-      local_appimage="${project_root}/src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage"
+    if [[ -n "${project_root}" ]]; then
+      search_dirs+=("${project_root}/src-tauri/target/release/bundle")
     fi
-  elif [[ -f "./src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage" ]]; then
-    local_appimage="./src-tauri/target/release/bundle/appimage/finnca_0.1.0_amd64.AppImage"
+  fi
+  search_dirs+=("./src-tauri/target/release/bundle")
+
+  for bdir in "${search_dirs[@]}"; do
+    if [[ -d "${bdir}" ]]; then
+      if [[ -z "${local_appimage}" && -d "${bdir}/appimage" ]]; then
+        local_appimage="$(find "${bdir}/appimage" -maxdepth 1 -name "*.AppImage" 2>/dev/null | head -n 1 || true)"
+      fi
+      if [[ -z "${local_deb}" && -d "${bdir}/deb" ]]; then
+        local_deb="$(find "${bdir}/deb" -maxdepth 1 -name "*.deb" 2>/dev/null | head -n 1 || true)"
+      fi
+      if [[ -z "${local_rpm}" && -d "${bdir}/rpm" ]]; then
+        local_rpm="$(find "${bdir}/rpm" -maxdepth 1 -name "*.rpm" 2>/dev/null | head -n 1 || true)"
+      fi
+    fi
+  done
+
+  if [[ "${use_local}" == true ]]; then
+    target_ver="local"
+  elif [[ -z "${target_ver}" ]]; then
+    target_ver="$(get_latest_version)"
+    if [[ -z "${target_ver}" ]]; then
+      case "${target_format}" in
+        appimage) [[ -n "${local_appimage}" ]] && use_local=true && target_ver="local" ;;
+        deb)      [[ -n "${local_deb}" ]]      && use_local=true && target_ver="local" ;;
+        rpm)      [[ -n "${local_rpm}" ]]      && use_local=true && target_ver="local" ;;
+      esac
+    fi
   fi
 
   if [[ -z "${target_ver}" ]]; then
-    target_ver="$(get_latest_version)"
-  fi
-
-  if [[ -z "${target_ver}" && -z "${local_appimage}" ]]; then
     log_err "No published releases found on ${GITHUB_RELEASE_URL}."
-    log_info "Ensure GitHub Actions release workflow has completed or specify version explicitly."
+    log_info "Ensure GitHub Actions release workflow has completed, or pass --local to install local build."
     exit 1
   fi
 
   local clean_num="${target_ver#v}"
-  if [[ -z "${clean_num}" ]]; then
-    clean_num="0.1.0"
+  if [[ "${clean_num}" == "local" || -z "${clean_num}" ]]; then
+    clean_num="1.0.0"
   fi
 
-  log_info "Target Version: ${target_ver:-v0.1.0 (local)}"
+  log_info "Target Format : ${target_format^^}"
+  log_info "Target Version: ${target_ver}"
   log_info "Install Prefix: ${INSTALL_DIR}"
   log_info "Launcher Path : ${BIN_LINK}"
 
@@ -163,19 +198,102 @@ cmd_install() {
   tmp_dir="$(mktemp -d)"
   trap '[[ -n "${tmp_dir:-}" ]] && rm -rf "${tmp_dir}"' EXIT RETURN
 
-  local appimage_path="${tmp_dir}/${APP_NAME}.AppImage"
+  # --- Branch by Package Format ---
+  case "${target_format}" in
+    deb)
+      local deb_path=""
+      if [[ "${use_local}" == true ]]; then
+        if [[ -z "${local_deb}" || ! -f "${local_deb}" ]]; then
+          log_err "No local .deb build artifact found in src-tauri/target/release/bundle/deb/."
+          exit 1
+        fi
+        log_info "Using local .deb artifact (${local_deb})..."
+        deb_path="${local_deb}"
+      else
+        require_tool curl
+        deb_path="${tmp_dir}/${APP_NAME}_${clean_num}_amd64.deb"
+        local deb_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.deb"
+        log_info "Downloading verified Debian package payload..."
+        if ! curl -fSL --progress-bar "${deb_url}" -o "${deb_path}"; then
+          log_err "Failed to download .deb payload from ${deb_url}"
+          exit 1
+        fi
+      fi
 
-  if [[ -n "${local_appimage}" && -f "${local_appimage}" && -z "${target_ver}" ]]; then
-    log_info "Using local build artifact (${local_appimage})..."
-    cp "${local_appimage}" "${appimage_path}"
-  else
-    local appimage_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.AppImage"
-    log_info "Downloading verified AppImage payload..."
-    if ! curl -fSL --progress-bar "${appimage_url}" -o "${appimage_path}"; then
-      log_err "Failed to download binary payload from ${appimage_url}"
+      log_info "Installing Debian package..."
+      if command -v apt &>/dev/null; then
+        ${SUDO_CMD} apt install -y "${deb_path}"
+      elif command -v dpkg &>/dev/null; then
+        ${SUDO_CMD} dpkg -i "${deb_path}"
+      else
+        log_err "Neither 'apt' nor 'dpkg' found on this system."
+        exit 1
+      fi
+      log_ok "Finnca ${target_ver} (.deb) installed successfully!"
+      return 0
+      ;;
+
+    rpm)
+      local rpm_path=""
+      if [[ "${use_local}" == true ]]; then
+        if [[ -z "${local_rpm}" || ! -f "${local_rpm}" ]]; then
+          log_err "No local .rpm build artifact found in src-tauri/target/release/bundle/rpm/."
+          exit 1
+        fi
+        log_info "Using local .rpm artifact (${local_rpm})..."
+        rpm_path="${local_rpm}"
+      else
+        require_tool curl
+        rpm_path="${tmp_dir}/${APP_NAME}-${clean_num}-1.x86_64.rpm"
+        local rpm_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}-${clean_num}-1.x86_64.rpm"
+        log_info "Downloading verified RPM package payload..."
+        if ! curl -fSL --progress-bar "${rpm_url}" -o "${rpm_path}"; then
+          log_err "Failed to download .rpm payload from ${rpm_url}"
+          exit 1
+        fi
+      fi
+
+      log_info "Installing RPM package..."
+      if command -v dnf &>/dev/null; then
+        ${SUDO_CMD} dnf install -y "${rpm_path}"
+      elif command -v zypper &>/dev/null; then
+        ${SUDO_CMD} zypper install -y "${rpm_path}"
+      elif command -v rpm &>/dev/null; then
+        ${SUDO_CMD} rpm -Uvh "${rpm_path}"
+      else
+        log_err "Neither 'dnf', 'zypper', nor 'rpm' found on this system."
+        exit 1
+      fi
+      log_ok "Finnca ${target_ver} (.rpm) installed successfully!"
+      return 0
+      ;;
+
+    appimage)
+      local appimage_path="${tmp_dir}/${APP_NAME}.AppImage"
+
+      if [[ "${use_local}" == true ]]; then
+        if [[ -z "${local_appimage}" || ! -f "${local_appimage}" ]]; then
+          log_err "No local AppImage build artifact found in src-tauri/target/release/bundle/appimage/."
+          exit 1
+        fi
+        log_info "Using local build artifact (${local_appimage})..."
+        cp "${local_appimage}" "${appimage_path}"
+      else
+        require_tool curl
+        local appimage_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.AppImage"
+        log_info "Downloading verified AppImage payload..."
+        if ! curl -fSL --progress-bar "${appimage_url}" -o "${appimage_path}"; then
+          log_err "Failed to download binary payload from ${appimage_url}"
+          exit 1
+        fi
+      fi
+      ;;
+
+    *)
+      log_err "Unknown target package format: '${target_format}'. Supported formats: appimage, deb, rpm."
       exit 1
-    fi
-  fi
+      ;;
+  esac
 
   chmod +x "${appimage_path}"
 
@@ -191,7 +309,7 @@ cmd_install() {
   ${SUDO_CMD} rm -rf "${INSTALL_DIR}"
   ${SUDO_CMD} mkdir -p "$(dirname "${INSTALL_DIR}")"
   ${SUDO_CMD} mv "${tmp_dir}/squashfs-root" "${INSTALL_DIR}"
-  echo "${target_ver:-v0.1.0}" | ${SUDO_CMD} tee "${INSTALL_DIR}/version" > /dev/null
+  echo "${target_ver:-local}" | ${SUDO_CMD} tee "${INSTALL_DIR}/version" > /dev/null
 
   # Create executable launcher wrapper (preserves AppRun working context and hooks)
   log_info "Generating executable launcher wrapper..."
@@ -375,13 +493,20 @@ Commands:
   help        Show this help message
 
 Options:
+  --appimage  Deploy portable AppImage bundle (default; rootless, universal)
+  --deb       Install native Debian/Ubuntu .deb package via apt/dpkg
+  --rpm       Install native Fedora/openSUSE .rpm package via dnf/zypper/rpm
+  --local     Use local build artifact from src-tauri/target/release/bundle/
   --system    Install or remove system-wide (/opt/finnca, requires sudo)
-  --version   Install specific release version tag (e.g., v0.1.2)
+  --version   Install specific release version tag (e.g., v1.0.0)
   --dir       Custom installation directory
   --purge     (Used with uninstall) Also remove ~/.config/finnca configuration
 
 Examples:
   bash finnca.sh install
+  bash finnca.sh install --deb
+  bash finnca.sh install --rpm
+  bash finnca.sh install --local
   bash finnca.sh upgrade
   bash finnca.sh status
   bash finnca.sh uninstall
@@ -402,6 +527,8 @@ main() {
       # Fallback: if argument is a version tag like 'v0.1.2', treat as install
       if [[ "${cmd}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
         cmd_install --version="${cmd}" "$@"
+      elif [[ "${cmd}" == "--deb" || "${cmd}" == "--rpm" || "${cmd}" == "--appimage" || "${cmd}" == "--local" ]]; then
+        cmd_install "${cmd}" "$@"
       else
         log_err "Unknown command: ${cmd}"
         print_help

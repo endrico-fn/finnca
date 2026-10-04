@@ -112,10 +112,6 @@
   --layout-topbar: 41px;
   --layout-gap: 0.5rem;
   --layout-page-pad: 0.75rem;
-  --layout-inspector-docked: 560px;
-  --layout-inspector-float: 680px;
-  --layout-inspector-max: 740px;
-  --layout-inspector-height: 88vh;
   --duration-fast: 120ms;
   --duration-normal: 160ms;
   --duration-slow: 240ms;
@@ -504,6 +500,11 @@ h6 {
   border-radius: 0;
   display: inline-block;
   animation: anim-spin 0.9s linear infinite;
+}
+
+.btn-primary .spinner-sm {
+  border-color: var(--color-bg-app);
+  border-top-color: transparent;
 }
 
 @keyframes anim-spin {

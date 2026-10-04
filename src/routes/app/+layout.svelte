@@ -38,7 +38,7 @@
     };
   });
 
-  async function doLock() {
+  async function lockActiveVault() {
     await session.lock();
     goto(resolve('/login'));
   }
@@ -68,7 +68,7 @@
         lockPolicy.mode = session.settings?.auto_lock_mode || 'always';
         const isBootMatch = await lockPolicy.checkBootIdFastUnlock(session.settings?.boot_id);
         if (!isBootMatch) {
-          await doLock();
+          await lockActiveVault();
           return;
         }
 
@@ -78,7 +78,7 @@
       }
     })();
 
-    const cleanupWatcher = lockPolicy.initInactivityWatcher(doLock);
+    const cleanupWatcher = lockPolicy.initInactivityWatcher(lockActiveVault);
 
     const handleGlobalKey = (e: KeyboardEvent) => {
       lockPolicy.touchActivity();
@@ -94,17 +94,20 @@
         } else if (modalState.inspectorOpen) {
           modalState.closeInspector();
         }
-      } else if (!(
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      )) {
+      } else if (
+        !modalState.isAnyModalOpen &&
+        !(
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement ||
+          e.target instanceof HTMLSelectElement
+        )
+      ) {
         if (e.key === 'n' || e.key === 'N') {
           e.preventDefault();
-          modalState.openQuickTx();
+          modalState.openInspector({ mode: 'journal' });
         } else if (e.key === 't' || e.key === 'T') {
           e.preventDefault();
-          modalState.openTransfer();
+          modalState.openInspector({ mode: 'transfer' });
         }
       }
     };
@@ -137,7 +140,7 @@
 </svelte:head>
 
 <div class="bg-bg-app text-text-base flex h-screen flex-col overflow-hidden">
-  <TopBar {healthStats} onLock={doLock} />
+  <TopBar {healthStats} onLock={lockActiveVault} />
 
   <div class="relative flex flex-1 overflow-hidden">
     <Sidebar {healthStats} onOpenHealthModal={() => modalState.openHealthPulse()} />
@@ -152,5 +155,5 @@
     <NotificationDrawer />
   </div>
 
-  <ModalHost {healthStats} onLock={doLock} />
+  <ModalHost {healthStats} onLock={lockActiveVault} />
 </div>

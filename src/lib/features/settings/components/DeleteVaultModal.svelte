@@ -24,13 +24,13 @@
   let deleteError = $state('');
   let deleteBusy = $state(false);
 
-  function handleClose() {
+  function closeDeleteModal() {
     deletePassword = '';
     deleteError = '';
     onClose();
   }
 
-  async function handleDeleteVault() {
+  async function executePermanentVaultDeletion() {
     if (!deletePassword) {
       deleteError = i18n.t.deleteMasterPasswordError;
       return;
@@ -70,7 +70,12 @@
 </script>
 
 {#if open}
-  <ModalShell bind:open title={i18n.t.confirmVaultDeletionTitle} tone="err" onClose={handleClose}>
+  <ModalShell
+    bind:open
+    title={i18n.t.confirmVaultDeletionTitle}
+    tone="err"
+    onClose={closeDeleteModal}
+  >
     <p class="text-text-base text-small font-aux py-3 leading-relaxed">
       {i18n.t.enterPasswordToConfirm}
     </p>
@@ -88,10 +93,10 @@
       {/if}
     </div>
     <div class="border-line flex justify-end gap-2 border-t pt-3">
-      <Button variant="ghost" onclick={handleClose} disabled={deleteBusy}>
+      <Button variant="ghost" onclick={closeDeleteModal} disabled={deleteBusy}>
         {i18n.t.cancelBtn}
       </Button>
-      <Button variant="danger" onclick={handleDeleteVault} disabled={deleteBusy}>
+      <Button variant="danger" onclick={executePermanentVaultDeletion} disabled={deleteBusy}>
         {deleteBusy ? i18n.t.processingBtn : i18n.t.deleteVaultBtn}
       </Button>
     </div>

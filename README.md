@@ -55,7 +55,7 @@ Atau download `.AppImage` langsung dari [Releases](https://github.com/endrico-fn
 
 ### Windows
 
-Download `.msi` atau `_x64-setup.exe` dari [Releases](https://github.com/endrico-fn/finnca/releases), klik install.
+Download `_x64-setup.exe` dari [Releases](https://github.com/endrico-fn/finnca/releases), klik install.
 
 ---
 

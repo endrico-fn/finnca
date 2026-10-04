@@ -11,7 +11,8 @@
   } from '$lib/components/layout/HealthPulseModal.svelte';
   import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
   import EntryInspector from '$lib/features/journal/components/EntryInspector.svelte';
-  import FloatingInspectorWindow from '$lib/components/layout/FloatingInspectorWindow.svelte';
+  import DraggableModal from '$lib/components/layout/DraggableModal.svelte';
+
   import UpdateScreen from '$lib/features/updater/components/UpdateScreen.svelte';
   import SettingsModal from '$lib/features/settings/components/SettingsModal.svelte';
   import { updaterState } from '$lib/core/updater/updaterState.svelte';
@@ -27,8 +28,8 @@
 
 <CommandPalette
   bind:open={modalState.commandPaletteOpen}
-  onQuickTxDraft={(draft) => modalState.openQuickTx(draft)}
-  onTransfer={() => modalState.openTransfer()}
+  onQuickTxDraft={(draft) => modalState.openInspector({ draft, isNew: true })}
+  onTransfer={() => modalState.openInspector({ mode: 'transfer', isNew: true })}
   {onLock}
 />
 
@@ -44,7 +45,7 @@
 {/if}
 
 {#if modalState.inspectorOpen}
-  <FloatingInspectorWindow
+  <DraggableModal
     open={true}
     title={modalState.inspectorEntry
       ? i18n.t.editEntryTitle
@@ -75,7 +76,7 @@
         modalState.closeInspector();
       }}
     />
-  </FloatingInspectorWindow>
+  </DraggableModal>
 {/if}
 
 {#if modalState.confirmConfig}

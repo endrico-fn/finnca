@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
-  import { createVault, createAccount } from '$lib/core/ipc/bindings';
+  import { createVault as apiCreateVault, createAccount } from '$lib/core/ipc/bindings';
   import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { pickDirectory } from '$lib/core/dialog';
   import { i18n } from '$lib/core/i18n.svelte';
@@ -65,12 +65,12 @@
     return `${cleanPath}/${APP_SLUG}-${slug}`;
   });
 
-  async function pickFolder() {
+  async function browseVaultFolder() {
     const dir = await pickDirectory();
     if (dir) vaultPath = dir;
   }
 
-  function handleNext() {
+  function proceedToNextStep() {
     error = '';
     if (!vaultName.trim()) {
       error = i18n.t.vaultNameRequired;
@@ -95,7 +95,7 @@
     step = 2;
   }
 
-  async function doCreateVault() {
+  async function createVault() {
     error = '';
     if (!vaultName.trim()) {
       error = i18n.t.vaultNameRequired;
@@ -120,7 +120,7 @@
 
     busy = true;
     try {
-      await createVault(vaultName.trim(), vaultPath);
+      await apiCreateVault(vaultName.trim(), vaultPath);
       const st = await createAccount(username.trim(), password, templateLanguage, accountProfile);
       session.raw = st;
       if (st.vault_name) {
@@ -143,7 +143,7 @@
     }
   }
 
-  function handleCancel() {
+  function cancelVaultRegistration() {
     if (onCancel) {
       onCancel();
     } else if (effectiveFrom === 'app') {
@@ -233,7 +233,7 @@
               {#if effectiveFrom === 'app'}
                 <button
                   type="button"
-                  onclick={handleCancel}
+                  onclick={cancelVaultRegistration}
                   class="sharp-btn btn-ghost font-proto text-text-muted hover:text-text-strong text-smaller inline-flex shrink-0 cursor-pointer items-center gap-1 px-2.5 py-1"
                 >
                   <Icon name="chev-left" size={11} />
@@ -242,7 +242,7 @@
               {:else if effectiveFrom === 'login' || knownVaults.length > 0}
                 <button
                   type="button"
-                  onclick={handleCancel}
+                  onclick={cancelVaultRegistration}
                   class="sharp-btn btn-ghost font-proto text-text-muted hover:text-text-strong text-smaller inline-flex shrink-0 cursor-pointer items-center gap-1 px-2.5 py-1"
                 >
                   <Icon name="chev-left" size={11} />
@@ -261,7 +261,7 @@
               bind:templateLanguage
               bind:accountProfile
               {targetFolderPreview}
-              onPickFolder={pickFolder}
+              onPickFolder={browseVaultFolder}
             />
 
             {#if error}
@@ -287,7 +287,7 @@
                 </span>
               </Button>
 
-              <Button type="button" variant="primary" onclick={handleNext}>
+              <Button type="button" variant="primary" onclick={proceedToNextStep}>
                 <span class="font-proto text-small font-bold tracking-wider">
                   NEXT STEP &rarr;
                 </span>
@@ -309,7 +309,7 @@
                 </span>
               </Button>
 
-              <Button variant="primary" onclick={doCreateVault} disabled={busy}>
+              <Button variant="primary" onclick={createVault} disabled={busy}>
                 <span class="font-proto text-small font-bold tracking-wider">
                   {busy ? i18n.t.creatingVault : i18n.t.btnCreateVault}
                 </span>

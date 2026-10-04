@@ -24,7 +24,6 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
-  import { modalState } from '$lib/core/state/modal.svelte';
   import { todayString } from '$lib/core/format/date';
   import { Button, Icon, AccountSelectDropdown } from '$lib/components/ui';
   import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
@@ -45,12 +44,12 @@
     resolveDefaultAccounts,
     validateDraft,
     checkTransferLegs,
+    initializeInspectorForm,
+    type InspectorViewMode,
+    type SimpleCategory,
     type PresetInput,
   } from '../state/journalFormUtils';
-  import { parseNoteTags, serializeNoteTags, stripSettledMarker } from '../state/journalNoteTags';
-
-  type InspectorViewMode = 'transfer' | 'journal';
-  type SimpleCategory = 'TRANSFER' | 'EXPENSE' | 'INCOME' | 'CUSTOM';
+  import { serializeNoteTags, stripSettledMarker } from '../state/journalNoteTags';
 
   let {
     entry = null,
@@ -184,9 +183,31 @@
       accounts = items.map((i) => i.account);
       accountBalances = new Map(items.map((i) => [i.account.id, i.direct_balance]));
       const leaves = items.map((i) => i.account).filter((a) => !a.placeholder);
-      if (!entry && mode === 'transfer' && (!standardFrom || !standardTo)) {
-        const preferredId = initialDraft?.postings?.find((s) => s.account_id)?.account_id;
-        applyDefaultAccounts(leaves, preferredId);
+      if (!entry) {
+        if (mode === 'transfer' && (!standardFrom || !standardTo)) {
+          const preferredId =
+            initialDraft?.postings?.find((s) => s.account_id)?.account_id ||
+            initialFrom ||
+            initialTo;
+          applyDefaultAccounts(leaves, preferredId);
+          if (postings.length === 2 && !postings[0]?.account_id && !postings[1]?.account_id) {
+            postings = [
+              { ...postings[0], account_id: standardTo },
+              { ...postings[1], account_id: standardFrom },
+            ];
+          }
+        } else if (
+          mode === 'journal' &&
+          postings.length === 2 &&
+          !postings[0]?.account_id &&
+          !postings[1]?.account_id &&
+          leaves.length >= 2
+        ) {
+          postings = [
+            { ...postings[0], account_id: leaves[1].id },
+            { ...postings[1], account_id: leaves[0].id },
+          ];
+        }
       }
     } catch {
       accounts = [];
@@ -196,7 +217,7 @@
     }
   };
 
-  async function handleSyncLiveFx() {
+  async function syncLiveExchangeRate() {
     if (syncingFx) return;
     syncingFx = true;
     try {
@@ -242,94 +263,32 @@
     if (currentToken === initToken) return;
     initToken = currentToken;
 
-    if (entry) {
-      const tags = parseNoteTags(entry);
-      num = tags.ref;
-      settled = tags.settled;
-      dueDate = tags.dueDate;
-      notes = tags.cleanNotes || '';
-      description = entry.description;
-      date = entry.date;
-      currency = (entry.currency as Currency) || 'IDR';
-      fxRate = entry.fx_rate ?? defaultFxRate;
-      postings = entry.postings.map((p) => ({
-        id: p.id,
-        account_id: p.account_id,
-        amount: p.amount,
-        memo: p.memo,
-        reconcile: p.reconcile,
-      }));
+    const formState = initializeInspectorForm({
+      entry,
+      initialDraft: initialDraft ? $state.snapshot(initialDraft) : null,
+      initialMode,
+      initialFrom,
+      initialTo,
+      defaultFxRate,
+      leafAccounts,
+    });
 
-      adminFee = '';
-      adminFeeAccount = '';
-
-      if (postings.length > 2) {
-        mode = 'journal';
-      } else {
-        mode = 'transfer';
-        const simple = extractSimpleFromSplits(postings, currency);
-        if (simple) {
-          standardTo = simple.standardTo;
-          standardFrom = simple.standardFrom;
-          standardAmount = simple.standardAmount;
-        }
-      }
-    } else if (initialDraft) {
-      const snap = $state.snapshot(initialDraft);
-      description = snap.description || '';
-      date = snap.date || todayString();
-      num = snap.reference_no || '';
-      dueDate = snap.due_date || '';
-      notes = snap.notes || '';
-      currency = (snap.currency as Currency) || 'IDR';
-      fxRate = snap.fx_rate ?? defaultFxRate;
-      postings =
-        snap.postings && snap.postings.length >= 2
-          ? snap.postings
-          : createEmptyJournalDraft().postings;
-
-      adminFee = '';
-      adminFeeAccount = '';
-
-      if (postings.length > 2) {
-        mode = 'journal';
-      } else {
-        mode = initialMode;
-        const simple = extractSimpleFromSplits(postings, currency);
-        if (simple && simple.standardTo && simple.standardFrom) {
-          standardTo = simple.standardTo;
-          standardFrom = simple.standardFrom;
-          standardAmount = simple.standardAmount;
-        } else {
-          standardAmount = '';
-          applyDefaultAccounts(leafAccounts);
-        }
-      }
-    } else {
-      mode = initialMode;
-      date = todayString();
-      description = '';
-      num = '';
-      dueDate = '';
-      settled = false;
-      currency = 'IDR';
-      fxRate = defaultFxRate;
-      notes = '';
-      adminFee = '';
-      adminFeeAccount = '';
-      standardAmount = '';
-      standardFrom = initialFrom;
-      standardTo = initialTo;
-      const firstAcc = initialFrom || leafAccounts[0]?.id || '';
-      const secondAcc = initialTo || leafAccounts[1]?.id || '';
-      postings = [
-        { id: crypto.randomUUID(), account_id: firstAcc, amount: 0, reconcile: 'n' },
-        { id: crypto.randomUUID(), account_id: secondAcc, amount: 0, reconcile: 'n' },
-      ];
-      if (!standardFrom || !standardTo) {
-        applyDefaultAccounts(leafAccounts);
-      }
-    }
+    mode = formState.mode;
+    simpleCategory = formState.simpleCategory;
+    standardFrom = formState.standardFrom;
+    standardTo = formState.standardTo;
+    standardAmount = formState.standardAmount;
+    adminFee = formState.adminFee;
+    adminFeeAccount = formState.adminFeeAccount;
+    description = formState.description;
+    date = formState.date;
+    num = formState.num;
+    dueDate = formState.dueDate;
+    settled = formState.settled;
+    currency = formState.currency;
+    fxRate = formState.fxRate;
+    notes = formState.notes;
+    postings = formState.postings;
   });
 
   function selectSimpleCategory(cat: SimpleCategory) {
@@ -355,7 +314,7 @@
   }
 
   function switchToSplit() {
-    if (standardFrom && standardTo && minorAmount > 0) {
+    if (standardFrom && standardTo) {
       postings = buildSimpleSplitsWithFee(
         standardFrom,
         standardTo,
@@ -365,12 +324,9 @@
         postings
       );
     } else if (postings.length < 2) {
-      const firstAcc = leafAccounts[0]?.id ?? '';
-      const secondAcc = leafAccounts[1]?.id ?? '';
-      postings = [
-        { id: crypto.randomUUID(), account_id: firstAcc, amount: 0, reconcile: 'n' },
-        { id: crypto.randomUUID(), account_id: secondAcc, amount: 0, reconcile: 'n' },
-      ];
+      const toAcc = standardTo || leafAccounts[1]?.id || '';
+      const fromAcc = standardFrom || leafAccounts[0]?.id || '';
+      postings = createEmptyJournalDraft(fromAcc, toAcc, currency).postings;
     }
     mode = 'journal';
   }
@@ -410,7 +366,7 @@
     postings = updateSplitAmount(postings, split.id || '', field, val, currency);
   };
 
-  const handleAutoBalance = () => {
+  const autoBalanceEntry = () => {
     postings = autoBalanceSplits(postings, imbalance);
   };
 
@@ -428,7 +384,7 @@
     if (preset.currency) currency = preset.currency as Currency;
   }
 
-  async function handleSave() {
+  async function submitJournalEntry() {
     error = '';
     if (isLocked) {
       error = i18n.t.periodLockedNotice;
@@ -487,7 +443,7 @@
     }
   }
 
-  function handleScan(detail: { text: string; amount: number | null }) {
+  function applyScannedReceiptData(detail: { text: string; amount: number | null }) {
     if (detail.amount) {
       standardAmount = detail.amount.toString();
       if (mode === 'journal' && postings.length > 0) {
@@ -499,7 +455,7 @@
     }
   }
 
-  function handleSwapAccounts() {
+  function swapTransferAccounts() {
     const tmp = standardFrom;
     standardFrom = standardTo;
     standardTo = tmp;
@@ -515,7 +471,7 @@
     }
   }
 
-  function handleAmountBlur() {
+  function formatAmountOnBlur() {
     if (!standardAmount.trim()) return;
     if (!hasMathExpression(standardAmount) && minorAmount > 0) {
       standardAmount = formatMinorGrouping(minorAmount, currency);
@@ -533,12 +489,12 @@
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       if (isValid && !isLocked && !saving) {
         e.preventDefault();
-        void handleSave();
+        void submitJournalEntry();
       }
     } else if (e.altKey && (e.key === 'a' || e.key === 'A' || e.key === 'b' || e.key === 'B')) {
       if (mode === 'journal' && imbalance !== 0) {
         e.preventDefault();
-        handleAutoBalance();
+        autoBalanceEntry();
       }
     } else if (e.altKey && (e.key === 'n' || e.key === 'N')) {
       if (mode === 'journal') {
@@ -560,10 +516,16 @@
   aria-label={i18n.t.entryInspectorTitle}
 >
   <header
-    class="border-line bg-bg-card flex shrink-0 items-center justify-between border-b-2 px-3 py-2 select-none"
+    class="border-line bg-bg-card flex shrink-0 cursor-grab items-center justify-between border-b-2 px-3 py-2 select-none active:cursor-grabbing"
+    data-drag-handle
   >
     <div class="flex items-center gap-2.5">
-      <span class="badge-neutral font-proto text-smaller font-bold">{i18n.t.workstation}</span>
+      <span class="badge-neutral font-proto text-smaller flex items-center gap-1.5 font-bold">
+        <span class="text-text-muted text-[10px] tracking-tighter select-none" aria-hidden="true"
+          >⠿</span
+        >
+        {i18n.t.workstation}
+      </span>
       <span class="font-proto text-text-strong text-small font-bold tracking-wider uppercase">
         {entry
           ? `${i18n.t.editEntryTitle} ${num ? `· ${num}` : ''}`
@@ -585,11 +547,13 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <div class="border-line bg-bg-app flex border p-0.5">
+      <div class="border-line bg-bg-app flex border p-0.5" data-no-drag>
         <button
           type="button"
+          data-no-drag
           onclick={switchToSimple}
-          class="font-proto text-smaller h-6 px-2.5 uppercase transition-colors {mode === 'transfer'
+          class="font-proto text-smaller h-6 cursor-pointer px-2.5 uppercase transition-colors {mode ===
+          'transfer'
             ? 'bg-bg-btn text-teal font-bold'
             : 'text-text-muted hover:text-text-base'}"
         >
@@ -597,8 +561,10 @@
         </button>
         <button
           type="button"
+          data-no-drag
           onclick={switchToSplit}
-          class="font-proto text-smaller h-6 px-2.5 uppercase transition-colors {mode === 'journal'
+          class="font-proto text-smaller h-6 cursor-pointer px-2.5 uppercase transition-colors {mode ===
+          'journal'
             ? 'bg-bg-btn text-teal font-bold'
             : 'text-text-muted hover:text-text-base'}"
         >
@@ -608,24 +574,9 @@
 
       <button
         type="button"
-        onclick={() => modalState.toggleInspectorLayout()}
-        title={modalState.inspectorLayout === 'docked'
-          ? i18n.t.layoutCenterHud
-          : i18n.t.layoutSplitDock}
-        class="border-line hover:border-teal hover:text-teal bg-bg-app text-text-muted font-proto text-smaller flex h-7 items-center gap-1 border px-2 transition-colors"
-      >
-        <span>{modalState.inspectorLayout === 'docked' ? '⧉' : '◨'}</span>
-        <span class="text-smaller hidden sm:inline">
-          {modalState.inspectorLayout === 'docked'
-            ? i18n.t.layoutCenterHud
-            : i18n.t.layoutSplitDock}
-        </span>
-      </button>
-
-      <button
-        type="button"
+        data-no-drag
         onclick={onCancel}
-        class="border-line hover:border-danger hover:text-danger bg-bg-app text-text-muted font-proto text-smaller flex h-7 w-7 items-center justify-center border transition-colors"
+        class="border-line hover:border-danger hover:text-danger bg-bg-app text-text-muted font-proto text-smaller flex h-7 w-7 cursor-pointer items-center justify-center border transition-colors"
         aria-label={i18n.t.closeBtn}
       >
         ✕
@@ -645,7 +596,7 @@
     {#if showScanner}
       <div class="border-line bg-bg-card border p-2">
         {#if ScannerComp}
-          <ScannerComp onScanComplete={handleScan} />
+          <ScannerComp onScanComplete={applyScannedReceiptData} />
         {:else}
           <p class="text-text-muted font-proto text-small p-2">{i18n.t.loadingFinnca}</p>
         {/if}
@@ -738,7 +689,7 @@
             />
             <button
               type="button"
-              onclick={handleSyncLiveFx}
+              onclick={syncLiveExchangeRate}
               disabled={syncingFx}
               title={i18n.t.fxSyncLiveBtn}
               class="border-line hover:border-teal hover:text-teal bg-bg-card text-text-dim font-proto text-smaller h-7 border px-2 uppercase transition-colors disabled:opacity-50"
@@ -805,7 +756,7 @@
 
           <button
             type="button"
-            onclick={handleSwapAccounts}
+            onclick={swapTransferAccounts}
             title={i18n.t.swapAccounts}
             class="border-line hover:border-teal hover:text-teal bg-bg-app text-text-muted font-proto text-smaller ml-auto flex h-7 items-center gap-1 border px-2.5 transition-colors"
           >
@@ -964,7 +915,7 @@
           <input
             type="text"
             bind:value={standardAmount}
-            onblur={handleAmountBlur}
+            onblur={formatAmountOnBlur}
             placeholder={i18n.t.transferAmountExample}
             inputmode="decimal"
             autocomplete="off"
@@ -1049,7 +1000,7 @@
           onAddSplit={addSplit}
           onRemoveSplit={removeSplit}
           onAmountChange={setSplitAmount}
-          onAutoBalance={handleAutoBalance}
+          onAutoBalance={autoBalanceEntry}
         />
       </div>
     {/if}
@@ -1113,7 +1064,7 @@
       <Button
         variant="primary"
         size="sm"
-        onclick={handleSave}
+        onclick={submitJournalEntry}
         disabled={saving || !isValid || isLocked}
         class="h-8 px-3 font-bold"
       >

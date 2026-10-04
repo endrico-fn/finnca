@@ -1,6 +1,5 @@
 import type { CreateJournalEntryInput, JournalEntryView } from '$lib/core/ipc/bindings';
-import { todayString } from '$lib/core/format/date';
-import { getPref, setPref } from '$lib/core/state/prefs';
+import { createEmptyJournalDraft } from '$lib/features/journal/state/journalFormUtils';
 
 export interface ConfirmModalConfig {
   title: string;
@@ -27,12 +26,14 @@ class ModalState {
   settingsOpen = $state(false);
   confirmConfig = $state<ConfirmModalConfig | null>(null);
 
-  openSettings() {
-    this.settingsOpen = true;
-  }
-
-  closeSettings() {
-    this.settingsOpen = false;
+  get isAnyModalOpen() {
+    return (
+      this.inspectorOpen ||
+      this.commandPaletteOpen ||
+      this.settingsOpen ||
+      this.healthPulseOpen ||
+      this.confirmConfig !== null
+    );
   }
 
   inspectorOpen = $state(false);
@@ -42,46 +43,17 @@ class ModalState {
   inspectorIsNew = $state(true);
   inspectorInitialFrom = $state('');
   inspectorInitialTo = $state('');
-  inspectorLayout = $state<'docked' | 'modal' | 'adaptive'>(
-    getPref('finnca_inspector_layout', 'adaptive')
-  );
 
-  toggleInspectorLayout(currentEffective?: 'docked' | 'modal') {
-    const next =
-      (currentEffective ?? (this.inspectorLayout === 'docked' ? 'docked' : 'modal')) === 'docked'
-        ? 'modal'
-        : 'docked';
-    this.inspectorLayout = next;
-    setPref('finnca_inspector_layout', next);
-  }
-
-  get quickTxOpen() {
-    return this.inspectorOpen;
-  }
-  set quickTxOpen(val: boolean) {
-    this.inspectorOpen = val;
-  }
-
-  get quickTxDraft() {
-    return this.inspectorDraft;
-  }
-  set quickTxDraft(val: CreateJournalEntryInput | null) {
-    this.inspectorDraft = val;
-  }
-
-  get quickTxIsNew() {
-    return this.inspectorIsNew;
-  }
-  set quickTxIsNew(val: boolean) {
-    this.inspectorIsNew = val;
-  }
-
-  get transferModalOpen() {
+  get isTransferMode() {
     return this.inspectorOpen && this.inspectorMode === 'transfer';
   }
-  set transferModalOpen(val: boolean) {
-    this.inspectorOpen = val;
-    if (val) this.inspectorMode = 'transfer';
+
+  openSettings() {
+    this.settingsOpen = true;
+  }
+
+  closeSettings() {
+    this.settingsOpen = false;
   }
 
   openCommandPalette() {
@@ -107,28 +79,15 @@ class ModalState {
   openInspector(opts?: InspectorOpenOptions) {
     this.inspectorEntry = opts?.entry ?? null;
     this.inspectorIsNew = opts?.isNew ?? (opts?.entry ? false : true);
-    this.inspectorMode =
-      opts?.mode ??
-      (opts?.entry && opts.entry.postings.length > 2
-        ? 'journal'
-        : opts?.draft && opts.draft.postings && opts.draft.postings.length > 2
-          ? 'journal'
-          : 'transfer');
+    const hasManyPostings =
+      Boolean(opts?.entry && opts.entry.postings.length > 2) ||
+      Boolean(opts?.draft && opts.draft.postings && opts.draft.postings.length > 2);
+    this.inspectorMode = hasManyPostings ? 'journal' : (opts?.mode ?? 'transfer');
     this.inspectorInitialFrom = opts?.fromId ?? '';
     this.inspectorInitialTo = opts?.toId ?? '';
     this.inspectorDraft =
       opts?.draft ??
-      (opts?.entry
-        ? null
-        : {
-            id: crypto.randomUUID(),
-            date: todayString(),
-            description: '',
-            notes: '',
-            currency: 'IDR',
-            fx_rate: null,
-            postings: [],
-          });
+      (opts?.entry ? null : createEmptyJournalDraft(opts?.fromId ?? '', opts?.toId ?? ''));
     this.inspectorOpen = true;
   }
 
@@ -141,25 +100,9 @@ class ModalState {
     this.inspectorIsNew = true;
   }
 
-  openQuickTx(
-    initialDraft?: CreateJournalEntryInput | null,
-    isNew = true,
-    mode: 'transfer' | 'journal' = 'journal'
-  ) {
-    this.openInspector({
-      draft: initialDraft,
-      isNew,
-      mode:
-        initialDraft && initialDraft.postings && initialDraft.postings.length > 2
-          ? 'journal'
-          : mode,
-    });
-  }
-
-  closeQuickTx() {
-    this.closeInspector();
-  }
-
+  /**
+   * Explicit intent helper to open inspector for creating a transfer between accounts.
+   */
   openTransfer(fromId = '', toId = '') {
     this.openInspector({
       isNew: true,
@@ -169,8 +112,25 @@ class ModalState {
     });
   }
 
-  closeTransfer() {
-    this.closeInspector();
+  /**
+   * Explicit intent helper to open inspector for recording a new transaction entry.
+   */
+  openNewEntry(draft?: CreateJournalEntryInput | null) {
+    this.openInspector({
+      draft,
+      isNew: true,
+      mode: draft && draft.postings && draft.postings.length <= 2 ? 'transfer' : 'journal',
+    });
+  }
+
+  /**
+   * Explicit intent helper to open inspector for editing an existing journal entry.
+   */
+  openExistingEntry(entry: JournalEntryView) {
+    this.openInspector({
+      entry,
+      isNew: false,
+    });
   }
 
   confirm(config: ConfirmModalConfig) {

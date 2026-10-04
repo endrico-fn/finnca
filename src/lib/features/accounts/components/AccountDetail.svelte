@@ -14,7 +14,8 @@
   import { accountTypeLabel } from '$lib/core/format/account';
   import { accountsState } from '$lib/features/accounts/state/accounts.svelte';
   import AccountModal from '$lib/features/accounts/components/AccountModal.svelte';
-  import { todayString } from '$lib/core/format/date';
+  import { createEmptyJournalDraft } from '$lib/features/journal/state/journalFormUtils';
+  import type { Currency } from '$lib/core/types';
   import AccountLedgerSummary from './AccountLedgerSummary.svelte';
   import AccountLedgerTable from './AccountLedgerTable.svelte';
   import AccountLedgerFilterBar from './AccountLedgerFilterBar.svelte';
@@ -89,30 +90,7 @@
 
   const initialDraftForAccount = $derived.by((): CreateJournalEntryInput | undefined => {
     if (!account || isPlaceholder) return undefined;
-    return {
-      id: crypto.randomUUID(),
-      date: todayString(),
-      description: '',
-      notes: '',
-      reference_no: null,
-      due_date: null,
-      currency: account.currency || 'IDR',
-      fx_rate: null,
-      postings: [
-        {
-          id: crypto.randomUUID(),
-          account_id: account.id,
-          amount: 0,
-          reconcile: 'n',
-        },
-        {
-          id: crypto.randomUUID(),
-          account_id: '',
-          amount: 0,
-          reconcile: 'n',
-        },
-      ],
-    };
+    return createEmptyJournalDraft(account.id, '', (account.currency as Currency) || 'IDR');
   });
 
   function clearRange() {
@@ -168,7 +146,7 @@
             title={i18n.t.addEntry}
             ariaLabel={i18n.t.addEntry}
             onclick={() => {
-              modalState.openQuickTx(initialDraftForAccount, true);
+              modalState.openInspector({ draft: initialDraftForAccount, isNew: true });
             }}
           >
             {i18n.t.addEntry}
@@ -296,7 +274,7 @@
         onToggleReconcile={toggleReconcile}
         onEdit={handleEdit}
         onNewEntry={() => {
-          modalState.openQuickTx(initialDraftForAccount, true);
+          modalState.openInspector({ draft: initialDraftForAccount, isNew: true });
         }}
       />
     </Card>

@@ -88,7 +88,7 @@
       setPref('finnca_known_vaults', knownVaults);
       if (knownVaults.length === 0) {
         clearVaultRegistry();
-        handleNavigateSetup();
+        navigateToVaultSetup();
         return;
       }
     }
@@ -113,7 +113,7 @@
     }
   });
 
-  function handleNavigateSetup() {
+  function navigateToVaultSetup() {
     if (onNavigateSetup) {
       onNavigateSetup();
     } else {
@@ -121,7 +121,7 @@
     }
   }
 
-  async function submit() {
+  async function authenticateVault() {
     if (!password) return;
     if (password.length < 8) {
       error = i18n.t.passwordTooShort;
@@ -164,7 +164,7 @@
         knownVaults = getKnownVaults();
         if (knownVaults.length === 0) {
           clearVaultRegistry();
-          handleNavigateSetup();
+          navigateToVaultSetup();
         } else {
           selectedVaultId = knownVaults[0].id;
         }
@@ -190,7 +190,7 @@
             bind:selectedVaultId
             activeVaultPath={activeVault?.path}
             onSelectVault={(path) => setActiveVault(path)}
-            onNavigateSetup={handleNavigateSetup}
+            onNavigateSetup={navigateToVaultSetup}
           />
 
           <div class="border-line border-t pt-2">
@@ -243,7 +243,7 @@
             <form
               onsubmit={(e) => {
                 e.preventDefault();
-                submit();
+                authenticateVault();
               }}
               class="space-y-4"
             >
@@ -297,10 +297,12 @@
               <Button
                 type="submit"
                 variant="primary"
+                size="md"
+                class="w-full justify-center"
                 loading={busy}
                 disabled={busy || password.length < 8}
               >
-                <span class="text-small w-full font-medium tracking-wider">
+                <span class="font-proto text-small font-bold tracking-wider">
                   {busy ? i18n.t.decryptingVault : i18n.t.unlockVaultBtn}
                 </span>
               </Button>
@@ -308,7 +310,7 @@
           </div>
 
           <div class="border-line mt-6 flex items-center justify-between border-t pt-4">
-            <Button type="button" variant="ghost" onclick={handleNavigateSetup}>
+            <Button type="button" variant="ghost" onclick={navigateToVaultSetup}>
               <span class="font-proto text-small inline-flex items-center gap-1.5">
                 <Icon name="plus" size={11} />
                 {i18n.t.addVaultBtn}

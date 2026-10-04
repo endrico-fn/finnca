@@ -61,7 +61,7 @@
     {title}
   >
     {#if loading}
-      <span class="spinner-sm mr-1.5" aria-hidden="true"></span>
+      <span class="spinner-sm mr-2 shrink-0" aria-hidden="true"></span>
     {/if}
     {@render children()}
   </a>
@@ -76,7 +76,7 @@
     {title}
   >
     {#if loading}
-      <span class="spinner-sm mr-1.5" aria-hidden="true"></span>
+      <span class="spinner-sm mr-2 shrink-0" aria-hidden="true"></span>
     {/if}
     {@render children()}
   </button>

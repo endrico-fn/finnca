@@ -1,7 +1,7 @@
 import type { Account, JournalEntryView, CreateJournalEntryInput } from '$lib/core/ipc/bindings';
 import { accountTypeLabel } from '$lib/core/format/account';
 import { formatIDR, formatMinorGrouping } from '$lib/core/format/currency';
-import { todayString } from '$lib/core/format/date';
+import { createTransferDraft } from '$lib/features/journal/state/journalFormUtils';
 import type { TranslationDict } from '$lib/core/i18n/types';
 import type { NavItem } from '$lib/core/router/nav';
 
@@ -143,30 +143,14 @@ export function searchPalette(options: {
         sub: t.cmdQuickEntryPrompt,
         category: t.cmdCategoryQuickAdd,
         action: () => {
-          onQuickTxDraft({
-            id: crypto.randomUUID(),
-            date: todayString(),
-            description: desc,
-            notes: '',
-            reference_no: null,
-            due_date: null,
-            currency: 'IDR',
-            fx_rate: null,
-            postings: [
-              {
-                id: crypto.randomUUID(),
-                account_id: fromAccId,
-                amount: -parsedAmt,
-                reconcile: 'n',
-              },
-              {
-                id: crypto.randomUUID(),
-                account_id: toAccId,
-                amount: parsedAmt,
-                reconcile: 'n',
-              },
-            ],
-          });
+          onQuickTxDraft(
+            createTransferDraft({
+              fromId: fromAccId,
+              toId: toAccId,
+              amount: parsedAmt,
+              description: desc,
+            })
+          );
           onClose();
         },
       });
@@ -186,30 +170,14 @@ export function searchPalette(options: {
         sub: t.cmdRecordTxSub,
         category: t.cmdCategoryQuickAdd,
         action: () => {
-          onQuickTxDraft({
-            id: crypto.randomUUID(),
-            date: todayString(),
-            description: desc,
-            notes: '',
-            reference_no: null,
-            due_date: null,
-            currency: 'IDR',
-            fx_rate: null,
-            postings: [
-              {
-                id: crypto.randomUUID(),
-                account_id: '',
-                amount: -parsedAmt,
-                reconcile: 'n',
-              },
-              {
-                id: crypto.randomUUID(),
-                account_id: '',
-                amount: parsedAmt,
-                reconcile: 'n',
-              },
-            ],
-          });
+          onQuickTxDraft(
+            createTransferDraft({
+              fromId: '',
+              toId: '',
+              amount: parsedAmt,
+              description: desc,
+            })
+          );
           onClose();
         },
       });

@@ -1263,8 +1263,6 @@ export const en = {
   amountPreview: 'AMOUNT PREVIEW',
   projectedBalance: 'Projected',
   overdraftWarning: 'OVERDRAFT',
-  layoutSplitDock: 'SPLIT DOCK',
-  layoutCenterHud: 'CENTER HUD',
   duplicateEntryAction: 'Duplicate as Today',
   reconcileRulesManageBtn: 'MANAGE RULES',
   reconcileRulesTitle: 'BANK STATEMENT CATEGORIZATION RULES',

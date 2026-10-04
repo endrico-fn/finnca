@@ -24,7 +24,7 @@
 
   let busy = $state(false);
 
-  async function handleConfirm() {
+  async function executeConfirmation() {
     busy = true;
     try {
       await onConfirm();
@@ -34,7 +34,7 @@
     }
   }
 
-  function handleCancel() {
+  function dismissConfirmation() {
     if (busy) return;
     open = false;
     onCancel?.();
@@ -42,14 +42,14 @@
 </script>
 
 <ModalShell bind:open {title} tone={danger ? 'err' : 'teal'} onClose={onCancel}>
-  <p class="text-text-base text-small py-3 leading-relaxed">
+  <p class="text-text-base text-small font-aux py-3 leading-relaxed">
     {message}
   </p>
   <div class="border-line flex justify-end gap-2 border-t pt-3">
-    <Button variant="ghost" onclick={handleCancel} disabled={busy}>
+    <Button variant="ghost" onclick={dismissConfirmation} disabled={busy}>
       {cancelLabel}
     </Button>
-    <Button variant={danger ? 'danger' : 'primary'} onclick={handleConfirm} disabled={busy}>
+    <Button variant={danger ? 'danger' : 'primary'} onclick={executeConfirmation} disabled={busy}>
       {busy ? i18n.t.planProcessing : confirmLabel}
     </Button>
   </div>

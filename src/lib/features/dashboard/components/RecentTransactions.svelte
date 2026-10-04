@@ -116,7 +116,7 @@
         title={i18n.t.noTransactionsFound}
         hint={i18n.t.journalEntriesAppearHere}
         actionLabel={i18n.t.recordEntry}
-        onAction={() => (onNewTx ? onNewTx() : modalState.openQuickTx())}
+        onAction={() => (onNewTx ? onNewTx() : modalState.openInspector({ mode: 'journal' }))}
       />
     {:else}
       <div class="flex flex-col gap-0.5 pr-1">

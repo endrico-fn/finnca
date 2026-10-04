@@ -187,7 +187,7 @@
         variant="primary"
         class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
         ariaLabel={i18n.t.newEntry}
-        onclick={() => modalState.openQuickTx()}
+        onclick={() => modalState.openInspector({ mode: 'journal' })}
       >
         {i18n.t.newEntry}
       </Button>
@@ -195,7 +195,7 @@
         variant="ghost"
         class="font-proto text-small h-8 px-2.5 font-bold tracking-wider whitespace-nowrap"
         ariaLabel={i18n.t.transfersTitle}
-        onclick={() => modalState.openTransfer()}
+        onclick={() => modalState.openInspector({ mode: 'transfer' })}
       >
         {i18n.t.transfersTitle}
       </Button>
@@ -317,7 +317,7 @@
           {searchScope}
           {entries}
           {accountsById}
-          onNewTx={() => modalState.openQuickTx()}
+          onNewTx={() => modalState.openInspector({ mode: 'journal' })}
           class="col-span-12 h-full lg:col-span-4"
         />
       </div>

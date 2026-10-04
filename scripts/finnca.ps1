@@ -12,7 +12,10 @@ param (
     [string]$Action = "install",
 
     [Parameter(Position = 1)]
-    [string]$TargetVersion = ""
+    [string]$TargetVersion = "",
+
+    [Parameter()]
+    [switch]$Local
 )
 
 $ErrorActionPreference = "Stop"
@@ -71,30 +74,53 @@ function Get-LatestReleaseInfo {
 }
 
 function Install-Finnca {
-    Write-Step "Resolving latest production release artifact..."
-    $Release = Get-LatestReleaseInfo -Version $TargetVersion
-    $Tag = $Release.tag_name
-    Write-Step "Identified release: $Tag"
+    param ([switch]$UseLocal)
 
-    # Look for .msi or _x64-setup.exe
-    $Asset = $Release.assets | Where-Object { $_.name -like "*x64*setup.exe" -or $_.name -like "*.msi" } | Select-Object -First 1
-
-    if (-not $Asset) {
-        Write-Fail "No compatible Windows binary (.msi or -setup.exe) found in release $Tag."
-        return
+    $LocalInstaller = $null
+    $ProjectRoot = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { Get-Location }
+    $LocalBundleDir = Join-Path $ProjectRoot "src-tauri\target\release\bundle\nsis"
+    if (Test-Path $LocalBundleDir) {
+        $LocalFile = Get-ChildItem -Path $LocalBundleDir -Filter "*setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($LocalFile) {
+            $LocalInstaller = $LocalFile.FullName
+        }
     }
 
-    $InstallerName = $Asset.name
-    $DownloadUrl = $Asset.browser_download_url
-    $TempDir = [System.IO.Path]::GetTempPath()
-    $TempFile = Join-Path $TempDir $InstallerName
+    if (($UseLocal -or $Local -or $TargetVersion -eq "local") -and $LocalInstaller) {
+        Write-Step "Using local build artifact: $LocalInstaller"
+        $TempFile = $LocalInstaller
+        $InstallerName = Split-Path -Leaf $LocalInstaller
+        $Tag = "local"
+    } else {
+        Write-Step "Resolving latest production release artifact..."
+        $Release = Get-LatestReleaseInfo -Version $TargetVersion
+        $Tag = $Release.tag_name
+        Write-Step "Identified release: $Tag"
 
-    Write-Step "Downloading: $InstallerName ($([math]::Round($Asset.size / 1MB, 1)) MB)..."
-    try {
-        Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing
-    } catch {
-        Write-Fail "Download failed: $($_.Exception.Message)"
-        return
+        # Look for NSIS per-user setup executable (*x64*setup.exe or *setup.exe, excluding .sig)
+        $Asset = $Release.assets | Where-Object { ($_.name -like "*x64*setup.exe" -or $_.name -like "*setup.exe") -and $_.name -notlike "*.sig" } | Select-Object -First 1
+        if (-not $Asset) {
+            # Fallback to any .exe or legacy .msi if setup.exe is not found
+            $Asset = $Release.assets | Where-Object { ($_.name -like "*.exe" -or $_.name -like "*.msi") -and $_.name -notlike "*.sig" } | Select-Object -First 1
+        }
+
+        if (-not $Asset) {
+            Write-Fail "No compatible Windows NSIS setup binary (*-setup.exe) found in release $Tag."
+            return
+        }
+
+        $InstallerName = $Asset.name
+        $DownloadUrl = $Asset.browser_download_url
+        $TempDir = [System.IO.Path]::GetTempPath()
+        $TempFile = Join-Path $TempDir $InstallerName
+
+        Write-Step "Downloading: $InstallerName ($([math]::Round($Asset.size / 1MB, 1)) MB)..."
+        try {
+            Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing
+        } catch {
+            Write-Fail "Download failed: $($_.Exception.Message)"
+            return
+        }
     }
 
     Write-Step "Deploying package..."
@@ -114,8 +140,8 @@ function Install-Finnca {
         }
     }
 
-    # Clean up temp installer
-    if (Test-Path $TempFile) {
+    # Clean up temp installer if downloaded from remote
+    if (Test-Path $TempFile -and $TempFile -ne $LocalInstaller) {
         Remove-Item -Force $TempFile -ErrorAction SilentlyContinue
     }
 
@@ -198,8 +224,8 @@ function Uninstall-Finnca {
 Write-Header
 
 switch ($Action.ToLower()) {
-    "install"   { Install-Finnca }
-    "upgrade"   { Install-Finnca }
+    "install"   { Install-Finnca -UseLocal:$Local }
+    "upgrade"   { Install-Finnca -UseLocal:$Local }
     "uninstall" { Uninstall-Finnca }
     "status"    { Show-Status }
     default     { Write-Fail "Unknown action: $Action" }

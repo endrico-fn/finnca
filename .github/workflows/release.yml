@@ -120,8 +120,7 @@ jobs:
             - `.rpm` — untuk Fedora/openSUSE: `sudo dnf install ./finnca_*.rpm`
 
             ### Windows
-            - `.msi` — Windows Installer (recommended)
-            - `_x64-setup.exe` — NSIS installer
+            - `_x64-setup.exe` — NSIS installer (per-user, rootless)
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}

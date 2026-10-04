@@ -93,7 +93,7 @@
     }
   }
 
-  function handleAddVault() {
+  function navigateToCreateVault() {
     open = false;
     goto(resolve('/setup?from=app'));
   }
@@ -193,7 +193,7 @@
 
       <!-- Action Footer -->
       <div class="border-line mt-1.5 border-t pt-1.5">
-        <Button variant="ghost" size="sm" onclick={handleAddVault} class="w-full gap-1.5">
+        <Button variant="ghost" size="sm" onclick={navigateToCreateVault} class="w-full gap-1.5">
           <Icon name="plus" size={10} />
           {i18n.t.addVaultBtn}
         </Button>

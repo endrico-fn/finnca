@@ -4,6 +4,7 @@ import type {
   JournalEntryView,
   Account,
 } from '$lib/core/ipc/bindings';
+import type { Currency } from '$lib/core/types';
 import {
   fromMinor,
   parseStringAmountToMinor,
@@ -18,8 +19,20 @@ export {
   type TransferLegsBlock,
 } from './transferValidation';
 import { i18n } from '$lib/core/i18n.svelte';
+import { parseNoteTags } from './journalNoteTags';
 
-export function createEmptyJournalDraft(firstAcc = '', secondAcc = ''): CreateJournalEntryInput {
+export function createTwoLegPostings(fromAcc = '', toAcc = '', amount = 0): PostingInput[] {
+  return [
+    { id: crypto.randomUUID(), account_id: toAcc, amount, reconcile: 'n' },
+    { id: crypto.randomUUID(), account_id: fromAcc, amount: -amount, reconcile: 'n' },
+  ];
+}
+
+export function createEmptyJournalDraft(
+  fromAcc = '',
+  toAcc = '',
+  currency: Currency = 'IDR'
+): CreateJournalEntryInput {
   return {
     id: crypto.randomUUID(),
     date: todayString(),
@@ -27,12 +40,320 @@ export function createEmptyJournalDraft(firstAcc = '', secondAcc = ''): CreateJo
     notes: '',
     reference_no: null,
     due_date: null,
-    currency: 'IDR',
+    currency,
     fx_rate: null,
     postings: [
-      { id: crypto.randomUUID(), account_id: firstAcc, amount: 0, reconcile: 'n' },
-      { id: crypto.randomUUID(), account_id: secondAcc, amount: 0, reconcile: 'n' },
+      { id: crypto.randomUUID(), account_id: toAcc, amount: 0, reconcile: 'n' },
+      { id: crypto.randomUUID(), account_id: fromAcc, amount: 0, reconcile: 'n' },
     ],
+  };
+}
+
+export function createTransferDraft(params: {
+  fromId?: string;
+  toId?: string;
+  amount?: number;
+  description?: string;
+  notes?: string;
+  currency?: Currency;
+  date?: string;
+}): CreateJournalEntryInput {
+  const amt = params.amount ?? 0;
+  return {
+    id: crypto.randomUUID(),
+    date: params.date ?? todayString(),
+    description: params.description ?? '',
+    notes: params.notes ?? '',
+    reference_no: null,
+    due_date: null,
+    currency: params.currency ?? 'IDR',
+    fx_rate: null,
+    postings: [
+      {
+        id: crypto.randomUUID(),
+        account_id: params.toId ?? '',
+        amount: amt,
+        reconcile: 'n',
+      },
+      {
+        id: crypto.randomUUID(),
+        account_id: params.fromId ?? '',
+        amount: -amt,
+        reconcile: 'n',
+      },
+    ],
+  };
+}
+
+export function cloneJournalEntry(
+  entry: JournalEntryView,
+  options?: { copySuffix?: boolean; resetDate?: boolean }
+): CreateJournalEntryInput {
+  const copySuffix = options?.copySuffix ?? true;
+  const resetDate = options?.resetDate ?? true;
+  return {
+    id: crypto.randomUUID(),
+    date: resetDate ? todayString() : entry.date,
+    description: copySuffix ? `${entry.description} (Copy)` : entry.description,
+    reference_no: null,
+    due_date: null,
+    currency: entry.currency,
+    fx_rate: entry.fx_rate,
+    notes: entry.notes ?? '',
+    postings: entry.postings.map((p) => ({
+      id: crypto.randomUUID(),
+      account_id: p.account_id,
+      amount: p.amount,
+      memo: p.memo,
+      reconcile: 'n',
+    })),
+  };
+}
+
+export function createReconciledStatementDraft(params: {
+  date: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  bankAccountId: string;
+  offsetAccountId: string;
+  notes?: string;
+}): CreateJournalEntryInput {
+  const isIncome = params.amount > 0;
+  return {
+    id: crypto.randomUUID(),
+    date: params.date,
+    description: params.description,
+    notes: params.notes ?? '[From Bank Statement]',
+    reference_no: null,
+    due_date: null,
+    currency: params.currency,
+    fx_rate: null,
+    postings: isIncome
+      ? [
+          {
+            id: crypto.randomUUID(),
+            account_id: params.bankAccountId,
+            amount: params.amount,
+            memo: params.description || null,
+            reconcile: 'c',
+          },
+          {
+            id: crypto.randomUUID(),
+            account_id: params.offsetAccountId,
+            amount: -params.amount,
+            memo: null,
+            reconcile: 'n',
+          },
+        ]
+      : [
+          {
+            id: crypto.randomUUID(),
+            account_id: params.offsetAccountId,
+            amount: -params.amount,
+            memo: null,
+            reconcile: 'n',
+          },
+          {
+            id: crypto.randomUUID(),
+            account_id: params.bankAccountId,
+            amount: params.amount,
+            memo: params.description || null,
+            reconcile: 'c',
+          },
+        ],
+  };
+}
+
+export type InspectorViewMode = 'transfer' | 'journal';
+export type SimpleCategory = 'TRANSFER' | 'EXPENSE' | 'INCOME' | 'CUSTOM';
+
+export interface InspectorInitialFormState {
+  mode: InspectorViewMode;
+  simpleCategory: SimpleCategory;
+  standardFrom: string;
+  standardTo: string;
+  standardAmount: string;
+  adminFee: string;
+  adminFeeAccount: string;
+  description: string;
+  date: string;
+  num: string;
+  dueDate: string;
+  settled: boolean;
+  currency: Currency;
+  fxRate: number;
+  notes: string;
+  postings: PostingInput[];
+}
+
+export function initializeInspectorForm(params: {
+  entry?: JournalEntryView | null;
+  initialDraft?: CreateJournalEntryInput | null;
+  initialMode?: InspectorViewMode;
+  initialFrom?: string;
+  initialTo?: string;
+  defaultFxRate: number;
+  leafAccounts: Account[];
+}): InspectorInitialFormState {
+  const {
+    entry,
+    initialDraft,
+    initialMode = 'transfer',
+    initialFrom = '',
+    initialTo = '',
+    defaultFxRate,
+    leafAccounts,
+  } = params;
+
+  let mode: InspectorViewMode;
+  let simpleCategory: SimpleCategory = 'TRANSFER';
+  let standardFrom = initialFrom;
+  let standardTo = initialTo;
+  let standardAmount = '';
+  const adminFee = '';
+  const adminFeeAccount = '';
+  let description: string;
+  let date: string;
+  let num: string;
+  let dueDate: string;
+  let settled = false;
+  let currency: Currency;
+  let fxRate: number;
+  let notes: string;
+  let postings: PostingInput[];
+
+  if (entry) {
+    const tags = parseNoteTags(entry);
+    num = tags.ref;
+    settled = tags.settled;
+    dueDate = tags.dueDate;
+    notes = tags.cleanNotes || '';
+    description = entry.description;
+    date = entry.date;
+    currency = (entry.currency as Currency) || 'IDR';
+    fxRate = entry.fx_rate ?? defaultFxRate;
+    postings = entry.postings.map((p) => ({
+      id: p.id,
+      account_id: p.account_id,
+      amount: p.amount,
+      memo: p.memo,
+      reconcile: p.reconcile,
+    }));
+
+    if (postings.length > 2) {
+      mode = 'journal';
+    } else {
+      mode = 'transfer';
+      const simple = extractSimpleFromSplits(postings, currency);
+      if (simple) {
+        standardTo = simple.standardTo;
+        standardFrom = simple.standardFrom;
+        standardAmount = simple.standardAmount;
+      }
+    }
+  } else if (initialDraft) {
+    description = initialDraft.description || '';
+    date = initialDraft.date || todayString();
+    num = initialDraft.reference_no || '';
+    dueDate = initialDraft.due_date || '';
+    notes = initialDraft.notes || '';
+    currency = (initialDraft.currency as Currency) || 'IDR';
+    fxRate = initialDraft.fx_rate ?? defaultFxRate;
+    postings =
+      initialDraft.postings && initialDraft.postings.length >= 2
+        ? initialDraft.postings.map((p) => ({
+            ...p,
+            id: p.id || crypto.randomUUID(),
+          }))
+        : createEmptyJournalDraft('', '', currency).postings;
+
+    if (postings.length > 2) {
+      mode = 'journal';
+    } else {
+      mode = initialMode;
+      const simple = extractSimpleFromSplits(postings, currency);
+      if (simple && (simple.standardTo || simple.standardFrom)) {
+        standardTo = simple.standardTo;
+        standardFrom = simple.standardFrom;
+        standardAmount = simple.standardAmount;
+      }
+      if (!standardFrom || !standardTo) {
+        const def = resolveDefaultAccounts(
+          leafAccounts,
+          standardFrom || standardTo || initialFrom || initialTo,
+          standardFrom,
+          standardTo
+        );
+        standardFrom = def.standardFrom;
+        standardTo = def.standardTo;
+      }
+    }
+  } else {
+    mode = initialMode;
+    date = todayString();
+    description = '';
+    num = '';
+    dueDate = '';
+    settled = false;
+    currency = 'IDR';
+    fxRate = defaultFxRate;
+    notes = '';
+    standardAmount = '';
+    standardFrom = initialFrom;
+    standardTo = initialTo;
+    if (!standardFrom || !standardTo) {
+      const def = resolveDefaultAccounts(
+        leafAccounts,
+        initialFrom || initialTo,
+        standardFrom,
+        standardTo
+      );
+      standardFrom = def.standardFrom;
+      standardTo = def.standardTo;
+    }
+    const toAccId = standardTo || leafAccounts[1]?.id || '';
+    const fromAccId = standardFrom || leafAccounts[0]?.id || '';
+    postings = [
+      { id: crypto.randomUUID(), account_id: toAccId, amount: 0, reconcile: 'n' },
+      { id: crypto.randomUUID(), account_id: fromAccId, amount: 0, reconcile: 'n' },
+    ];
+  }
+
+  const fromAcc = leafAccounts.find((a) => a.id === standardFrom);
+  const toAcc = leafAccounts.find((a) => a.id === standardTo);
+  if (fromAcc && toAcc) {
+    if (fromAcc.account_type === 'INCOME' && toAcc.account_type === 'ASSET') {
+      simpleCategory = 'INCOME';
+    } else if (fromAcc.account_type === 'ASSET' && toAcc.account_type === 'EXPENSE') {
+      simpleCategory = 'EXPENSE';
+    } else if (
+      (fromAcc.account_type === 'ASSET' || fromAcc.account_type === 'LIABILITY') &&
+      (toAcc.account_type === 'ASSET' || toAcc.account_type === 'LIABILITY')
+    ) {
+      simpleCategory = 'TRANSFER';
+    } else {
+      simpleCategory = 'CUSTOM';
+    }
+  }
+
+  return {
+    mode,
+    simpleCategory,
+    standardFrom,
+    standardTo,
+    standardAmount,
+    adminFee,
+    adminFeeAccount,
+    description,
+    date,
+    num,
+    dueDate,
+    settled,
+    currency,
+    fxRate,
+    notes,
+    postings,
   };
 }
 
@@ -170,9 +491,9 @@ export function extractSimpleFromSplits(
   currency = 'IDR'
 ): { standardFrom: string; standardTo: string; standardAmount: string } | null {
   if (postings.length !== 2) return null;
-  const debitPost = postings.find((p) => p.amount >= 0);
+  const debitPost = postings.find((p) => p.amount > 0);
   const creditPost = postings.find((p) => p.amount < 0);
-  if (debitPost && creditPost && debitPost.amount !== 0) {
+  if (debitPost && creditPost) {
     return {
       standardTo: debitPost.account_id,
       standardFrom: creditPost.account_id,

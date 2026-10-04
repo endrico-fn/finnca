@@ -1271,8 +1271,6 @@ export const id: TranslationDict = {
   amountPreview: 'PRATINJAU NOMINAL',
   projectedBalance: 'Proyeksi',
   overdraftWarning: 'OVERDRAFT',
-  layoutSplitDock: 'SPLIT DOCK',
-  layoutCenterHud: 'CENTER HUD',
   duplicateEntryAction: 'Duplikasi Hari Ini',
   reconcileRulesManageBtn: 'KELOLA ATURAN',
   reconcileRulesTitle: 'ATURAN KATEGORISASI MUTASI BANK',

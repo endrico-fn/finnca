@@ -48,7 +48,7 @@
     }
   }
 
-  async function doImport() {
+  async function executeVaultImport() {
     error = '';
     if (!importPath) {
       error = i18n.t.selectVaultFolderRequired;
@@ -193,7 +193,7 @@
     </Button>
     <Button
       variant="primary"
-      onclick={doImport}
+      onclick={executeVaultImport}
       disabled={busy || (importInspection != null && !importInspection.is_valid)}
     >
       <span class="font-proto text-small font-bold tracking-wider">
