@@ -194,7 +194,50 @@ pub(crate) fn validate_safe_export_target(
 #[specta::specta]
 pub fn inspect_vault_folder(path: String) -> Result<VaultInspectionResult, String> {
     let p = Path::new(&path);
-    if !p.exists() || !p.is_dir() {
+    if !p.exists() {
+        return Ok(VaultInspectionResult {
+            status: "not_found".into(),
+            vault_name: None,
+            username: None,
+            is_valid: false,
+            message: "Path does not exist".into(),
+        });
+    }
+
+    if p.is_file() {
+        let is_finnca = p
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|ext| ext.eq_ignore_ascii_case("finnca"))
+            .unwrap_or(false);
+
+        if is_finnca {
+            let name = p
+                .file_stem()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Finnca Archive")
+                .strip_prefix("finnca-")
+                .unwrap_or("Finnca Archive")
+                .to_string();
+            return Ok(VaultInspectionResult {
+                status: "valid_archive".into(),
+                vault_name: Some(name),
+                username: None,
+                is_valid: true,
+                message: "Finnca Vault Archive (.finnca) detected".into(),
+            });
+        }
+
+        return Ok(VaultInspectionResult {
+            status: "invalid_file".into(),
+            vault_name: None,
+            username: None,
+            is_valid: false,
+            message: "Target is a file, not a vault directory or .finnca archive".into(),
+        });
+    }
+
+    if !p.is_dir() {
         return Ok(VaultInspectionResult {
             status: "not_found".into(),
             vault_name: None,
@@ -404,6 +447,90 @@ pub async fn create_account(
     view(&app, &state)
 }
 
+pub(crate) fn unpack_finnca_archive(
+    app: &AppHandle,
+    archive_path: &Path,
+) -> Result<PathBuf, String> {
+    let stem = archive_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("vault");
+    let slug = stem.strip_prefix("finnca-").unwrap_or(stem);
+    let folder_name = format!("finnca-{}", if slug.is_empty() { "vault" } else { slug });
+
+    let mut target_dir = archive_path
+        .parent()
+        .map(|p| p.join(&folder_name))
+        .unwrap_or_else(|| PathBuf::from(&folder_name));
+
+    if fs::create_dir_all(&target_dir).is_err() {
+        use tauri::Manager;
+        let config_dir = app
+            .path()
+            .app_config_dir()
+            .map_err(|e| format!("Failed to resolve app config dir: {e}"))?;
+        target_dir = config_dir.join(&folder_name);
+        fs::create_dir_all(&target_dir)
+            .map_err(|e| format!("Failed to create vault destination directory: {e}"))?;
+    }
+
+    let file = fs::File::open(archive_path)
+        .map_err(|e| format!("Failed to open archive file: {e}"))?;
+
+    let is_zip = if let Ok(mut zip) = zip::ZipArchive::new(file) {
+        for i in 0..zip.len() {
+            let mut entry = zip
+                .by_index(i)
+                .map_err(|e| format!("Corrupt zip archive entry: {e}"))?;
+            let enclosed_name = match entry.enclosed_name() {
+                Some(p) => p.to_owned(),
+                None => continue,
+            };
+            let outpath = target_dir.join(&enclosed_name);
+            if entry.is_dir() {
+                fs::create_dir_all(&outpath)
+                    .map_err(|e| format!("Failed to create folder: {e}"))?;
+            } else {
+                if let Some(p) = outpath.parent() {
+                    if !p.exists() {
+                        fs::create_dir_all(p)
+                            .map_err(|e| format!("Failed to create parent directory: {e}"))?;
+                    }
+                }
+                let mut outfile = fs::File::create(&outpath)
+                    .map_err(|e| format!("Failed to create file {}: {e}", outpath.display()))?;
+                std::io::copy(&mut entry, &mut outfile)
+                    .map_err(|e| format!("Failed to extract {}: {e}", outpath.display()))?;
+            }
+        }
+        true
+    } else {
+        false
+    };
+
+    if !is_zip {
+        return Err("Invalid archive: file is not a valid .finnca archive (must be a zip container)".into());
+    }
+
+    if target_dir.join("vault.db").exists() || target_dir.join(KEY_FILE).exists() {
+        return Ok(target_dir);
+    }
+
+    if let Ok(entries) = fs::read_dir(&target_dir) {
+        let subfolders: Vec<_> = entries
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.is_dir())
+            .collect();
+        if subfolders.len() == 1
+            && (subfolders[0].join("vault.db").exists() || subfolders[0].join(KEY_FILE).exists())
+        {
+            return Ok(subfolders[0].clone());
+        }
+    }
+
+    Err("Archive does not contain valid Finnca vault data (vault.db)".into())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn import_vault(
@@ -416,10 +543,28 @@ pub async fn import_vault(
         return Err("password must be at least 8 characters".into());
     }
 
-    let vault_path = Path::new(&path).to_path_buf();
-    if !vault_path.exists() || !vault_path.is_dir() {
-        return Err("vault folder not found".into());
+    let raw_path = Path::new(&path);
+    if !raw_path.exists() {
+        return Err("vault path not found".into());
     }
+
+    let vault_path = if raw_path.is_file() {
+        let is_finnca = raw_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|ext| ext.eq_ignore_ascii_case("finnca") || ext.eq_ignore_ascii_case("zip"))
+            .unwrap_or(false);
+
+        if !is_finnca {
+            return Err("Target file is not a .finnca vault archive".into());
+        }
+
+        unpack_finnca_archive(&app, raw_path)?
+    } else if raw_path.is_dir() {
+        raw_path.to_path_buf()
+    } else {
+        return Err("vault path is neither a file nor a directory".into());
+    };
 
     let vault_path_clone = vault_path.clone();
     let conn = tauri::async_runtime::spawn_blocking(move || {
@@ -729,7 +874,7 @@ pub fn export_vault_backup_folder(
         session.vault_name.replace(' ', "-").to_lowercase(),
         timestamp
     );
-    let target = dest_path.join(backup_folder_name);
+    let target = dest_path.join(&backup_folder_name);
 
     std::fs::create_dir_all(&target).map_err(|e| format!("Failed to create backup folder: {e}"))?;
 
@@ -771,6 +916,40 @@ pub fn export_vault_backup_folder(
     if src_data.exists() {
         std::fs::copy(&src_data, &dest_data)
             .map_err(|e| format!("Failed to copy vault.age: {e}"))?;
+    }
+
+    // 3. Create .finnca portable archive in destination directory
+    let archive_path = dest_path.join(format!("{backup_folder_name}.finnca"));
+    if let Ok(archive_file) = std::fs::File::create(&archive_path) {
+        let mut zip = zip::ZipWriter::new(archive_file);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+
+        if dest_meta.exists() {
+            if let Ok(data) = std::fs::read(&dest_meta) {
+                let _ = zip.start_file("vault.meta.json", options);
+                let _ = std::io::Write::write_all(&mut zip, &data);
+            }
+        }
+        if dest_db.exists() {
+            if let Ok(data) = std::fs::read(&dest_db) {
+                let _ = zip.start_file("vault.db", options);
+                let _ = std::io::Write::write_all(&mut zip, &data);
+            }
+        }
+        if dest_key.exists() {
+            if let Ok(data) = std::fs::read(&dest_key) {
+                let _ = zip.start_file(KEY_FILE, options);
+                let _ = std::io::Write::write_all(&mut zip, &data);
+            }
+        }
+        if dest_data.exists() {
+            if let Ok(data) = std::fs::read(&dest_data) {
+                let _ = zip.start_file(DATA_FILE, options);
+                let _ = std::io::Write::write_all(&mut zip, &data);
+            }
+        }
+        let _ = zip.finish();
     }
 
     Ok(())
@@ -864,6 +1043,18 @@ pub fn rename_vault(
     view(&app, &state)
 }
 
+#[tauri::command]
+#[specta::specta]
+pub fn get_pending_import_path(state: State<'_, AppState>) -> Option<String> {
+    state.get_pending_import_path()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn clear_pending_import_path(state: State<'_, AppState>) {
+    state.set_pending_import_path(None);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -916,5 +1107,31 @@ mod tests {
         // Valid file accepted
         let valid = temp.path().join("backup.json");
         assert!(validate_safe_export_target(&valid.to_string_lossy(), &session, 10).is_ok());
+    }
+
+    #[test]
+    fn test_inspect_vault_folder_archive() {
+        let temp = tempfile::tempdir().unwrap();
+
+        // Nonexistent path
+        let non_existent = temp.path().join("does_not_exist.finnca");
+        let res = inspect_vault_folder(non_existent.to_string_lossy().into()).unwrap();
+        assert!(!res.is_valid);
+        assert_eq!(res.status, "not_found");
+
+        // Non-finnca file
+        let txt_file = temp.path().join("note.txt");
+        std::fs::write(&txt_file, b"hello").unwrap();
+        let res_txt = inspect_vault_folder(txt_file.to_string_lossy().into()).unwrap();
+        assert!(!res_txt.is_valid);
+        assert_eq!(res_txt.status, "invalid_file");
+
+        // .finnca archive file
+        let finnca_file = temp.path().join("finnca-personal-finance.finnca");
+        std::fs::write(&finnca_file, b"PK\x03\x04archive").unwrap();
+        let res_finnca = inspect_vault_folder(finnca_file.to_string_lossy().into()).unwrap();
+        assert!(res_finnca.is_valid);
+        assert_eq!(res_finnca.status, "valid_archive");
+        assert_eq!(res_finnca.vault_name, Some("personal-finance".to_string()));
     }
 }

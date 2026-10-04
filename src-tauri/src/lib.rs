@@ -61,12 +61,14 @@ pub struct AppStateView {
     pub vault_name: Option<String>,
     pub vault_path: Option<String>,
     pub settings: config::Settings,
+    pub pending_import_path: Option<String>,
 }
 
 pub(crate) fn view(app: &AppHandle, state: &AppState) -> Result<AppStateView, String> {
     let config = config::load(app)?;
     let configured = config.vault.is_some() && config.username.is_some();
     let unlocked = lock_session(state)?.is_some();
+    let pending_import_path = state.get_pending_import_path();
     Ok(AppStateView {
         configured,
         unlocked,
@@ -74,6 +76,55 @@ pub(crate) fn view(app: &AppHandle, state: &AppState) -> Result<AppStateView, St
         vault_name: config.vault.as_ref().map(|v| v.name.clone()),
         vault_path: config.vault.as_ref().map(|v| v.path.clone()),
         settings: config.settings,
+        pending_import_path,
+    })
+}
+
+pub(crate) fn percent_decode_str(s: &str) -> String {
+    let mut bytes = Vec::with_capacity(s.len());
+    let mut chars = s.as_bytes().iter().copied();
+    while let Some(b) = chars.next() {
+        if b == b'%' {
+            if let (Some(h1), Some(h2)) = (chars.next(), chars.next()) {
+                if let Ok(val) = u8::from_str_radix(std::str::from_utf8(&[h1, h2]).unwrap_or(""), 16) {
+                    bytes.push(val);
+                    continue;
+                }
+            }
+        }
+        bytes.push(b);
+    }
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
+pub(crate) fn find_finnca_file_arg<I, S>(args: I) -> Option<String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    args.into_iter().find_map(|arg| {
+        let mut s = arg.as_ref().trim();
+        if s.starts_with('-') {
+            return None;
+        }
+        if (s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')) {
+            s = &s[1..s.len() - 1];
+            s = s.trim();
+        }
+        let clean = if let Some(stripped) = s.strip_prefix("file://") {
+            #[cfg(windows)]
+            let path_part = stripped.strip_prefix('/').unwrap_or(stripped);
+            #[cfg(not(windows))]
+            let path_part = stripped;
+            percent_decode_str(path_part)
+        } else {
+            s.to_string()
+        };
+        if clean.to_ascii_lowercase().ends_with(".finnca") {
+            Some(clean)
+        } else {
+            None
+        }
     })
 }
 
@@ -92,6 +143,8 @@ pub fn create_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             vault::commands::create_account,
             vault::commands::import_vault,
             vault::commands::inspect_vault_folder,
+            vault::commands::get_pending_import_path,
+            vault::commands::clear_pending_import_path,
             vault::commands::delete_vault_and_account,
             vault::commands::open_vault_folder,
             vault::commands::export_text_file,
@@ -169,9 +222,19 @@ pub fn run() {
         )
         .expect("error exporting specta typescript bindings");
 
+    let initial_file = find_finnca_file_arg(std::env::args().skip(1));
+    let initial_file_clone = initial_file.clone();
+    let app_state = AppState::with_pending_import_path(initial_file);
+
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            use tauri::Manager;
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            use tauri::{Emitter, Manager};
+            if let Some(file_arg) = find_finnca_file_arg(argv.iter().skip(1)) {
+                if let Some(state) = app.try_state::<AppState>() {
+                    state.set_pending_import_path(Some(file_arg.clone()));
+                }
+                let _ = app.emit("finnca:import-file", file_arg);
+            }
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.show();
                 let _ = w.unminimize();
@@ -183,7 +246,23 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(AppState::new())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED,
+                )
+                .build(),
+        )
+        .manage(app_state)
+        .setup(move |app| {
+            use tauri::Emitter;
+            if let Some(path) = initial_file_clone {
+                let _ = app.emit("finnca:import-file", path);
+            }
+            Ok(())
+        })
         .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -202,5 +281,38 @@ mod specta_export_test {
                 "../src/lib/core/ipc/bindings.gen.ts",
             )
             .expect("error exporting specta typescript bindings in test");
+    }
+
+    #[test]
+    fn test_find_finnca_file_arg() {
+        let args = vec!["finnca", "--debug", "/home/user/vault.finnca"];
+        assert_eq!(
+            find_finnca_file_arg(args),
+            Some("/home/user/vault.finnca".to_string())
+        );
+
+        let no_match = vec!["finnca", "--debug", "some_file.txt"];
+        assert_eq!(find_finnca_file_arg(no_match), None);
+
+        let flag_ends_with_finnca = vec!["finnca", "--out=test.finnca", "-f=data.finnca"];
+        assert_eq!(find_finnca_file_arg(flag_ends_with_finnca), None);
+
+        let quoted = vec!["finnca", "\"C:\\Users\\John Doe\\My Vault.finnca\""];
+        assert_eq!(
+            find_finnca_file_arg(quoted),
+            Some("C:\\Users\\John Doe\\My Vault.finnca".to_string())
+        );
+
+        let uri = vec!["finnca", "file:///home/user/My%20Vault.finnca"];
+        assert_eq!(
+            find_finnca_file_arg(uri),
+            Some("/home/user/My Vault.finnca".to_string())
+        );
+
+        let case_insensitive = vec!["C:\\Users\\Doc\\Backup.FINNCA"];
+        assert_eq!(
+            find_finnca_file_arg(case_insensitive),
+            Some("C:\\Users\\Doc\\Backup.FINNCA".to_string())
+        );
     }
 }

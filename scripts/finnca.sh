@@ -333,11 +333,12 @@ EOF
 [Desktop Entry]
 Name=Finnca
 Comment=Personal double-entry finance notes
-Exec=${BIN_LINK}
+Exec=${BIN_LINK} %U
 Icon=${icon_spec}
 Type=Application
 Categories=Office;Finance;
 Keywords=finance;accounting;budget;ledger;vault;
+MimeType=application/x-finnca;
 StartupNotify=true
 Terminal=false
 EOF

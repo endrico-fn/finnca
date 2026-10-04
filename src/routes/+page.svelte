@@ -17,6 +17,14 @@
       bootError = extractErrorMessage(e);
       return;
     }
+    if (session.pendingImportPath) {
+      if (!session.isConfigured) {
+        goto(resolve('/setup?import=1'), { replaceState: true });
+      } else {
+        goto(resolve('/login?add=1'), { replaceState: true });
+      }
+      return;
+    }
     if (!session.isConfigured) {
       goto(resolve('/setup'), { replaceState: true });
     } else if (!session.isUnlocked) {

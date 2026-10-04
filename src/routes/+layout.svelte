@@ -2,10 +2,27 @@
   import '../app.css';
   import { APP_NAME } from '$lib/core/types';
   import { onMount } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
+  import { session } from '$lib/core/state/session.svelte';
+  import { eventBus } from '$lib/core/events/eventBus.svelte';
 
   let { children } = $props();
 
   onMount(() => {
+    let unlistenImport: (() => void) | undefined;
+    listen<string>('finnca:import-file', (event) => {
+      const filePath = event.payload;
+      if (filePath) {
+        session.setPendingImport(filePath);
+        eventBus.emit('vault:import_file', { path: filePath });
+      }
+    })
+      .then((un) => {
+        unlistenImport = un;
+      })
+      .catch((err) => {
+        console.error('Failed to listen to finnca:import-file event:', err);
+      });
     const preventWheelZoom = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -89,6 +106,7 @@
       document.removeEventListener('gesturestart', preventGesture);
       document.removeEventListener('gesturechange', preventGesture);
       document.removeEventListener('gestureend', preventGesture);
+      unlistenImport?.();
     };
   });
 </script>

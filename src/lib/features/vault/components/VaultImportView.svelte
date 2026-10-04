@@ -9,15 +9,19 @@
   import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { pickDirectory } from '$lib/core/dialog';
   import { i18n } from '$lib/core/i18n.svelte';
+  import { onMount } from 'svelte';
+  import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { Button, Icon } from '$lib/components/ui';
   import { session } from '$lib/core/state/session.svelte';
   import { rememberVault } from '$lib/features/vault/state/vaultList.svelte';
   import type { AppStateView } from '$lib/core/types';
 
   let {
+    initialPath = '',
     onSuccess,
     onCancel,
   }: {
+    initialPath?: string;
     onSuccess?: (st: AppStateView) => void;
     onCancel: () => void;
   } = $props();
@@ -28,6 +32,41 @@
   let busy = $state(false);
   let error = $state('');
   let isCapsLock = $state(false);
+
+  async function inspectPath(path: string) {
+    if (!path) return;
+    try {
+      importInspection = await inspectVaultFolder(path);
+    } catch (e) {
+      console.error('Failed to inspect vault directory:', e);
+    }
+  }
+
+  $effect(() => {
+    const target = initialPath || session.pendingImportPath || '';
+    if (target && !importPath) {
+      importPath = target;
+      void inspectPath(target);
+    }
+  });
+
+  onMount(() => {
+    const target = initialPath || session.pendingImportPath || '';
+    if (target) {
+      importPath = target;
+      void inspectPath(target);
+    }
+
+    const unsub = eventBus.on('vault:import_file', ({ path }) => {
+      importPath = path;
+      error = '';
+      void inspectPath(path);
+    });
+
+    return () => {
+      unsub();
+    };
+  });
 
   function checkCapsLock(e: KeyboardEvent) {
     if (typeof e.getModifierState === 'function') {
@@ -40,11 +79,7 @@
     if (dir) {
       importPath = dir;
       error = '';
-      try {
-        importInspection = await inspectVaultFolder(dir);
-      } catch (e) {
-        console.error('Failed to inspect vault directory:', e);
-      }
+      await inspectPath(dir);
     }
   }
 
@@ -66,12 +101,14 @@
     try {
       const st = await importVault(importPath, importPass);
       session.raw = st;
+      void session.clearPendingImport();
       if (st.vault_name) {
         const name = st.vault_name;
+        const actualPath = st.vault_path ?? importPath;
         rememberVault({
-          id: `${name}@${importPath}`,
+          id: `${name}@${actualPath}`,
           name,
-          path: importPath,
+          path: actualPath,
           username: st.username ?? '',
         });
       }
@@ -85,6 +122,11 @@
     } finally {
       busy = false;
     }
+  }
+
+  function handleCancel() {
+    void session.clearPendingImport();
+    onCancel();
   }
 </script>
 
@@ -188,7 +230,7 @@
   </div>
 
   <div class="border-line mt-6 flex items-center justify-between border-t pt-4">
-    <Button type="button" variant="ghost" onclick={onCancel}>
+    <Button type="button" variant="ghost" onclick={handleCancel}>
       <span class="font-proto">{i18n.t.cancelBtn}</span>
     </Button>
     <Button

@@ -5,6 +5,7 @@
   import { unlockVault, importVault } from '$lib/core/ipc/bindings';
   import { extractErrorMessage } from '$lib/core/ipc/errors';
   import { session } from '$lib/core/state/session.svelte';
+  import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { setPref } from '$lib/core/state/prefs';
   import { Button, Icon } from '$lib/components/ui';
@@ -75,42 +76,52 @@
     return knownVaults.find((v) => v.path === currentActiveId) ?? knownVaults[0] ?? null;
   });
 
-  onMount(async () => {
-    knownVaults = await syncVaultsFromBackend();
-    try {
-      await session.refresh();
-    } catch (e) {
-      console.error('Failed to refresh app state:', e);
-    }
-
-    if (session.raw && !session.raw.configured) {
-      knownVaults = knownVaults.filter((v) => Boolean(v.path && v.path.length > 0));
-      setPref('finnca_known_vaults', knownVaults);
-      if (knownVaults.length === 0) {
-        clearVaultRegistry();
-        navigateToVaultSetup();
-        return;
+  onMount(() => {
+    void (async () => {
+      knownVaults = await syncVaultsFromBackend();
+      try {
+        await session.refresh();
+      } catch (e) {
+        console.error('Failed to refresh app state:', e);
       }
-    }
 
-    const queryVault = page.url.searchParams.get('vault');
-    if (queryVault) {
-      selectedVaultId = queryVault;
-      setActiveVault(queryVault);
-    } else if (!selectedVaultId) {
-      selectedVaultId = getActiveVaultId();
-    }
-    if (page.url.searchParams.get('add') === '1') showImport = true;
-    if (session.raw?.configured && session.raw.vault_name && session.raw.vault_path) {
-      const vName = session.raw.vault_name;
-      rememberVault({
-        id: vName,
-        name: vName,
-        path: session.raw.vault_path,
-        username: session.raw.username ?? '',
-      });
-      knownVaults = getKnownVaults();
-    }
+      if (session.raw && !session.raw.configured) {
+        knownVaults = knownVaults.filter((v) => Boolean(v.path && v.path.length > 0));
+        setPref('finnca_known_vaults', knownVaults);
+        if (knownVaults.length === 0) {
+          clearVaultRegistry();
+          navigateToVaultSetup();
+          return;
+        }
+      }
+
+      const queryVault = page.url.searchParams.get('vault');
+      if (queryVault) {
+        selectedVaultId = queryVault;
+        setActiveVault(queryVault);
+      } else if (!selectedVaultId) {
+        selectedVaultId = getActiveVaultId();
+      }
+      if (page.url.searchParams.get('add') === '1' || session.pendingImportPath) showImport = true;
+      if (session.raw?.configured && session.raw.vault_name && session.raw.vault_path) {
+        const vName = session.raw.vault_name;
+        rememberVault({
+          id: vName,
+          name: vName,
+          path: session.raw.vault_path,
+          username: session.raw.username ?? '',
+        });
+        knownVaults = getKnownVaults();
+      }
+    })();
+
+    const unsubImport = eventBus.on('vault:import_file', () => {
+      showImport = true;
+    });
+
+    return () => {
+      unsubImport();
+    };
   });
 
   function navigateToVaultSetup() {

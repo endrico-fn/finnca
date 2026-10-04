@@ -37,6 +37,15 @@
       "rpm",
       "nsis"
     ],
+    "fileAssociations": [
+      {
+        "ext": ["finnca"],
+        "name": "Finnca Vault Archive",
+        "description": "Encrypted Finnca Financial Ledger Vault Archive",
+        "role": "Editor",
+        "mimeType": "application/x-finnca"
+      }
+    ],
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",

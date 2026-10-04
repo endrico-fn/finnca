@@ -17,6 +17,7 @@
   import { runDailyFxSync } from '$lib/features/settings/fxSync';
   import { checkAppUpdates } from '$lib/core/updater/updateChecker';
   import { privacyState } from '$lib/core/state/privacy.svelte';
+  import { eventBus } from '$lib/core/events/eventBus.svelte';
 
   import TopBar from '$lib/components/layout/TopBar.svelte';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
@@ -116,11 +117,17 @@
       runDailyFxSync(i18n.t);
     };
 
+    const unsubImport = eventBus.on('vault:import_file', async () => {
+      await session.lock();
+      goto(resolve('/login?add=1'));
+    });
+
     window.addEventListener('keydown', handleGlobalKey);
     window.addEventListener('online', handleOnline);
 
     return () => {
       cleanupWatcher();
+      unsubImport();
       window.removeEventListener('keydown', handleGlobalKey);
       window.removeEventListener('online', handleOnline);
     };

@@ -115,6 +115,14 @@ export function importVault(path: string, password: string): Promise<AppStateVie
   return unwrap(commands.importVault(path, password), 120_000, 'import_vault');
 }
 
+export function getPendingImportPath(): Promise<string | null> {
+  return commands.getPendingImportPath();
+}
+
+export function clearPendingImportPath(): Promise<void> {
+  return commands.clearPendingImportPath();
+}
+
 export function changePassword(oldPassword: string, newPassword: string): Promise<AppStateView> {
   return unwrap(commands.changePassword(oldPassword, newPassword), 120_000, 'change_password');
 }

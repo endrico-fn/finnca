@@ -12,12 +12,42 @@ pub struct Session {
 
 pub struct AppState {
     pub session: Mutex<Option<Session>>,
+    pub pending_import_path: Mutex<Option<String>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self {
             session: Mutex::new(None),
+            pending_import_path: Mutex::new(None),
+        }
+    }
+
+    pub fn with_pending_import_path(path: Option<String>) -> Self {
+        Self {
+            session: Mutex::new(None),
+            pending_import_path: Mutex::new(path),
+        }
+    }
+
+    pub fn set_pending_import_path(&self, path: Option<String>) {
+        match self.pending_import_path.lock() {
+            Ok(mut guard) => *guard = path,
+            Err(poisoned) => *poisoned.into_inner() = path,
+        }
+    }
+
+    pub fn get_pending_import_path(&self) -> Option<String> {
+        match self.pending_import_path.lock() {
+            Ok(guard) => guard.clone(),
+            Err(poisoned) => poisoned.into_inner().clone(),
+        }
+    }
+
+    pub fn take_pending_import_path(&self) -> Option<String> {
+        match self.pending_import_path.lock() {
+            Ok(mut guard) => guard.take(),
+            Err(poisoned) => poisoned.into_inner().take(),
         }
     }
 

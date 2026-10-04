@@ -3,6 +3,7 @@ export type AppEventPayloads = {
   'vault:locked': void;
   'vault:registry_changed': void;
   'vault:deleted': void;
+  'vault:import_file': { path: string };
   'transaction:posted': { id: string };
   'accounts:changed': void;
   'activity:touched': void;

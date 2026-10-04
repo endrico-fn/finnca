@@ -1,4 +1,4 @@
-import { getAppState, unlockVault, lockVault } from '$lib/core/ipc/bindings';
+import { getAppState, unlockVault, lockVault, clearPendingImportPath } from '$lib/core/ipc/bindings';
 import type { AppStateView, Settings } from '$lib/core/types';
 import { eventBus } from '$lib/core/events/eventBus.svelte';
 
@@ -13,6 +13,22 @@ class SessionStore {
   currentVault = $derived(this.raw?.vault_name ?? null);
   vaultPath = $derived(this.raw?.vault_path ?? null);
   settings = $derived<Settings | null>(this.raw?.settings ?? null);
+  pendingImportPath = $derived(this.raw?.pending_import_path ?? null);
+
+  setPendingImport(path: string | null): void {
+    if (this.raw) {
+      this.raw = { ...this.raw, pending_import_path: path };
+    }
+  }
+
+  async clearPendingImport(): Promise<void> {
+    this.setPendingImport(null);
+    try {
+      await clearPendingImportPath();
+    } catch {
+      // ignore
+    }
+  }
 
   private refreshPromise: Promise<AppStateView> | null = null;
 

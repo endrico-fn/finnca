@@ -8,6 +8,7 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { Button, Icon } from '$lib/components/ui';
   import { session } from '$lib/core/state/session.svelte';
+  import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { onMount } from 'svelte';
   import {
     getKnownVaults,
@@ -32,8 +33,17 @@
   const effectiveFrom = $derived(from ?? page.url.searchParams.get('from'));
   const knownVaults = $derived(getKnownVaults());
 
-  onMount(async () => {
-    await syncVaultsFromBackend();
+  onMount(() => {
+    void syncVaultsFromBackend();
+    if (page.url.searchParams.get('import') === '1' || session.pendingImportPath) {
+      showImport = true;
+    }
+    const unsub = eventBus.on('vault:import_file', () => {
+      showImport = true;
+    });
+    return () => {
+      unsub();
+    };
   });
 
   let step = $state<1 | 2>(1);
