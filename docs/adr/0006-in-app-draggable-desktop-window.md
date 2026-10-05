@@ -6,12 +6,13 @@ Accepted
 
 ## Context
 
-Dalam perancangan formulir pencatatan transaksi keuangan, transfer dana, dan dialog inspeksi di aplikasi desktop Finnca, tim menghadapi dua opsi arsitektur tampilan melayang (*floating window*):
+Dalam perancangan formulir pencatatan transaksi keuangan, transfer dana, dan dialog inspeksi di aplikasi desktop Finnca, tim menghadapi dua opsi arsitektur tampilan melayang (_floating window_):
 
 1. **Native OS Multi-Window**: Menginstansiasi jendela sekunder sistem operasi via Tauri `WebviewWindow` terpisah (`tauri::WebviewWindowBuilder`).
 2. **In-App Draggable Modal**: Membangun dialog melayang di dalam webview utama menggunakan Svelte 5 DOM (`DraggableModal.svelte`) dengan koordinat berbasis pointer dan akselerasi hardware.
 
 Pada evaluasi performa di berbagai perangkat keras (khususnya laptop hemat daya dan arsitektur low-power x86/ARM), pembentukan native OS multi-window menimbulkan beberapa masalah kritis:
+
 - **Cold-Start Latency (1–2 detik)**: Setiap instansiasi `WebviewWindow` baru memerlukan inisialisasi runtime webview OS baru (WebKitGTK di Linux, WebView2 di Windows), menyebabkan delay visual yang nyata dan mengurangi kenyamanan navigasi cepat.
 - **Konsumsi Memori Berlebih**: Setiap webview sekunder mengalokasikan context renderer dan memori grafis independen (rata-rata 80–150 MB RAM per jendela tambahan).
 - **CSS & Rendering Drift**: Dekorasi jendela OS, frame border, dan event window focus berbeda drastis antara Windows DWM, Linux X11, dan Linux Wayland compositor.
@@ -25,15 +26,15 @@ Kami menetapkan arsitektur **In-App Draggable Modal** (`DraggableModal.svelte`) 
    Dialog dirender langsung di dalam hierarki DOM webview utama yang telah siap, sehingga peluncuran formulir transaksi terjadi secara instan (0 milidetik).
 
 2. **Pointer Capture Hygiene & RAF Coordinate Pipeline**:
-   - Seluruh pergerakan drag dikalkulasikan melalui `requestAnimationFrame` (RAF) guna mencegah *event flooding* dan mempertahankan 60–120 FPS tanpa frame drop.
-   - Event listener pointer capture dilepas secara eksplisit (`releasePointerCapture`) saat `pointerup` dan saat komponen di-unmount, mencegah pointer terjebak (*pointer lock leak*).
+   - Seluruh pergerakan drag dikalkulasikan melalui `requestAnimationFrame` (RAF) guna mencegah _event flooding_ dan mempertahankan 60–120 FPS tanpa frame drop.
+   - Event listener pointer capture dilepas secara eksplisit (`releasePointerCapture`) saat `pointerup` dan saat komponen di-unmount, mencegah pointer terjebak (_pointer lock leak_).
 
 3. **Backdrop Trapping & Click Ergonomics**:
-   - Status seret (`hasDragged`) di-reset secara higienis ketika interaksi pointer selesai, sehingga pengguna dapat menutup modal hanya dengan satu klik di *backdrop* jika jendela tidak digeser.
-   - Posisi seret dibatasi (*clamped*) di dalam viewport aplikasi agar modal tidak dapat tersesat keluar dari layar yang dapat dijangkau pengguna.
+   - Status seret (`hasDragged`) di-reset secara higienis ketika interaksi pointer selesai, sehingga pengguna dapat menutup modal hanya dengan satu klik di _backdrop_ jika jendela tidak digeser.
+   - Posisi seret dibatasi (_clamped_) di dalam viewport aplikasi agar modal tidak dapat tersesat keluar dari layar yang dapat dijangkau pengguna.
 
 4. **Zero CSS Drift Across Operating Systems**:
-   - Menggunakan token semantik Tailwind v4 (`bg-bg-card`, `border-line`, `rounded-none`, `font-proto`, `font-aux`) yang menjamin konsistensi estetika *utilitarian-brutalist industrial tech* secara identik di Linux dan Windows.
+   - Menggunakan token semantik Tailwind v4 (`bg-bg-card`, `border-line`, `rounded-none`, `font-proto`, `font-aux`) yang menjamin konsistensi estetika _utilitarian-brutalist industrial tech_ secara identik di Linux dan Windows.
    - Tidak ada artefak border bawaan OS atau inkonsistensi tema dekoratif.
 
 5. **Integrated Focus Management & Keyboard Trapping**:

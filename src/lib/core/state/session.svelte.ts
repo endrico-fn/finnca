@@ -1,4 +1,9 @@
-import { getAppState, unlockVault, lockVault, clearPendingImportPath } from '$lib/core/ipc/bindings';
+import {
+  getAppState,
+  unlockVault,
+  lockVault,
+  clearPendingImportPath,
+} from '$lib/core/ipc/bindings';
 import type { AppStateView, Settings } from '$lib/core/types';
 import { eventBus } from '$lib/core/events/eventBus.svelte';
 

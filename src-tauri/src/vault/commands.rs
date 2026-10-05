@@ -474,8 +474,8 @@ pub(crate) fn unpack_finnca_archive(
             .map_err(|e| format!("Failed to create vault destination directory: {e}"))?;
     }
 
-    let file = fs::File::open(archive_path)
-        .map_err(|e| format!("Failed to open archive file: {e}"))?;
+    let file =
+        fs::File::open(archive_path).map_err(|e| format!("Failed to open archive file: {e}"))?;
 
     let is_zip = if let Ok(mut zip) = zip::ZipArchive::new(file) {
         for i in 0..zip.len() {
@@ -509,7 +509,9 @@ pub(crate) fn unpack_finnca_archive(
     };
 
     if !is_zip {
-        return Err("Invalid archive: file is not a valid .finnca archive (must be a zip container)".into());
+        return Err(
+            "Invalid archive: file is not a valid .finnca archive (must be a zip container)".into(),
+        );
     }
 
     if target_dir.join("vault.db").exists() || target_dir.join(KEY_FILE).exists() {

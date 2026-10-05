@@ -86,7 +86,9 @@ pub(crate) fn percent_decode_str(s: &str) -> String {
     while let Some(b) = chars.next() {
         if b == b'%' {
             if let (Some(h1), Some(h2)) = (chars.next(), chars.next()) {
-                if let Ok(val) = u8::from_str_radix(std::str::from_utf8(&[h1, h2]).unwrap_or(""), 16) {
+                if let Ok(val) =
+                    u8::from_str_radix(std::str::from_utf8(&[h1, h2]).unwrap_or(""), 16)
+                {
                     bytes.push(val);
                     continue;
                 }

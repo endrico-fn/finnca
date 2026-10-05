@@ -1,57 +1,62 @@
 # Spesifikasi Matematis Buku Besar & Invarian Finansial (Ledger Math)
 
-Dokumen ini mendefinisikan landasan formal, invarian matematis, representasi bilangan bulat, dan aturan pengindeksan draf transaksi pada mesin buku besar berpasangan (*double-entry ledger engine*) Finnca.
+Dokumen ini mendefinisikan landasan formal, invarian matematis, representasi bilangan bulat, dan aturan pengindeksan draf transaksi pada mesin buku besar berpasangan (_double-entry ledger engine_) Finnca.
 
 ---
 
 ## 1. Zero-Float Arithmetic Invariant
 
-### 1.1 Larangan Bilangan Mengambang (*Float Prohibition*)
-Untuk menjamin presisi finansial absolut tanpa akumulasi kesalahan pembulatan IEEE 754 (*floating-point error* seperti `0.1 + 0.2 = 0.30000000000000004`), seluruh komputasi finansial di Finnca mematuhi invarian:
+### 1.1 Larangan Bilangan Mengambang (_Float Prohibition_)
+
+Untuk menjamin presisi finansial absolut tanpa akumulasi kesalahan pembulatan IEEE 754 (_floating-point error_ seperti `0.1 + 0.2 = 0.30000000000000004`), seluruh komputasi finansial di Finnca mematuhi invarian:
 
 $$\text{Type}(\text{Amount}) \in \{ \mathbf{i64}, \mathbf{i128} \} \quad \text{dan} \quad \text{Type}(\text{Amount}) \notin \{ \mathbf{f32}, \mathbf{f64}, \mathbf{number} \}$$
 
 Semua angka moneter dikelola dalam **integer minor units** (satuan terkecil yang tidak dapat dibagi lagi untuk mata uang bersangkutan).
 
-### 1.2 Skala Satuan Minor Mata Uang (*Minor Unit Factors*)
+### 1.2 Skala Satuan Minor Mata Uang (_Minor Unit Factors_)
+
 Setiap komoditas/mata uang memiliki faktor pengali satuan minor $M(c)$ yang ditentukan secara deterministik (`src-tauri/src/ledger/currency.rs`):
 
-| Kode Komoditas | Satuan Terkecil | Faktor Minor $M(c)$ | Contoh Nilai Rp/Cents | Representasi Integer |
-|---|---|---|---|---|
-| `IDR`, `JPY`, `KRW`, `VND` | 1 unit | $10^0 = 1$ | Rp 50.000 | `50000` |
-| `USD`, `EUR`, `SGD`, `GBP` | Cent | $10^2 = 100$ | $ 12.50 | `1250` |
-| `BHD`, `KWD`, `OMR` | Fils | $10^3 = 1000$ | 1.250 KWD | `1250` |
+| Kode Komoditas             | Satuan Terkecil | Faktor Minor $M(c)$ | Contoh Nilai Rp/Cents | Representasi Integer |
+| -------------------------- | --------------- | ------------------- | --------------------- | -------------------- |
+| `IDR`, `JPY`, `KRW`, `VND` | 1 unit          | $10^0 = 1$          | Rp 50.000             | `50000`              |
+| `USD`, `EUR`, `SGD`, `GBP` | Cent            | $10^2 = 100$        | $ 12.50               | `1250`               |
+| `BHD`, `KWD`, `OMR`        | Fils            | $10^3 = 1000$       | 1.250 KWD             | `1250`               |
 
-Frontend tidak pernah menghitung ulang saldo akun untuk mengambil keputusan bisnis. Frontend hanya menerima integer minor unit dari Rust IPC dan memformatnya secara *display-only* melalui modul `src/lib/core/format/currency.ts`.
+Frontend tidak pernah menghitung ulang saldo akun untuk mengambil keputusan bisnis. Frontend hanya menerima integer minor unit dari Rust IPC dan memformatnya secara _display-only_ melalui modul `src/lib/core/format/currency.ts`.
 
 ---
 
-## 2. Invarian Keseimbangan Jurnal Berpasangan (*Double-Entry Balance*)
+## 2. Invarian Keseimbangan Jurnal Berpasangan (_Double-Entry Balance_)
 
 ### 2.1 Persamaan Fundamental Keseimbangan
+
 Setiap transaksi finansial $T$ terdiri dari himpunan posting $P = \{ p_1, p_2, \dots, p_n \}$ dengan $n \ge 2$. Keseimbangan transaksi wajib memenuhi:
 
 $$\sum_{i=1}^{n} \text{amount}(p_i) = 0$$
 
 di mana:
+
 - **Debit** didefinisikan sebagai nominal positif: $\text{amount} > 0$ (meningkatkan Akun Aset / Beban).
 - **Kredit** didefinisikan sebagai nominal negatif: $\text{amount} < 0$ (meningkatkan Akun Liabilitas / Ekuitas / Pendapatan).
 
 Secara eksplisit:
 $$\sum \text{Debit} + \sum \text{Credit} = 0 \iff \sum |\text{Debit}| = \sum |\text{Credit}|$$
 
-### 2.2 Larangan Posting Bernilai Nol (*Non-Zero Invariant*)
+### 2.2 Larangan Posting Bernilai Nol (_Non-Zero Invariant_)
+
 Setiap kaki jurnal $p_i$ wajib memiliki nilai bukan nol:
 $$\forall p \in P, \quad \text{amount}(p) \ne 0$$
 Posting dengan $\text{amount} = 0$ ditolak secara mutlak pada lapisan validasi Rust (`src-tauri/src/ledger/validation.rs`).
 
 ---
 
-## 3. Konvensi Draf Transaksi 2-Kaki (*Debit-First Draft Indexing*)
+## 3. Konvensi Draf Transaksi 2-Kaki (_Debit-First Draft Indexing_)
 
 Untuk seluruh alur pencatatan 2-kaki (Transfer Antar-Akun, Pemasukan Sederhana, Pengeluaran Sederhana), urutan indeks kaki draf dibakukan secara tegas:
 
-$$\begin{aligned}
+$$ \begin{aligned}
 \text{Index } 0 &\triangleq \mathbf{Debit} \quad (\text{Akun Penerima / Tujuan}, \quad \text{amount} \ge 0) \\
 \text{Index } 1 &\triangleq \mathbf{Credit} \quad (\text{Akun Pengirim / Sumber}, \quad \text{amount} \le 0)
 \end{aligned}$$
@@ -118,3 +123,4 @@ Untuk menjamin catatan audit tamper-evident dan stabilitas laporan keuangan lamp
 - Jika `closing_date` ditetapkan pada tanggal $D_{\text{close}}$:
 $$\forall T, \quad \text{date}(T) \le D_{\text{close}} \implies \text{Status}(T) = \mathbf{Locked}$$
 - Setiap upaya membuat, mengubah, atau menghapus transaksi dengan tanggal pada atau sebelum $D_{\text{close}}$ ditolak dengan kode eror `PeriodLocked`.
+$$
