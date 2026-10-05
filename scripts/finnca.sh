@@ -100,6 +100,11 @@ refresh_desktop_caches() {
   elif command -v kbuildsycoca5 &>/dev/null; then
     kbuildsycoca5 --noincremental 2>/dev/null || true
   fi
+  if [[ "${XDG_CURRENT_DESKTOP:-}" == *"KDE"* ]] && command -v systemctl &>/dev/null; then
+    if systemctl --user is-active --quiet plasma-plasmashell.service 2>/dev/null; then
+      systemctl --user restart plasma-plasmashell.service 2>/dev/null || true
+    fi
+  fi
 }
 
 # --- Core Action: Install ---
@@ -401,18 +406,14 @@ EOF
   # Desktop Entry
   log_info "Registering desktop application entry..."
   ${SUDO_CMD} mkdir -p "$(dirname "${DESKTOP_FILE}")"
-  
-  local icon_spec="${APP_NAME}"
-  if [[ "${INSTALL_DIR}" == "${HOME}/.local/share/${APP_NAME}" ]]; then
-    icon_spec="${ICON_BASE_DIR}/128x128/apps/${APP_NAME}.png"
-  fi
 
   cat << EOF | ${SUDO_CMD} tee "${DESKTOP_FILE}" > /dev/null
 [Desktop Entry]
 Name=Finnca
 Comment=Personal double-entry finance notes
 Exec=${BIN_LINK} %U
-Icon=${icon_spec}
+Icon=${APP_NAME}
+StartupWMClass=${APP_NAME}
 Type=Application
 Categories=Office;Finance;
 Keywords=finance;accounting;budget;ledger;vault;
@@ -434,6 +435,8 @@ EOF
     ${SUDO_CMD} mkdir -p "${ICON_BASE_DIR}/${size}/apps"
     if [[ -f "${INSTALL_DIR}/usr/share/icons/hicolor/${size}/apps/${APP_NAME}.png" ]]; then
       ${SUDO_CMD} cp "${INSTALL_DIR}/usr/share/icons/hicolor/${size}/apps/${APP_NAME}.png" "${ICON_BASE_DIR}/${size}/apps/${APP_NAME}.png" 2>/dev/null || true
+    elif [[ -f "${INSTALL_DIR}/usr/share/icons/hicolor/${size}@2/apps/${APP_NAME}.png" ]]; then
+      ${SUDO_CMD} cp "${INSTALL_DIR}/usr/share/icons/hicolor/${size}@2/apps/${APP_NAME}.png" "${ICON_BASE_DIR}/${size}/apps/${APP_NAME}.png" 2>/dev/null || true
     elif [[ -f "${INSTALL_DIR}/${APP_NAME}.png" ]]; then
       ${SUDO_CMD} cp "${INSTALL_DIR}/${APP_NAME}.png" "${ICON_BASE_DIR}/${size}/apps/${APP_NAME}.png" 2>/dev/null || true
     fi
