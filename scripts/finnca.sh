@@ -311,12 +311,90 @@ cmd_install() {
   ${SUDO_CMD} mv "${tmp_dir}/squashfs-root" "${INSTALL_DIR}"
   echo "${target_ver:-local}" | ${SUDO_CMD} tee "${INSTALL_DIR}/version" > /dev/null
 
-  # Create executable launcher wrapper (preserves AppRun working context and hooks)
+  # Bundle maintenance engine into INSTALL_DIR
+  log_info "Bundling maintenance engine..."
+  local current_script="${BASH_SOURCE[0]:-$0}"
+  if [[ -f "${current_script}" && "${current_script}" != "/dev/stdin" && "${current_script}" != "/dev/fd/"* ]]; then
+    ${SUDO_CMD} cp "${current_script}" "${INSTALL_DIR}/finnca.sh"
+  else
+    curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/scripts/finnca.sh" | ${SUDO_CMD} tee "${INSTALL_DIR}/finnca.sh" > /dev/null || true
+  fi
+  ${SUDO_CMD} chmod 755 "${INSTALL_DIR}/finnca.sh" 2>/dev/null || true
+
+  # Create executable launcher wrapper with CLI maintenance flags support
   log_info "Generating executable launcher wrapper..."
   ${SUDO_CMD} mkdir -p "$(dirname "${BIN_LINK}")"
-  cat << EOF | ${SUDO_CMD} tee "${BIN_LINK}" > /dev/null
+  cat << 'EOF' | sed "s|__INSTALL_DIR__|${INSTALL_DIR}|g" | ${SUDO_CMD} tee "${BIN_LINK}" > /dev/null
 #!/usr/bin/env bash
-exec "${INSTALL_DIR}/AppRun" "\$@"
+# ==============================================================================
+# Finnca Unified CLI Launcher & Maintenance Dispatcher
+# Application: Finnca (Double-Entry Personal Finance Notes)
+# ==============================================================================
+set -Eeuo pipefail
+
+INSTALL_DIR="__INSTALL_DIR__"
+ENGINE="${INSTALL_DIR}/finnca.sh"
+
+case "${1:-}" in
+  --update|update|-u|--upgrade|upgrade)
+    shift || true
+    if [[ -x "${ENGINE}" ]]; then
+      exec "${ENGINE}" upgrade "$@"
+    else
+      echo "Maintenance engine not found at ${ENGINE}. Fetching latest updater..."
+      curl -fsSL "https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/finnca.sh" | bash -s -- upgrade "$@"
+    fi
+    ;;
+  --uninstall|uninstall)
+    shift || true
+    if [[ -x "${ENGINE}" ]]; then
+      exec "${ENGINE}" uninstall "$@"
+    else
+      echo "Maintenance engine not found at ${ENGINE}. Fetching uninstaller..."
+      curl -fsSL "https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/finnca.sh" | bash -s -- uninstall "$@"
+    fi
+    ;;
+  --status|status)
+    shift || true
+    if [[ -x "${ENGINE}" ]]; then
+      exec "${ENGINE}" status "$@"
+    else
+      echo "Maintenance engine not found at ${ENGINE}."
+      curl -fsSL "https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/finnca.sh" | bash -s -- status "$@"
+    fi
+    ;;
+  --version|-v)
+    if [[ -f "${INSTALL_DIR}/version" ]]; then
+      echo "Finnca $(cat "${INSTALL_DIR}/version")"
+    else
+      echo "Finnca (unknown version)"
+    fi
+    exit 0
+    ;;
+  --help|-h)
+    cat << 'HELP_EOF'
+Finnca - Personal Double-Entry Ledger Notes
+
+Usage:
+  finnca [FILE.finnca]       Launch desktop application (optionally open a vault archive)
+  finnca --update, update    Check GitHub releases and upgrade to the latest version
+  finnca --uninstall         Safely remove Finnca desktop application and shortcuts
+  finnca --status, status    Display installation paths and version diagnostics
+  finnca --version, -v       Print currently installed version
+  finnca --help, -h          Show this help message
+
+Examples:
+  finnca                     # Open Finnca GUI application
+  finnca myvault.finnca      # Open specific vault archive in Finnca
+  finnca --update            # Update Finnca to latest GitHub release
+  finnca --uninstall         # Remove Finnca from system
+HELP_EOF
+    exit 0
+    ;;
+  *)
+    exec "${INSTALL_DIR}/AppRun" "$@"
+    ;;
+esac
 EOF
   ${SUDO_CMD} chmod 755 "${BIN_LINK}"
 
