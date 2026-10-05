@@ -13,9 +13,7 @@
   import EntryInspector from '$lib/features/journal/components/EntryInspector.svelte';
   import DraggableModal from '$lib/components/layout/DraggableModal.svelte';
 
-  import UpdateScreen from '$lib/features/updater/components/UpdateScreen.svelte';
   import SettingsModal from '$lib/features/settings/components/SettingsModal.svelte';
-  import { updaterState } from '$lib/core/updater/updaterState.svelte';
 
   let {
     healthStats = null,
@@ -94,10 +92,6 @@
     }}
     onCancel={() => modalState.closeConfirm()}
   />
-{/if}
-
-{#if updaterState.screenOpen}
-  <UpdateScreen onClose={() => updaterState.closeScreen()} />
 {/if}
 
 {#if modalState.settingsOpen}

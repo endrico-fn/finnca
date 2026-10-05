@@ -1,6 +1,8 @@
 <script lang="ts">
   import { APP_NAME } from '$lib/core/types';
   import { appInfo } from '$lib/core/state/appInfo.svelte';
+  import { updaterState } from '$lib/core/updater/updaterState.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
   import Icon from './Icon.svelte';
 
   let {
@@ -29,6 +31,17 @@
         >
           v{appInfo.version}
         </span>
+        {#if updaterState.update}
+          <button
+            type="button"
+            onclick={() => updaterState.openScreen()}
+            class="font-proto text-teal border-teal/40 bg-teal/10 hover:bg-teal/20 text-smaller inline-flex cursor-pointer items-center gap-1 border px-1.5 py-0.5 transition-colors"
+            title={i18n.t.updateAvailableTitle}
+          >
+            <span class="bg-teal size-1.5 animate-pulse rounded-full"></span>
+            <span>v{updaterState.latestVersion}</span>
+          </button>
+        {/if}
       </div>
       {#if tagline}
         <p class="text-text-dim text-smaller mt-0.5 tracking-wider">

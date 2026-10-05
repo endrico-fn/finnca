@@ -7,7 +7,6 @@
   import { journalState } from '$lib/features/journal/state/journalDraft.svelte';
   import { reportState } from '$lib/features/report/state/report.svelte';
   import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
-  import NotificationToast from '$lib/components/feedback/NotificationToast.svelte';
   import NotificationDrawer from '$lib/components/feedback/NotificationDrawer.svelte';
   import { APP_NAME } from '$lib/core/types';
   import { i18n } from '$lib/core/i18n.svelte';
@@ -158,7 +157,6 @@
       </div>
     </main>
 
-    <NotificationToast />
     <NotificationDrawer />
   </div>
 

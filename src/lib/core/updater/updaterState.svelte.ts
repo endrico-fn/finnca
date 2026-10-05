@@ -62,9 +62,11 @@ class UpdaterState {
 
   closeScreen() {
     this.screenOpen = false;
-    this.phase = 'idle';
-    this.update = null;
-    this.progress = { downloaded: 0, total: null };
+    if (this.phase === 'checking' || this.phase === 'error' || this.phase === 'up_to_date') {
+      this.phase = this.update ? 'available' : 'idle';
+    } else if (!this.update) {
+      this.phase = 'idle';
+    }
     this.errorMessage = null;
     this.sessionStartedAt = null;
   }

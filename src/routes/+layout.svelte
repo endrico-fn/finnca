@@ -5,10 +5,18 @@
   import { listen } from '@tauri-apps/api/event';
   import { session } from '$lib/core/state/session.svelte';
   import { eventBus } from '$lib/core/events/eventBus.svelte';
+  import { i18n } from '$lib/core/i18n.svelte';
+  import { checkAppUpdates } from '$lib/core/updater/updateChecker';
+  import { updaterState } from '$lib/core/updater/updaterState.svelte';
+  import NotificationToast from '$lib/components/feedback/NotificationToast.svelte';
+  import UpdateScreen from '$lib/features/updater/components/UpdateScreen.svelte';
 
   let { children } = $props();
 
   onMount(() => {
+    // 1. Immediately evaluate application updates on startup
+    checkAppUpdates(i18n.t);
+
     let unlistenImport: (() => void) | undefined;
     listen<string>('finnca:import-file', (event) => {
       const filePath = event.payload;
@@ -116,3 +124,9 @@
 </svelte:head>
 
 {@render children()}
+
+<NotificationToast />
+
+{#if updaterState.screenOpen}
+  <UpdateScreen onClose={() => updaterState.closeScreen()} />
+{/if}

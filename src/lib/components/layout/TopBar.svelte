@@ -4,6 +4,7 @@
   import { notificationState } from '$lib/core/state/notification.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { modalState } from '$lib/core/state/modal.svelte';
+  import { updaterState } from '$lib/core/updater/updaterState.svelte';
   import { Badge, Icon, AppBrand, Tooltip } from '$lib/components/ui';
   import { formatIDR } from '$lib/core/format/currency';
 
@@ -98,6 +99,20 @@
         <span class="hidden sm:inline">{i18n.t.lockVault}</span>
       </button>
     </Tooltip>
+
+    {#if updaterState.update}
+      <Tooltip content={i18n.t.updateAvailableTitle} placement="bottom" delay={200}>
+        <button
+          type="button"
+          onclick={() => updaterState.openScreen()}
+          class="border-teal/40 bg-teal/10 hover:bg-teal/20 text-teal font-proto text-smaller focus-visible:outline-teal inline-flex h-7 cursor-pointer items-center gap-1.5 border px-2 uppercase outline-offset-1 transition-colors"
+          aria-label={i18n.t.updateAvailableTitle}
+        >
+          <span class="bg-teal size-1.5 animate-pulse rounded-full"></span>
+          <span>v{updaterState.latestVersion}</span>
+        </button>
+      </Tooltip>
+    {/if}
 
     <Tooltip content={i18n.t.notifications} placement="bottom" delay={200}>
       <button

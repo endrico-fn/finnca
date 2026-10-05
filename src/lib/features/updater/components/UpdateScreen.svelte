@@ -4,6 +4,7 @@
   import { appInfo } from '$lib/core/state/appInfo.svelte';
   import { Button, ModalShell } from '$lib/components/ui';
   import { lockPolicy } from '$lib/features/security/state/lockPolicy.svelte';
+  import { session } from '$lib/core/state/session.svelte';
 
   let { onClose }: { onClose: () => void } = $props();
 
@@ -20,6 +21,7 @@
   });
 
   const isSessionExpired = $derived.by(() => {
+    if (!session.isUnlocked) return false;
     if (!updaterState.sessionStartedAt) return false;
     const elapsed = Date.now() - updaterState.sessionStartedAt;
     const timeout = lockPolicy.getInactivityTimeoutMs();
