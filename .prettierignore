@@ -7,3 +7,4 @@ src-tauri
 pnpm-lock.yaml
 Cargo.lock
 *.log
+src/lib/core/ipc/bindings.gen.ts
