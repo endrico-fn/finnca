@@ -153,6 +153,14 @@
           <Button onclick={onClose} variant="ghost" size="sm">
             {i18n.t.updaterCancelBtn}
           </Button>
+        {:else if updaterState.phase === 'up_to_date'}
+          <Button onclick={onClose} variant="ghost" size="sm">
+            {i18n.t.close}
+          </Button>
+        {:else if updaterState.phase === 'checking'}
+          <Button onclick={onClose} variant="ghost" size="sm">
+            {i18n.t.cancelModalBtn}
+          </Button>
         {:else if isRestarting}
           <span class="text-teal font-proto animate-pulse text-[10px] tracking-widest">
             {i18n.t.updaterRestartingMsg}

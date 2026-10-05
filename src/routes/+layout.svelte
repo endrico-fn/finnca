@@ -104,7 +104,13 @@
       passive: false,
     });
 
+    const handleOnline = () => {
+      checkAppUpdates(i18n.t);
+    };
+    window.addEventListener('online', handleOnline);
+
     return () => {
+      window.removeEventListener('online', handleOnline);
       document.removeEventListener('wheel', preventWheelZoom);
       window.removeEventListener('wheel', preventWheelZoom);
       document.removeEventListener('keydown', preventKeyZoom);

@@ -94,13 +94,14 @@ class NotificationState {
     this.notifications = [fullNotif, ...this.notifications];
     this.activeToasts = [...this.activeToasts, fullNotif];
 
+    const toastDuration = fullNotif.actionHref === 'app:update' ? 10000 : 5500;
     setTimeout(() => {
       if (this.dismissCallback) {
         this.dismissCallback(fullNotif.id);
       } else {
         this.dismissToast(fullNotif.id);
       }
-    }, 5500);
+    }, toastDuration);
   }
 
   dismissToast(id: string) {
