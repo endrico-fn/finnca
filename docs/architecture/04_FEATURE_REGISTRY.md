@@ -41,6 +41,9 @@ Dokumen ini memetakan seluruh kapabilitas sistem, mencatat status operasional, s
 | **Reports**   | Native Historical Trends Report  |     `[LIVE]`     | `report::generators::trends` | `Trends.svelte`                | Agregasi bulanan saldo akun di Rust           |
 | **Reports**   | PDF & CSV Export Overlay         |     `[LIVE]`     | `export_text_file`           | `ExportOverlay.svelte`         | Menggunakan pdfmake vfsFonts terisolasi       |
 | **Audit**     | Append-Only Audit Trail          |     `[LIVE]`     | `audit::repository`          | `audit/+page.svelte`           | Read-only paginated log viewer                |
+| **Diagnostics**| Privacy-First Local Crash Logger |     `[LIVE]`     | `diagnostics::crash`         | `diagnostics.svelte.ts`        | Redacted paths, masked money, 0600 file modes |
+| **Security**  | OS Sleep / Suspend Auto-Lock     |     `[LIVE]`     | `security::suspend_daemon`   | Session auto-lock via D-Bus/Win32 | Kunci koneksi SQLCipher seketika saat OS suspend |
+| **Updater**   | Crash Watchdog & Rollback        |     `[LIVE]`     | `updater::watchdog`          | `updaterState.svelte.ts`       | Deteksi 2x crash boot, rollback otomatis      |
 
 ---
 
@@ -55,3 +58,5 @@ Daftar kode yang telah dimusnahkan karena digantikan oleh mesin Rust baru:
 5. Monolithic `capabilities/default.json`: Dihapus (diganti dengan capability granular per-domain).
 6. `scripts/generate-golden-fixtures.ts`: Dihapus (skrip transisi migrasi TS->Rust; fixtures telah permanen di `src-tauri/tests/fixtures/` dan `src/tests/fixtures/ledger-golden/`).
 7. `scripts/env.ts`: Dihapus (skrip mock deklarasi global yatim yang tidak direferensikan).
+8. `tauri-plugin-fs`: Dihapus dari `Cargo.toml` & `lib.rs` (dead capability tanpa grant, meminimalisir attack surface).
+
