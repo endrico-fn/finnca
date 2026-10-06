@@ -32,7 +32,7 @@
       <th class="w-24 py-2 pl-3 whitespace-nowrap">{i18n.t.colCode}</th>
       <th class="px-3 py-2">{i18n.t.colHierarchyPath}</th>
       <th class="numeric w-36 px-3 py-2 text-right whitespace-nowrap">{i18n.t.colBalance}</th>
-      <th class="center w-12 py-2 pr-3"></th>
+      <th class="center w-12 py-2 pr-3"><span class="sr-only">{i18n.t.actions}</span></th>
     </tr>
   </thead>
   <tbody>

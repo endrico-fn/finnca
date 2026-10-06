@@ -32,6 +32,7 @@ export const id: TranslationDict = {
   newEntryTitle: 'ENTRI BARU',
   editEntryTitle: 'EDIT ENTRI',
   newTransaction: 'TRANSAKSI BARU',
+  actions: 'AKSI',
   newAccount: 'AKUN BARU',
   showingOf: 'TAMPIL {shown} DARI {total}',
   noMatchingAccounts: 'Tidak ada akun yang cocok',
@@ -1325,4 +1326,7 @@ export const id: TranslationDict = {
   updaterRestartingMsg: 'MELUNCURKAN ULANG APLIKASI...',
   updaterSessionExpiredWarning:
     'SESI BERAKHIR SELAMA PEMBARUAN · VAULT AKAN DIKUNCI ULANG SAAT RELAUNCH',
+  rollbackNoticeTitle: 'PEMBERITAHUAN PEMULIHAN',
+  rollbackNotice:
+    'Pembaruan terkini ({version}) gagal dijalankan dan telah dipulihkan otomatis ke versi stabil sebelumnya.',
 };

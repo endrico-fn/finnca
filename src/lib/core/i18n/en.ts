@@ -32,6 +32,7 @@ export const en = {
   newEntryTitle: 'NEW ENTRY',
   editEntryTitle: 'EDIT ENTRY',
   newTransaction: 'NEW TRANSACTION',
+  actions: 'ACTIONS',
   newAccount: 'NEW ACCOUNT',
   showingOf: 'SHOWING {shown} OF {total}',
   noMatchingAccounts: 'No matching accounts',
@@ -1315,4 +1316,6 @@ export const en = {
   updaterCancelBtn: 'CANCEL',
   updaterRestartingMsg: 'RELAUNCHING APPLICATION...',
   updaterSessionExpiredWarning: 'SESSION EXPIRED DURING UPDATE · VAULT WILL RE-LOCK ON RELAUNCH',
+  rollbackNoticeTitle: 'RECOVERY NOTICE',
+  rollbackNotice: 'A recent update ({version}) failed to boot and was rolled back to the previous stable version.',
 };

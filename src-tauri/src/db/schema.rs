@@ -18,64 +18,28 @@ const MIGRATION_0012: &str = include_str!("migrations/0012_add_currency_and_cost
 pub fn run_migrations(conn: &mut Connection) -> Result<(), AppError> {
     let current_version: u32 = conn.query_row("PRAGMA user_version;", [], |row| row.get(0))?;
 
-    if current_version < 1 {
-        conn.execute_batch(MIGRATION_0001)?;
-        conn.pragma_update(None, "user_version", 1)?;
-    }
+    let migrations: &[(u32, &str)] = &[
+        (1, MIGRATION_0001),
+        (2, MIGRATION_0002),
+        (3, MIGRATION_0003),
+        (4, MIGRATION_0004),
+        (5, MIGRATION_0005),
+        (6, MIGRATION_0006),
+        (7, MIGRATION_0007),
+        (8, MIGRATION_0008),
+        (9, MIGRATION_0009),
+        (10, MIGRATION_0010),
+        (11, MIGRATION_0011),
+        (12, MIGRATION_0012),
+    ];
 
-    if current_version < 2 {
-        conn.execute_batch(MIGRATION_0002)?;
-        conn.pragma_update(None, "user_version", 2)?;
-    }
-
-    if current_version < 3 {
-        conn.execute_batch(MIGRATION_0003)?;
-        conn.pragma_update(None, "user_version", 3)?;
-    }
-
-    if current_version < 4 {
-        conn.execute_batch(MIGRATION_0004)?;
-        conn.pragma_update(None, "user_version", 4)?;
-    }
-
-    if current_version < 5 {
-        conn.execute_batch(MIGRATION_0005)?;
-        conn.pragma_update(None, "user_version", 5)?;
-    }
-
-    if current_version < 6 {
-        conn.execute_batch(MIGRATION_0006)?;
-        conn.pragma_update(None, "user_version", 6)?;
-    }
-
-    if current_version < 7 {
-        conn.execute_batch(MIGRATION_0007)?;
-        conn.pragma_update(None, "user_version", 7)?;
-    }
-
-    if current_version < 8 {
-        conn.execute_batch(MIGRATION_0008)?;
-        conn.pragma_update(None, "user_version", 8)?;
-    }
-
-    if current_version < 9 {
-        conn.execute_batch(MIGRATION_0009)?;
-        conn.pragma_update(None, "user_version", 9)?;
-    }
-
-    if current_version < 10 {
-        conn.execute_batch(MIGRATION_0010)?;
-        conn.pragma_update(None, "user_version", 10)?;
-    }
-
-    if current_version < 11 {
-        conn.execute_batch(MIGRATION_0011)?;
-        conn.pragma_update(None, "user_version", 11)?;
-    }
-
-    if current_version < 12 {
-        conn.execute_batch(MIGRATION_0012)?;
-        conn.pragma_update(None, "user_version", 12)?;
+    for &(version, sql) in migrations {
+        if current_version < version {
+            let tx = conn.transaction()?;
+            tx.execute_batch(sql)?;
+            tx.pragma_update(None, "user_version", version)?;
+            tx.commit()?;
+        }
     }
 
     Ok(())
@@ -130,5 +94,46 @@ mod tests {
             .query_row("PRAGMA user_version;", [], |r| r.get(0))
             .unwrap();
         assert_eq!(version2, 12);
+    }
+
+    #[test]
+    fn test_migration_failure_rolls_back_atomically() {
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        {
+            let tx = conn.transaction().expect("begin tx");
+            tx.execute_batch("CREATE TABLE test_table (id TEXT PRIMARY KEY);")
+                .expect("create table");
+            tx.pragma_update(None, "user_version", 1)
+                .expect("update version");
+            tx.commit().expect("commit");
+        }
+
+        let initial_version: u32 = conn
+            .query_row("PRAGMA user_version;", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(initial_version, 1);
+
+        // Attempt a failing migration within a transaction
+        let res = (|| -> Result<(), rusqlite::Error> {
+            let tx = conn.transaction()?;
+            tx.execute_batch("INSERT INTO test_table (id) VALUES ('row1');")?;
+            tx.execute_batch("THIS IS INVALID SQL SYNTAX AND MUST FAIL;")?;
+            tx.pragma_update(None, "user_version", 2)?;
+            tx.commit()?;
+            Ok(())
+        })();
+
+        assert!(res.is_err(), "Migration with invalid SQL syntax must fail");
+
+        // Verify atomicity: user_version must still be 1, and 'row1' must be rolled back
+        let rolled_back_version: u32 = conn
+            .query_row("PRAGMA user_version;", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(rolled_back_version, 1);
+
+        let row_count: i64 = conn
+            .query_row("SELECT count(*) FROM test_table;", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(row_count, 0, "Partial writes must be rolled back on failure");
     }
 }

@@ -39,6 +39,10 @@
   let openUpward = $state(false);
   let query = $state('');
   let containerEl: HTMLElement | null = $state(null);
+  let buttonEl: HTMLButtonElement | null = $state(null);
+  let searchInputEl: HTMLInputElement | null = $state(null);
+  let highlightedIndex = $state(0);
+  let optionRefs: HTMLElement[] = [];
 
   const selectedOption = $derived(options.find((o) => o.value === value));
 
@@ -49,6 +53,23 @@
           `${o.label} ${o.sublabel ?? ''}`.toLowerCase().includes(query.toLowerCase().trim())
         )
   );
+
+  $effect(() => {
+    if (open) {
+      const idx = visibleOptions.findIndex((o) => o.value === value);
+      highlightedIndex = idx >= 0 ? idx : 0;
+      if (searchable) {
+        setTimeout(() => searchInputEl?.focus(), 0);
+      }
+    }
+  });
+
+  function scrollHighlightedIntoView() {
+    const el = optionRefs[highlightedIndex];
+    if (el) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }
 
   function toggle() {
     if (disabled) return;
@@ -68,6 +89,44 @@
     open = !open;
   }
 
+  function handleContainerKeydown(e: KeyboardEvent) {
+    if (disabled) return;
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (visibleOptions.length > 0) {
+        highlightedIndex = (highlightedIndex + 1) % visibleOptions.length;
+        scrollHighlightedIntoView();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (visibleOptions.length > 0) {
+        highlightedIndex = (highlightedIndex - 1 + visibleOptions.length) % visibleOptions.length;
+        scrollHighlightedIntoView();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const opt = visibleOptions[highlightedIndex];
+      if (opt) {
+        value = opt.value;
+        onSelect?.(opt.value);
+        open = false;
+        buttonEl?.focus();
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      open = false;
+      buttonEl?.focus();
+    }
+  }
+
   function handleClickOutside(e: MouseEvent) {
     if (containerEl && !containerEl.contains(e.target as Node)) {
       open = false;
@@ -80,13 +139,20 @@
   });
 </script>
 
-<div class="relative inline-block {className}" bind:this={containerEl}>
+<div
+  class="relative inline-block {className}"
+  bind:this={containerEl}
+  onkeydown={handleContainerKeydown}
+  role="presentation"
+>
   <button
     type="button"
+    bind:this={buttonEl}
     {disabled}
     onclick={toggle}
     aria-haspopup="listbox"
     aria-expanded={open}
+    aria-controls={open ? 'select-dropdown-listbox' : undefined}
     aria-label={placeholder || i18n.t.selectDefaultPlaceholder}
     class="sharp-btn {size === 'sm'
       ? 'text-smaller h-7 px-2'
@@ -108,6 +174,13 @@
 
   {#if open}
     <div
+      id="select-dropdown-listbox"
+      role="listbox"
+      aria-label={placeholder || i18n.t.selectDefaultPlaceholder}
+      aria-activedescendant={visibleOptions[highlightedIndex]
+        ? `select-opt-${visibleOptions[highlightedIndex].value}`
+        : undefined}
+      tabindex="-1"
       class="border-line bg-bg-card text-small font-proto absolute {openUpward
         ? 'bottom-full mb-1'
         : 'top-full mt-1'} left-0 z-50 max-h-60 w-max max-w-xs min-w-full overflow-y-auto border py-1 select-none {menuClass}"
@@ -121,6 +194,7 @@
               <Icon name="search" size={10} />
             </span>
             <input
+              bind:this={searchInputEl}
               type="text"
               bind:value={query}
               placeholder={searchPlaceholder ?? i18n.t.searchAllPlaceholder}
@@ -132,18 +206,35 @@
           </div>
         </div>
       {/if}
-      {#each visibleOptions as opt (opt.value)}
-        <button
-          type="button"
+      {#each visibleOptions as opt, idx (opt.value)}
+        <div
+          role="option"
+          id={`select-opt-${opt.value}`}
+          aria-selected={opt.value === value}
+          tabindex="-1"
+          bind:this={optionRefs[idx]}
           onclick={() => {
             value = opt.value;
             onSelect?.(opt.value);
             open = false;
+            buttonEl?.focus();
           }}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              value = opt.value;
+              onSelect?.(opt.value);
+              open = false;
+              buttonEl?.focus();
+            }
+          }}
+          onmouseenter={() => (highlightedIndex = idx)}
           class="font-proto text-small flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left transition-colors {opt.value ===
           value
             ? 'bg-teal/10 text-teal font-semibold'
-            : 'text-text-base hover:bg-line/40 hover:text-text-strong'}"
+            : highlightedIndex === idx
+              ? 'bg-line/40 text-text-strong'
+              : 'text-text-base hover:bg-line/40 hover:text-text-strong'}"
         >
           <div class="flex min-w-0 flex-col pr-2">
             <span class="truncate">{opt.label}</span>
@@ -154,7 +245,7 @@
           {#if opt.value === value}
             <span class="text-teal text-smaller shrink-0 font-bold">✓</span>
           {/if}
-        </button>
+        </div>
       {:else}
         <p class="text-text-muted text-small font-proto px-3 py-2 text-center">
           {i18n.t.selectNoOptions}

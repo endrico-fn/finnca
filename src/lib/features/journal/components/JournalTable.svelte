@@ -102,7 +102,7 @@
         <th class="w-36 px-2 py-2">{i18n.t.credit} {i18n.t.account}</th>
         <th class="numeric w-28 px-3 py-2 text-right whitespace-nowrap">{i18n.t.credit}</th>
         <th class="center w-16 px-2 py-2">{i18n.t.status}</th>
-        <th class="w-16 py-2 pr-3"></th>
+        <th class="w-16 py-2 pr-3"><span class="sr-only">{i18n.t.actions}</span></th>
       </tr>
     </thead>
     <tbody>

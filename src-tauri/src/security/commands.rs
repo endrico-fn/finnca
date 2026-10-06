@@ -41,3 +41,10 @@ pub fn set_auto_lock_mode(
     config::save(&app, &config)?;
     view(&app, &state)
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn simulate_os_suspend_cmd(app: AppHandle) -> Result<(), String> {
+    crate::security::suspend_daemon::handle_os_suspend(&app);
+    Ok(())
+}

@@ -8,6 +8,9 @@
   import { i18n } from '$lib/core/i18n.svelte';
   import { checkAppUpdates } from '$lib/core/updater/updateChecker';
   import { updaterState } from '$lib/core/updater/updaterState.svelte';
+  import { diagnosticsState } from '$lib/core/state/diagnostics.svelte';
+  import { getRollbackNoticeCmd } from '$lib/core/ipc/bindings';
+  import { notificationState } from '$lib/core/state/notification.svelte';
   import NotificationToast from '$lib/components/feedback/NotificationToast.svelte';
   import UpdateScreen from '$lib/features/updater/components/UpdateScreen.svelte';
 
@@ -31,6 +34,63 @@
       .catch((err) => {
         console.error('Failed to listen to finnca:import-file event:', err);
       });
+
+    let unlistenVaultLocked: (() => void) | undefined;
+    listen('vault:locked', async () => {
+      await session.refresh();
+      eventBus.emit('vault:locked', undefined);
+    })
+      .then((un) => {
+        unlistenVaultLocked = un;
+      })
+      .catch((err) => {
+        console.error('Failed to listen to vault:locked event:', err);
+      });
+
+    let unlistenRollback: (() => void) | undefined;
+    listen<string>('finnca:rollback-restored', (event) => {
+      const ver = event.payload || 'unknown';
+      notificationState.addNotification({
+        type: 'LEDGER_INTEGRITY',
+        title: i18n.t.rollbackNoticeTitle,
+        message: i18n.t.rollbackNotice.replace('{version}', ver),
+        priority: 'high',
+      });
+    })
+      .then((un) => {
+        unlistenRollback = un;
+      })
+      .catch(() => {});
+
+    // Check if a rollback occurred prior to launch
+    getRollbackNoticeCmd()
+      .then((failedVer) => {
+        if (failedVer) {
+          notificationState.addNotification({
+            type: 'LEDGER_INTEGRITY',
+            title: i18n.t.rollbackNoticeTitle,
+            message: i18n.t.rollbackNotice.replace('{version}', failedVer),
+            priority: 'high',
+          });
+        }
+      })
+      .catch(() => {});
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const message = reason instanceof Error ? reason.message : String(reason);
+      const stack = reason instanceof Error ? reason.stack : undefined;
+      diagnosticsState.captureError('unhandledrejection', message, stack);
+    };
+
+    const handleWindowError = (event: ErrorEvent) => {
+      const message = event.message || 'Unknown window error';
+      const stack = event.error instanceof Error ? event.error.stack : undefined;
+      diagnosticsState.captureError('error', message, stack);
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleWindowError);
     const preventWheelZoom = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -111,6 +171,8 @@
 
     return () => {
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleWindowError);
       document.removeEventListener('wheel', preventWheelZoom);
       window.removeEventListener('wheel', preventWheelZoom);
       document.removeEventListener('keydown', preventKeyZoom);
@@ -121,6 +183,8 @@
       document.removeEventListener('gesturechange', preventGesture);
       document.removeEventListener('gestureend', preventGesture);
       unlistenImport?.();
+      unlistenVaultLocked?.();
+      unlistenRollback?.();
     };
   });
 </script>

@@ -3,19 +3,25 @@ pub mod schema;
 use crate::shared::AppError;
 use rusqlite::Connection;
 use std::path::Path;
+use zeroize::Zeroizing;
 
 pub fn open_vault_db(path: &Path, dek: &[u8; 32]) -> Result<Connection, AppError> {
     let mut conn = Connection::open(path)?;
 
-    // 1. Set key via SQLCipher raw hex format
-    let dek_hex = hex::encode(dek);
-    conn.execute_batch(&format!("PRAGMA key = \"x'{dek_hex}'\";"))?;
+    // 1. Set key via SQLCipher raw hex format with heap zeroization
+    {
+        let dek_hex = Zeroizing::new(hex::encode(dek));
+        let pragma_cmd = Zeroizing::new(format!("PRAGMA key = \"x'{}'\";", dek_hex.as_str()));
+        conn.execute_batch(&pragma_cmd)?;
+    }
 
-    // 2. Set performance and integrity pragmas
+    // 2. Set performance, memory-security, and in-memory temp storage pragmas
     conn.execute_batch(
         "
         PRAGMA cipher_compatibility = 4;
         PRAGMA cipher_memory_security = ON;
+        PRAGMA cipher_default_temp_store = MEMORY;
+        PRAGMA temp_store = MEMORY;
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = NORMAL;
         PRAGMA foreign_keys = ON;
@@ -32,7 +38,15 @@ pub fn open_vault_db(path: &Path, dek: &[u8; 32]) -> Result<Connection, AppError
         )));
     }
 
-    // 4. Run schema migrations
+    // 4. Validate database integrity on startup
+    let quick_check: String = conn.query_row("PRAGMA quick_check;", [], |r| r.get(0))?;
+    if quick_check != "ok" {
+        return Err(AppError::Crypto(format!(
+            "Database integrity check failed: {quick_check}"
+        )));
+    }
+
+    // 5. Run schema migrations
     schema::run_migrations(&mut conn)?;
 
     Ok(conn)
@@ -46,13 +60,15 @@ pub fn export_encrypted_snapshot(
     let dest_str = dest_path
         .to_str()
         .ok_or_else(|| AppError::InvalidInput("Destination path is not valid UTF-8".into()))?;
-    let target_dek_hex = hex::encode(target_dek);
     let user_version: u32 = conn.query_row("PRAGMA user_version;", [], |r| r.get(0))?;
 
     let safe_dest = dest_str.replace('\'', "''");
-    conn.execute_batch(&format!(
-        "ATTACH DATABASE '{safe_dest}' AS backup KEY \"x'{target_dek_hex}'\";"
-    ))?;
+    let target_dek_hex = Zeroizing::new(hex::encode(target_dek));
+    let attach_sql = Zeroizing::new(format!(
+        "ATTACH DATABASE '{safe_dest}' AS backup KEY \"x'{}'\";",
+        target_dek_hex.as_str()
+    ));
+    conn.execute_batch(&attach_sql)?;
 
     let export_res = conn.execute_batch(&format!(
         "SELECT sqlcipher_export('backup'); PRAGMA backup.user_version = {user_version};"

@@ -52,9 +52,9 @@ pub fn unwrap_dek(kek: &[u8; 32], wrapped: &WrappedKey) -> Result<Zeroizing<[u8;
     let ciphertext_bytes = hex::decode(&wrapped.ciphertext)
         .map_err(|e| AppError::Crypto(format!("Invalid ciphertext format: {e}")))?;
 
-    let decrypted = cipher
-        .decrypt(nonce, ciphertext_bytes.as_ref())
-        .map_err(|_| AppError::Crypto("Invalid password or corrupted vault key envelope".into()))?;
+    let decrypted = Zeroizing::new(cipher.decrypt(nonce, ciphertext_bytes.as_ref()).map_err(
+        |_| AppError::Crypto("Invalid password or corrupted vault key envelope".into()),
+    )?);
 
     if decrypted.len() != 32 {
         return Err(AppError::Crypto(

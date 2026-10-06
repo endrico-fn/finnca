@@ -45,6 +45,7 @@ pub async fn unlock(
         vault_name: vault.name.clone(),
         db: Some(std::sync::Arc::new(std::sync::Mutex::new(conn))),
     });
+    crate::updater::watchdog::mark_confirmed_stable();
     view(&app, &state)
 }
 

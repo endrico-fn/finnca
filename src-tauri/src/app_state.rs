@@ -65,6 +65,13 @@ impl AppState {
         }
     }
 
+    pub fn is_unlocked(&self) -> bool {
+        match self.session.lock() {
+            Ok(guard) => guard.is_some(),
+            Err(poisoned) => poisoned.into_inner().is_some(),
+        }
+    }
+
     pub fn get_db(&self) -> Result<Arc<Mutex<Connection>>, AppError> {
         let guard = self.session.lock().map_err(|_| AppError::VaultLocked)?;
         if let Some(session) = guard.as_ref() {

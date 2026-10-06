@@ -1,5 +1,6 @@
 import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { armUpdateWatchdogCmd, disarmUpdateWatchdogCmd } from '$lib/core/ipc/bindings';
 
 export type UpdaterPhase =
   | 'idle'
@@ -95,6 +96,15 @@ class UpdaterState {
     this.phase = 'downloading';
     this.progress = { downloaded: 0, total: null };
 
+    // ADR 0009: Back up current executable BEFORE downloadAndInstall overwrites it on disk
+    if (this.latestVersion) {
+      try {
+        await armUpdateWatchdogCmd(this.latestVersion);
+      } catch (e) {
+        console.warn('[UPDATER] Failed to pre-arm watchdog backup:', e);
+      }
+    }
+
     try {
       await this.update.downloadAndInstall((event) => {
         switch (event.event) {
@@ -117,6 +127,11 @@ class UpdaterState {
     } catch (err) {
       this.phase = 'error';
       this.errorMessage = err instanceof Error ? err.message : String(err);
+      try {
+        await disarmUpdateWatchdogCmd();
+      } catch {
+        // ignore
+      }
     }
   }
 

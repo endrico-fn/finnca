@@ -316,6 +316,47 @@ cmd_install() {
   # --- Macro Phase 2: Payload Delivery & Extraction ---
   log_phase "2" "3" "Fetching & Staging Verified Payload"
 
+  verify_payload_checksum() {
+    local payload_file="$1"
+    local version="$2"
+    local work_dir="$3"
+
+    local sums_file="${work_dir}/SHA256SUMS"
+    local sums_url="${GITHUB_RELEASE_URL}/download/${version}/SHA256SUMS"
+    local filename
+    filename="$(basename "${payload_file}")"
+
+    log_step "Verifying Payload Integrity" "SHA256 checksum"
+    if curl -fsSL "${sums_url}" -o "${sums_file}" 2>/dev/null; then
+      local expected_hash
+      expected_hash="$(grep -E "(^|[[:space:]]|\*)${filename}[[:space:]]*\$" "${sums_file}" 2>/dev/null | awk '{print $1}' | tr '[:upper:]' '[:lower:]' | head -n1)"
+
+      if [[ -n "${expected_hash}" ]]; then
+        local actual_hash=""
+        if command -v sha256sum &>/dev/null; then
+          actual_hash="$(sha256sum "${payload_file}" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
+        elif command -v shasum &>/dev/null; then
+          actual_hash="$(shasum -a 256 "${payload_file}" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
+        else
+          log_warn "Neither sha256sum nor shasum found on host. Checksum validation skipped."
+          return 0
+        fi
+
+        if [[ "${actual_hash}" != "${expected_hash}" ]]; then
+          log_err "SHA-256 verification failed for ${filename}!"
+          log_err "Expected: ${expected_hash}"
+          log_err "Actual:   ${actual_hash}"
+          exit 1
+        fi
+        log_ok "Payload SHA-256 verified (${actual_hash:0:16}...)."
+      else
+        log_warn "Checksum for ${filename} not found in SHA256SUMS manifest."
+      fi
+    else
+      log_warn "SHA256SUMS manifest not available for release ${version}; skipping verification."
+    fi
+  }
+
   case "${target_format}" in
     deb)
       local deb_path=""
@@ -329,6 +370,7 @@ cmd_install() {
         local deb_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.deb"
         log_step "Downloading Payload" "${target_ver} (.deb)"
         COLUMNS=40 curl -# -fSL "${deb_url}" -o "${deb_path}"
+        verify_payload_checksum "${deb_path}" "${target_ver}" "${tmp_dir}"
       fi
 
       log_phase "3" "3" "Integrating System Package (APT/DPKG)"
@@ -353,6 +395,7 @@ cmd_install() {
         local rpm_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}-${clean_num}-1.x86_64.rpm"
         log_step "Downloading Payload" "${target_ver} (.rpm)"
         COLUMNS=40 curl -# -fSL "${rpm_url}" -o "${rpm_path}"
+        verify_payload_checksum "${rpm_path}" "${target_ver}" "${tmp_dir}"
       fi
 
       log_phase "3" "3" "Integrating System Package (RPM)"
@@ -378,6 +421,7 @@ cmd_install() {
         local appimage_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.AppImage"
         log_step "Downloading Payload" "${target_ver} (amd64 AppImage)"
         COLUMNS=40 curl -# -fSL "${appimage_url}" -o "${appimage_path}"
+        verify_payload_checksum "${appimage_path}" "${target_ver}" "${tmp_dir}"
       fi
 
       chmod +x "${appimage_path}"

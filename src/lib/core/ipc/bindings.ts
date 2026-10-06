@@ -508,3 +508,21 @@ export function getEntityAuditLogCmd(entityType: string, entityId: string): Prom
 export function verifyAuditLogIntegrityCmd(): Promise<AuditIntegrityReport> {
   return unwrap(commands.verifyAuditLogIntegrityCmd(), 30_000, 'verify_audit_log_integrity_cmd');
 }
+
+// =================== Updater & Security ===================
+
+export function armUpdateWatchdogCmd(targetVersion: string): Promise<null> {
+  return unwrap(commands.armUpdateWatchdogCmd(targetVersion), 10_000, 'arm_update_watchdog_cmd');
+}
+
+export function disarmUpdateWatchdogCmd(): Promise<null> {
+  return unwrap(commands.disarmUpdateWatchdogCmd(), 10_000, 'disarm_update_watchdog_cmd');
+}
+
+export function getRollbackNoticeCmd(): Promise<string | null> {
+  return unwrap(commands.getRollbackNoticeCmd(), 10_000, 'get_rollback_notice_cmd');
+}
+
+export function simulateOsSuspendCmd(): Promise<null> {
+  return unwrap(commands.simulateOsSuspendCmd(), 10_000, 'simulate_os_suspend_cmd');
+}

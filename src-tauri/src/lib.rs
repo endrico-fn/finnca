@@ -7,12 +7,14 @@ pub mod auth;
 pub mod budget;
 mod crypto;
 pub mod db;
+pub mod diagnostics;
 pub mod ledger;
 pub mod plan;
 pub mod reconcile;
 pub mod report;
 pub mod security;
 pub mod shared;
+pub mod updater;
 pub mod vault;
 
 pub use app_config as config;
@@ -141,6 +143,10 @@ pub fn create_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             auth::commands::change_password,
             security::commands::get_boot_id,
             security::commands::set_auto_lock_mode,
+            security::commands::simulate_os_suspend_cmd,
+            updater::commands::arm_update_watchdog_cmd,
+            updater::commands::disarm_update_watchdog_cmd,
+            updater::commands::get_rollback_notice_cmd,
             vault::commands::create_vault,
             vault::commands::create_account,
             vault::commands::import_vault,
@@ -214,6 +220,9 @@ pub fn create_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    diagnostics::init_crash_reporter();
+    updater::watchdog::init_and_guard_startup();
+
     let builder = create_specta_builder();
 
     #[cfg(debug_assertions)]
@@ -245,7 +254,6 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(
@@ -260,14 +268,20 @@ pub fn run() {
         .manage(app_state)
         .setup(move |app| {
             use tauri::Emitter;
+            security::suspend_daemon::init_suspend_daemon(&app.handle());
             if let Some(path) = initial_file_clone {
                 let _ = app.emit("finnca:import-file", path);
             }
             Ok(())
         })
         .invoke_handler(builder.invoke_handler())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                updater::watchdog::handle_clean_exit();
+            }
+        });
 }
 
 #[cfg(test)]

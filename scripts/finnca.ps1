@@ -121,6 +121,48 @@ function Install-Finnca {
             Write-Fail "Download failed: $($_.Exception.Message)"
             return
         }
+
+        # SEC-UP-01: Download SHA256SUMS manifest and verify installer SHA256 checksum
+        $ShaAsset = $Release.assets | Where-Object { $_.name -eq "SHA256SUMS" } | Select-Object -First 1
+        $ShaFile = Join-Path $TempDir "SHA256SUMS"
+        if ($ShaAsset) {
+            Write-Step "Downloading SHA256SUMS manifest..."
+            try {
+                Invoke-WebRequest -Uri $ShaAsset.browser_download_url -OutFile $ShaFile -UseBasicParsing
+            } catch {
+                Write-Warn "Could not download SHA256SUMS: $($_.Exception.Message)"
+            }
+        } else {
+            $ShaUrl = "https://github.com/$Repo/releases/download/$Tag/SHA256SUMS"
+            try {
+                Invoke-WebRequest -Uri $ShaUrl -OutFile $ShaFile -UseBasicParsing -ErrorAction SilentlyContinue
+            } catch {
+                # Manifest not available for this release
+            }
+        }
+
+        if (Test-Path $ShaFile) {
+            Write-Step "Verifying SHA256 checksum..."
+            $MatchingLine = Get-Content $ShaFile | Where-Object { $_ -match "(?:^|[\s\*])$([regex]::Escape($InstallerName))\s*$" } | Select-Object -First 1
+            if ($MatchingLine) {
+                $ExpectedHash = ($MatchingLine.Trim() -split '\s+')[0].ToLower()
+                $ActualHash = (Get-FileHash -Path $TempFile -Algorithm SHA256).Hash.ToLower()
+                if ($ActualHash -ne $ExpectedHash) {
+                    Write-Fail "SHA256 checksum mismatch for $InstallerName!"
+                    Write-Fail "Expected: $ExpectedHash"
+                    Write-Fail "Actual:   $ActualHash"
+                    Remove-Item -Force $TempFile -ErrorAction SilentlyContinue
+                    Remove-Item -Force $ShaFile -ErrorAction SilentlyContinue
+                    exit 1
+                }
+                Write-Success "SHA256 checksum verified successfully ($($ActualHash.Substring(0, 16))...)"
+            } else {
+                Write-Warn "Installer $InstallerName not found in SHA256SUMS manifest."
+            }
+            Remove-Item -Force $ShaFile -ErrorAction SilentlyContinue
+        } else {
+            Write-Warn "SHA256SUMS manifest not available for $Tag; skipping checksum verification."
+        }
     }
 
     Write-Step "Deploying package..."

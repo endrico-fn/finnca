@@ -17,6 +17,7 @@
     onSliceHover,
     onSliceClick,
     class: className = '',
+    title = '',
   }: {
     data: DonutSlice[];
     size?: number;
@@ -28,6 +29,7 @@
     onSliceHover?: (slice: DonutSlice | null) => void;
     onSliceClick?: (slice: DonutSlice) => void;
     class?: string;
+    title?: string;
   } = $props();
 
   const DEFAULT_COLORS = [
@@ -112,13 +114,22 @@
     if (!interactive) return;
     onSliceClick?.(slice);
   }
+  const chartAriaLabel = $derived(title || centerLabel || 'Donut chart allocation breakdown');
 </script>
 
 <div
   class="relative inline-flex items-center justify-center {className}"
   style="width: {size}px; height: {size}px"
 >
-  <svg width={size} height={size} viewBox="0 0 {size} {size}" class="-rotate-90">
+  <svg
+    role="img"
+    aria-label={chartAriaLabel}
+    width={size}
+    height={size}
+    viewBox="0 0 {size} {size}"
+    class="-rotate-90"
+  >
+    <title>{chartAriaLabel}</title>
     <circle
       {cx}
       {cy}
