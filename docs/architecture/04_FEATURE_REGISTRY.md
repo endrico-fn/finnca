@@ -44,6 +44,10 @@ Dokumen ini memetakan seluruh kapabilitas sistem, mencatat status operasional, s
 | **Diagnostics**| Privacy-First Local Crash Logger |     `[LIVE]`     | `diagnostics::crash`         | `diagnostics.svelte.ts`        | Redacted paths, masked money, 0600 file modes |
 | **Security**  | OS Sleep / Suspend Auto-Lock     |     `[LIVE]`     | `security::suspend_daemon`   | Session auto-lock via D-Bus/Win32 | Kunci koneksi SQLCipher seketika saat OS suspend |
 | **Updater**   | Crash Watchdog & Rollback        |     `[LIVE]`     | `updater::watchdog`          | `updaterState.svelte.ts`       | Deteksi 2x crash boot, rollback otomatis      |
+| **Plugins**   | Extism WebAssembly Runtime       |     `[LIVE]`     | `plugins::manager`           | Host capability & sandbox      | Linear memory 32MB, fuel limit, SHA-256 hash |
+| **Plugins**   | Zero-Float & Debit-First Gate    |     `[LIVE]`     | `plugins::gateway`           | Host invariant gate            | Tolak mutlak IEEE-754 float & tegakkan Dr/Cr |
+| **Plugins**   | Statement Parser Extension Point |     `[LIVE]`     | `plugins::commands`          | `execute_statement_parser_cmd` | Kontrak terisolasi parser rekening bank Wasm |
+| **Distribution**| Mandatory CI/CD Signing Gate   |     `[LIVE]`     | `.github/workflows/release`  | GitHub Release Pipeline        | Gagalkan build jika private key Minisign nihil |
 
 ---
 

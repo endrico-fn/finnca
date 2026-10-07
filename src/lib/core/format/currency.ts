@@ -17,7 +17,7 @@ function getFormatters() {
       currency: 'IDR',
       maximumFractionDigits: 0,
     }),
-    usd: new Intl.NumberFormat(isDot ? 'de-DE' : 'en-US', {
+    usd: new Intl.NumberFormat(isDot ? 'id-ID' : 'en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
@@ -58,12 +58,17 @@ export function formatMinorToDisplay(
       });
       formatted = formatter.format(absUnits / 100);
     } catch {
-      formatted = `${currUpper} ${absUnits.toLocaleString()}`;
+      const targetLocale = options.locale ?? (formatters.isDot ? 'id-ID' : 'en-US');
+      const majorFallback = absUnits / 100;
+      formatted = `${currUpper} ${majorFallback.toLocaleString(targetLocale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
     }
   }
 
   if (isNegative) {
-    return options.showSign ? `-${formatted}` : `-${formatted}`;
+    return `-${formatted}`;
   }
   if (options.showSign && numeric > 0) {
     return `+${formatted}`;
@@ -192,8 +197,8 @@ export function parseStringAmountToMinor(str: string, currency: SupportedCurrenc
       clean = clean.replace(',', '.');
     }
   } else if (clean.includes('.') && !clean.includes(',')) {
-    // Multiple dots like "1.000.000" are thousand separators
-    if (/^\d{1,3}(\.\d{3}){2,}$/.test(clean)) {
+    // 1.000.000, 10.000 -> thousand separators; 12.50 / 1.5 stay decimal
+    if (/^\d{1,3}(\.\d{3})+$/.test(clean) && !/^\d+\.\d{1,2}$/.test(clean)) {
       clean = clean.replace(/\./g, '');
     }
   }

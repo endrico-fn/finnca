@@ -97,12 +97,17 @@
     top: 0,
     left: 0,
     width: 0,
+    maxListHeight: 240,
     openUpward: false,
   });
 
   function updateCoords() {
     if (!containerEl || typeof window === 'undefined') return;
     const rect = containerEl.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      open = false;
+      return;
+    }
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
     const openUpward =
@@ -111,13 +116,16 @@
         : placement === 'bottom'
           ? false
           : spaceBelow < 280 && spaceAbove > spaceBelow;
-    const width = Math.max(rect.width, 320);
+    const width = Math.min(Math.max(rect.width, 320), window.innerWidth - 16);
     const left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.left));
+    const availableHeight = openUpward ? spaceAbove - 60 : spaceBelow - 60;
+    const maxListHeight = Math.max(120, Math.min(240, Math.floor(availableHeight)));
 
     menuCoords = {
       top: openUpward ? rect.top : rect.bottom,
       left,
       width,
+      maxListHeight,
       openUpward,
     };
   }
@@ -211,7 +219,9 @@
         </span>
       {/if}
     </div>
-    <span class="text-text-muted shrink-0 transition-transform {open ? 'rotate-180' : ''}">
+    <span
+      class="text-text-muted shrink-0 transition-transform {open ? 'text-teal rotate-180' : ''}"
+    >
       <Icon name="chev-down" size={14} />
     </span>
   </button>
@@ -219,7 +229,7 @@
   <!-- Dropdown Popover -->
   {#if open}
     <div
-      class="border-line bg-bg-card fixed z-[9999] border border-2 {menuClass}"
+      class="border-line bg-bg-card fixed z-[var(--z-popover)] border-2 shadow-xl {menuClass}"
       style="left: {menuCoords.left}px; {menuCoords.openUpward
         ? `bottom: ${typeof window !== 'undefined' ? window.innerHeight - menuCoords.top + 4 : 0}px;`
         : `top: ${menuCoords.top + 4}px;`} width: {menuCoords.width}px;"
@@ -254,7 +264,10 @@
       </div>
 
       <!-- Account List -->
-      <div class="divide-line/30 max-h-60 divide-y overflow-y-auto">
+      <div
+        class="divide-line/30 divide-y overflow-y-auto"
+        style="max-height: {menuCoords.maxListHeight}px;"
+      >
         {#if visibleItems.length === 0}
           <div class="font-aux text-text-dim text-smaller p-4 text-center">
             {i18n.t.noMatchingAccounts}

@@ -35,7 +35,7 @@
     onClose,
     children,
     size = 'md',
-    zIndex = 'z-50',
+    zIndex = 'z-[var(--z-modal)]',
   }: {
     open: boolean;
     title: string;
@@ -97,7 +97,7 @@
 
 {#if open}
   <div
-    class="bg-overlay fixed inset-0 {zIndex} flex items-center justify-center p-4"
+    class="bg-overlay fixed inset-0 backdrop-blur-[var(--blur-subtle)] {zIndex} flex items-center justify-center p-4"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) close();
@@ -116,14 +116,14 @@
       onkeydown={handleDialogKey}
       tabindex="-1"
     >
-      <div class="flex h-8 shrink-0 items-center justify-between p-4 pb-2.5">
+      <div class="border-line flex shrink-0 items-center justify-between border-b px-4 py-3">
         <div class="flex items-center gap-2.5">
           <span class="{TONE_CLASSES[tone]} size-2 shrink-0"></span>
           <h2 class="label-title text-medium leading-none">{title}</h2>
         </div>
         <CloseButton onclick={close} />
       </div>
-      <div class="flex-1 overflow-y-auto p-4 pt-0">
+      <div class="flex-1 overflow-y-auto p-4">
         {@render children()}
       </div>
     </div>

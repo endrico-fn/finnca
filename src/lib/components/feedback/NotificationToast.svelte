@@ -74,7 +74,9 @@
   }
 </script>
 
-<div class="pointer-events-none fixed top-12 right-6 z-50 flex max-w-95 flex-col gap-2.5">
+<div
+  class="pointer-events-none fixed top-12 right-6 z-[var(--z-toast)] flex max-w-95 flex-col gap-2.5"
+>
   {#each notificationState.activeToasts as notif (notif.id)}
     {@const borderClass = getNotificationBorderClass(notif.type)}
     <div

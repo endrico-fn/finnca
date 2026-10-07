@@ -2,11 +2,13 @@
   import { updaterState, type UpdaterPhase } from '$lib/core/updater/updaterState.svelte';
   import { i18n } from '$lib/core/i18n.svelte';
   import { appInfo } from '$lib/core/state/appInfo.svelte';
-  import { Button, ModalShell } from '$lib/components/ui';
+  import { Button, CloseButton } from '$lib/components/ui';
+  import DraggableModal from '$lib/components/layout/DraggableModal.svelte';
   import { lockPolicy } from '$lib/features/security/state/lockPolicy.svelte';
   import { session } from '$lib/core/state/session.svelte';
 
   let { onClose }: { onClose: () => void } = $props();
+  let open = $state(true);
 
   const PHASE_LABELS: Record<UpdaterPhase, string> = $derived({
     idle: i18n.t.updaterPhaseIdle,
@@ -50,154 +52,184 @@
   const isError = $derived(updaterState.phase === 'error');
 </script>
 
-<ModalShell
-  open={true}
+<DraggableModal
+  bind:open
   title={i18n.t.updaterTitle}
-  tone={isError ? 'err' : isReady ? 'ok' : 'teal'}
-  zIndex="z-[100]"
-  {onClose}
-  size="wide"
+  positionKey="updater"
+  zIndex="z-[var(--z-emergency)]"
+  widthClass="w-[720px] max-w-[calc(100vw-2rem)]"
+  heightClass="max-h-[90vh]"
+  onClose={() => onClose()}
 >
-  <div class="grid grid-cols-[1fr_auto] gap-0">
-    <!-- left: status + progress -->
-    <div class="border-line flex flex-col gap-4 border-r pr-5">
-      <!-- Current Version -->
-      <div class="text-text-dim font-proto text-[10px]">
-        {i18n.t.updaterCurrentVersion}: v{appInfo.version}
-      </div>
-
-      <!-- phase indicator -->
-      <div class="flex flex-col gap-1.5">
-        <div class="flex items-center justify-between">
-          <span class="text-text-dim font-proto text-[10px] tracking-widest">
-            {i18n.t.updaterStatus}
-          </span>
-          {#if updaterState.latestVersion}
-            <span class="text-teal font-proto text-[10px]">
-              v{updaterState.latestVersion}
-            </span>
-          {/if}
+  <header
+    class="border-line bg-bg-card flex shrink-0 cursor-grab items-center justify-between border-b-2 px-3 py-2 select-none active:cursor-grabbing"
+    data-drag-handle
+  >
+    <div class="flex items-center gap-2.5">
+      <span class="text-text-muted text-[10px] tracking-tighter select-none" aria-hidden="true"
+        >⠿</span
+      >
+      <span
+        class="font-proto text-small font-bold tracking-wider uppercase {isError
+          ? 'text-expense'
+          : isReady
+            ? 'text-income'
+            : 'text-teal'}"
+      >
+        {i18n.t.updaterTitle}
+      </span>
+    </div>
+    <CloseButton
+      onclick={() => {
+        open = false;
+        onClose();
+      }}
+    />
+  </header>
+  <div class="min-h-0 flex-1 overflow-y-auto p-4">
+    <div class="grid grid-cols-[1fr_auto] gap-0">
+      <!-- left: status + progress -->
+      <div class="border-line flex flex-col gap-4 border-r pr-5">
+        <!-- Current Version -->
+        <div class="text-text-dim font-proto text-[10px]">
+          {i18n.t.updaterCurrentVersion}: v{appInfo.version}
         </div>
-        <div class="border-line-subtle bg-bg-btn border px-3 py-2">
-          <span
-            class="font-proto text-xs tracking-wider {isError
-              ? 'text-expense'
-              : isReady
-                ? 'text-income'
-                : 'text-text-strong'}"
-          >
-            {PHASE_LABELS[updaterState.phase]}
-          </span>
-        </div>
-      </div>
 
-      <!-- progress bar -->
-      {#if isProgressActive || isReady || isRestarting}
+        <!-- phase indicator -->
         <div class="flex flex-col gap-1.5">
           <div class="flex items-center justify-between">
             <span class="text-text-dim font-proto text-[10px] tracking-widest">
-              {i18n.t.updaterProgress}
+              {i18n.t.updaterStatus}
             </span>
-            {#if updaterState.phase === 'downloading'}
-              <span class="text-text-base font-proto text-[10px]">
-                {updaterState.downloadedMb} / {updaterState.totalMb} MB · {updaterState.progressPercent}%
+            {#if updaterState.latestVersion}
+              <span class="text-teal font-proto text-[10px]">
+                v{updaterState.latestVersion}
               </span>
             {/if}
           </div>
-          <div class="bg-line h-1.5 w-full">
-            <div
-              class="h-full transition-all duration-300 {isReady || isRestarting
-                ? 'bg-income'
-                : 'bg-teal'}"
-              style="width: {progressBarWidth}"
-            ></div>
+          <div class="border-line-subtle bg-bg-btn border px-3 py-2">
+            <span
+              class="font-proto text-xs tracking-wider {isError
+                ? 'text-expense'
+                : isReady
+                  ? 'text-income'
+                  : 'text-text-strong'}"
+            >
+              {PHASE_LABELS[updaterState.phase]}
+            </span>
           </div>
         </div>
-      {/if}
 
-      <!-- error detail -->
-      {#if isError && updaterState.errorMessage}
-        <div
-          class="font-aux border-danger-border bg-danger-bg text-expense border px-3 py-2 text-xs"
-        >
-          {updaterState.errorMessage}
+        <!-- progress bar -->
+        {#if isProgressActive || isReady || isRestarting}
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-text-dim font-proto text-[10px] tracking-widest">
+                {i18n.t.updaterProgress}
+              </span>
+              {#if updaterState.phase === 'downloading'}
+                <span class="text-text-base font-proto text-[10px]">
+                  {updaterState.downloadedMb} / {updaterState.totalMb} MB · {updaterState.progressPercent}%
+                </span>
+              {/if}
+            </div>
+            <div class="bg-line h-1.5 w-full">
+              <div
+                class="h-full transition-all duration-300 {isReady || isRestarting
+                  ? 'bg-income'
+                  : 'bg-teal'}"
+                style="width: {progressBarWidth}"
+              ></div>
+            </div>
+          </div>
+        {/if}
+
+        <!-- error detail -->
+        {#if isError && updaterState.errorMessage}
+          <div
+            class="font-aux border-danger-border bg-danger-bg text-expense border px-3 py-2 text-xs"
+          >
+            {updaterState.errorMessage}
+          </div>
+        {/if}
+
+        <!-- session timeout warning -->
+        {#if isSessionExpired && isReady}
+          <div class="border-warning-border bg-warning-bg border px-3 py-2.5">
+            <span class="text-warning font-proto text-[10px] tracking-widest">
+              {i18n.t.updaterSessionExpiredWarning}
+            </span>
+          </div>
+        {/if}
+
+        <!-- action buttons -->
+        <div class="mt-auto flex gap-2">
+          {#if updaterState.phase === 'available'}
+            <Button onclick={() => updaterState.downloadAndInstall()} variant="primary" size="sm">
+              {i18n.t.updaterDownloadBtn}
+            </Button>
+            <Button onclick={onClose} variant="ghost" size="sm">
+              {i18n.t.updaterLaterBtn}
+            </Button>
+          {:else if isReady}
+            <Button onclick={() => updaterState.applyAndRelaunch()} variant="primary" size="sm">
+              {isSessionExpired ? i18n.t.updaterRelockAndApplyBtn : i18n.t.updaterApplyBtn}
+            </Button>
+          {:else if isError}
+            <Button onclick={() => updaterState.checkForUpdate()} variant="ghost" size="sm">
+              {i18n.t.updaterRetryBtn}
+            </Button>
+            <Button onclick={onClose} variant="ghost" size="sm">
+              {i18n.t.updaterCancelBtn}
+            </Button>
+          {:else if updaterState.phase === 'up_to_date'}
+            <Button onclick={onClose} variant="ghost" size="sm">
+              {i18n.t.close}
+            </Button>
+          {:else if updaterState.phase === 'checking'}
+            <Button onclick={onClose} variant="ghost" size="sm">
+              {i18n.t.cancelModalBtn}
+            </Button>
+          {:else if isRestarting}
+            <span class="text-teal font-proto animate-pulse text-[10px] tracking-widest">
+              {i18n.t.updaterRestartingMsg}
+            </span>
+          {/if}
         </div>
-      {/if}
+      </div>
 
-      <!-- session timeout warning -->
-      {#if isSessionExpired && isReady}
-        <div class="border-warning-border bg-warning-bg border px-3 py-2.5">
-          <span class="text-warning font-proto text-[10px] tracking-widest">
-            {i18n.t.updaterSessionExpiredWarning}
+      <!-- right: release notes -->
+      <div class="flex w-72 flex-col gap-2 pl-5">
+        <span class="text-text-dim font-proto text-[10px] tracking-widest">
+          {i18n.t.updaterReleaseNotesTitle}
+        </span>
+        {#if updaterState.releaseDate}
+          <span class="text-text-muted font-proto text-[10px]">
+            {new Date(updaterState.releaseDate).toLocaleDateString()}
           </span>
-        </div>
-      {/if}
-
-      <!-- action buttons -->
-      <div class="mt-auto flex gap-2">
-        {#if updaterState.phase === 'available'}
-          <Button onclick={() => updaterState.downloadAndInstall()} variant="primary" size="sm">
-            {i18n.t.updaterDownloadBtn}
-          </Button>
-          <Button onclick={onClose} variant="ghost" size="sm">
-            {i18n.t.updaterLaterBtn}
-          </Button>
-        {:else if isReady}
-          <Button onclick={() => updaterState.applyAndRelaunch()} variant="primary" size="sm">
-            {isSessionExpired ? i18n.t.updaterRelockAndApplyBtn : i18n.t.updaterApplyBtn}
-          </Button>
-        {:else if isError}
-          <Button onclick={() => updaterState.checkForUpdate()} variant="ghost" size="sm">
-            {i18n.t.updaterRetryBtn}
-          </Button>
-          <Button onclick={onClose} variant="ghost" size="sm">
-            {i18n.t.updaterCancelBtn}
-          </Button>
-        {:else if updaterState.phase === 'up_to_date'}
-          <Button onclick={onClose} variant="ghost" size="sm">
-            {i18n.t.close}
-          </Button>
-        {:else if updaterState.phase === 'checking'}
-          <Button onclick={onClose} variant="ghost" size="sm">
-            {i18n.t.cancelModalBtn}
-          </Button>
-        {:else if isRestarting}
-          <span class="text-teal font-proto animate-pulse text-[10px] tracking-widest">
-            {i18n.t.updaterRestartingMsg}
+        {/if}
+        {#if updaterState.releaseNotes}
+          <div
+            class="font-aux text-text-base mt-1 max-h-72 overflow-y-auto text-xs leading-relaxed"
+          >
+            {#each formatReleaseNotes(updaterState.releaseNotes).split('\n') as line, idx (idx)}
+              {#if line.startsWith('- ') || line.startsWith('• ')}
+                <p class="border-line mb-1 border-l-2 pl-2">
+                  {line.replace(/^[-•]\s/, '')}
+                </p>
+              {:else if line.trim()}
+                <p class="text-text-strong font-proto mb-1.5 text-[10px] tracking-wider">
+                  {line}
+                </p>
+              {/if}
+            {/each}
+          </div>
+        {:else}
+          <span class="font-aux text-text-muted text-xs">
+            {i18n.t.updaterNoReleaseNotes}
           </span>
         {/if}
       </div>
     </div>
-
-    <!-- right: release notes -->
-    <div class="flex w-72 flex-col gap-2 pl-5">
-      <span class="text-text-dim font-proto text-[10px] tracking-widest">
-        {i18n.t.updaterReleaseNotesTitle}
-      </span>
-      {#if updaterState.releaseDate}
-        <span class="text-text-muted font-proto text-[10px]">
-          {new Date(updaterState.releaseDate).toLocaleDateString()}
-        </span>
-      {/if}
-      {#if updaterState.releaseNotes}
-        <div class="font-aux text-text-base mt-1 max-h-72 overflow-y-auto text-xs leading-relaxed">
-          {#each formatReleaseNotes(updaterState.releaseNotes).split('\n') as line, idx (idx)}
-            {#if line.startsWith('- ') || line.startsWith('• ')}
-              <p class="border-line mb-1 border-l-2 pl-2">
-                {line.replace(/^[-•]\s/, '')}
-              </p>
-            {:else if line.trim()}
-              <p class="text-text-strong font-proto mb-1.5 text-[10px] tracking-wider">
-                {line}
-              </p>
-            {/if}
-          {/each}
-        </div>
-      {:else}
-        <span class="font-aux text-text-muted text-xs">
-          {i18n.t.updaterNoReleaseNotes}
-        </span>
-      {/if}
-    </div>
   </div>
-</ModalShell>
+</DraggableModal>

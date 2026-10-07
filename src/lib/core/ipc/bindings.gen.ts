@@ -84,6 +84,8 @@ export const commands = {
 	getFxRevaluationReportCmd: (asOfDate: string | null, fxRate: number | null) => typedError<FxRevaluationReport, AppErrorDto>(__TAURI_INVOKE("get_fx_revaluation_report_cmd", { asOfDate, fxRate })),
 	getHistoricalTrendsReportCmd: (fromDate: string, toDate: string, fxRate: number | null) => typedError<HistoricalTrendsReport, AppErrorDto>(__TAURI_INVOKE("get_historical_trends_report_cmd", { fromDate, toDate, fxRate })),
 	getMonthlyCashflowSummaryCmd: (months: number | null) => typedError<MonthlyCashflowPoint[], AppErrorDto>(__TAURI_INVOKE("get_monthly_cashflow_summary_cmd", { months })),
+	listPluginsCmd: () => typedError<PluginManifest[], AppErrorDto>(__TAURI_INVOKE("list_plugins_cmd")),
+	executeStatementParserCmd: (pluginId: string, input: ParseStatementInput) => typedError<ParsedStatementOutput, AppErrorDto>(__TAURI_INVOKE("execute_statement_parser_cmd", { pluginId, input })),
 };
 
 /* Types */
@@ -408,6 +410,37 @@ export type MonthlyCashflowPoint = {
 	net: number,
 };
 
+export type ParseStatementInput = {
+	parser_id: string,
+	file_name: string,
+	file_bytes_base64: string,
+	account_currency: string,
+	account_is_debit_normal: boolean,
+	options?: { [key in string]: string },
+};
+
+export type ParsedStatementOutput = {
+	bank_name?: string | null,
+	statement_account_number?: string | null,
+	start_date?: string | null,
+	end_date?: string | null,
+	opening_balance?: number | null,
+	closing_balance?: number | null,
+	rows?: ParsedStatementRow[],
+};
+
+export type ParsedStatementRow = {
+	/**  Format tanggal terstandarisasi ISO-8601: "YYYY-MM-DD" */
+	date: string,
+	/**  Nominal dalam integer minor units (positif untuk uang masuk, negatif untuk uang keluar) */
+	amount: number,
+	description?: string | null,
+	reference_no?: string | null,
+	balance_after?: number | null,
+	payee_or_payer?: string | null,
+	category_hint?: string | null,
+};
+
 export type PaymentPlan = {
 	id: string,
 	title: string,
@@ -441,6 +474,50 @@ export type PlanProgressView = {
 export type PlanStatus = "ACTIVE" | "COMPLETED" | "OVERDUE" | "ARCHIVED";
 
 export type PlanType = "RECEIVABLE" | "PAYABLE" | "RECURRING";
+
+export type PluginBinary = {
+	entrypoint: string,
+	sha256: string,
+	signature?: string | null,
+};
+
+export type PluginExtensions = {
+	statement_parsers?: StatementParserExtension[],
+};
+
+export type PluginLimits = {
+	max_memory_mb?: number,
+	timeout_ms?: number,
+	fuel_budget?: number,
+};
+
+export type PluginManifest = {
+	manifest_version: number,
+	plugin: PluginMeta,
+	binary: PluginBinary,
+	limits?: PluginLimits,
+	permissions?: PluginPermissions,
+	extensions?: PluginExtensions,
+};
+
+export type PluginMeta = {
+	id: string,
+	name: string,
+	version: string,
+	author?: string | null,
+	description?: string | null,
+	license?: string | null,
+	homepage?: string | null,
+	min_finnca_version?: string | null,
+	target_abi_version?: string | null,
+};
+
+export type PluginPermissions = {
+	filesystem?: string[],
+	network?: string[],
+	ledger?: string,
+	notifications?: boolean,
+};
 
 export type PostDueRecurringBatchInput = {
 	plan_ids: string[],
@@ -534,6 +611,13 @@ export type Settings = {
 	auto_lock_mode: string,
 	/**  Linux boot_id at time mode was set to on-reboot — for fast-unlock comparison */
 	boot_id?: string | null,
+};
+
+export type StatementParserExtension = {
+	id: string,
+	name: string,
+	file_extensions?: string[],
+	mime_types?: string[],
 };
 
 export type StatementRow = {

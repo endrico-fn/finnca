@@ -45,7 +45,7 @@
   <p class="text-text-base text-small font-aux py-3 leading-relaxed">
     {message}
   </p>
-  <div class="border-line flex justify-end gap-2 border-t pt-3">
+  <div class="border-line mt-3 flex shrink-0 justify-end gap-2 border-t pt-3">
     <Button variant="ghost" onclick={dismissConfirmation} disabled={busy}>
       {cancelLabel}
     </Button>

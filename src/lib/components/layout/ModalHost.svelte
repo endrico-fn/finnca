@@ -50,6 +50,7 @@
       : modalState.inspectorMode === 'transfer'
         ? i18n.t.quickTransferTitle
         : i18n.t.newEntryTitle}
+    positionKey="inspector"
     onClose={() => modalState.closeInspector()}
   >
     <EntryInspector

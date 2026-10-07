@@ -36,11 +36,20 @@
     }
   }
 
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && scopeOpen) {
+      e.stopPropagation();
+      scopeOpen = false;
+    }
+  }
+
   onMount(() => {
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
   });
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div
   class="bg-bg-app border-line focus-within:border-teal flex h-8 w-full min-w-40 items-center border transition-colors {extraClass}"
@@ -67,7 +76,7 @@
 
       {#if scopeOpen}
         <div
-          class="border-line bg-bg-card text-smaller font-proto absolute top-full left-0 z-50 mt-1 min-w-32 border py-1 select-none"
+          class="border-line bg-bg-card text-smaller font-proto absolute top-full left-0 z-[var(--z-popover)] mt-1 min-w-32 border py-1 shadow-xl select-none"
         >
           {#each scope.options as opt (opt.id || opt)}
             <button

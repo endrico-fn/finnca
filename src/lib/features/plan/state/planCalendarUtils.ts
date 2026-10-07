@@ -1,4 +1,6 @@
 import { i18n } from '$lib/core/i18n.svelte';
+import { getPref } from '$lib/core/state/prefs';
+import { getCurrencyFactor } from '$lib/core/format/currency';
 import type { PaymentPlan, DateEvents } from './plan.svelte';
 import type { JournalEntryView } from '$lib/core/ipc/bindings';
 
@@ -17,21 +19,23 @@ export function getTxPositiveTotal(tx: JournalEntryView): number {
   return tx.postings.filter((s) => s.amount > 0).reduce((acc, sp) => acc + sp.amount, 0);
 }
 
-export function formatCompact(minor: number): string {
+export function formatCompact(minor: number, currency: 'IDR' | 'USD' | string = 'IDR'): string {
   const n = Math.abs(minor);
-  if (n >= 1_000_000_000) {
-    const val = (n / 1_000_000_000).toFixed(1).replace(/\.0$/, '');
-    return `${val}${i18n.t.compactBillion}`;
+  const factor = getCurrencyFactor(currency);
+  const major = n / factor;
+  const locale = getPref('finnca_num_format', 'comma') === 'dot' ? 'id-ID' : 'en-US';
+  const fmt = (v: number, decimals: number) =>
+    v.toLocaleString(locale, { maximumFractionDigits: decimals, minimumFractionDigits: 0 });
+  if (major >= 1_000_000_000) {
+    return `${fmt(major / 1_000_000_000, 1)}${i18n.t.compactBillion}`;
   }
-  if (n >= 1_000_000) {
-    const val = (n / 1_000_000).toFixed(1).replace(/\.0$/, '');
-    return `${val}${i18n.t.compactMillion}`;
+  if (major >= 1_000_000) {
+    return `${fmt(major / 1_000_000, 1)}${i18n.t.compactMillion}`;
   }
-  if (n >= 1_000) {
-    const val = (n / 1_000).toFixed(0);
-    return `${val}${i18n.t.compactThousand}`;
+  if (major >= 1_000) {
+    return `${fmt(major / 1_000, 0)}${i18n.t.compactThousand}`;
   }
-  return String(n);
+  return String(major);
 }
 
 export function computeDayCashflowTotals(plans: PaymentPlan[]): {

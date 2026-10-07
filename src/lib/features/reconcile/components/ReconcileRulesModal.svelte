@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ModalShell, Button, Badge, EmptyState } from '$lib/components/ui';
+  import { ModalShell, Button, Badge, EmptyState, Icon } from '$lib/components/ui';
   import { i18n } from '$lib/core/i18n.svelte';
   import { reconcileState } from '../state/reconcile.svelte';
   import { notificationState } from '$lib/core/state/notification.svelte';
@@ -281,12 +281,12 @@
                   <td class="px-2.5 py-1.5 text-center">
                     <button
                       type="button"
-                      class="text-expense hover:text-expense/80 font-bold transition-colors disabled:opacity-50"
+                      class="text-expense hover:text-expense/80 inline-flex items-center justify-center p-1 transition-colors disabled:opacity-50"
                       disabled={deletingId === r.id}
                       onclick={() => handleDeleteRule(r.id)}
                       title={i18n.t.deleteBtn}
                     >
-                      ✕
+                      <Icon name="close" size={12} />
                     </button>
                   </td>
                 </tr>
@@ -298,10 +298,9 @@
     </div>
 
     <!-- Modal Footer -->
-    <div class="border-line flex justify-end border-t pt-3">
+    <div class="border-line mt-3 flex shrink-0 justify-end gap-2 border-t pt-3">
       <Button
         variant="ghost"
-        size="sm"
         onclick={() => {
           onClose?.();
           open = false;

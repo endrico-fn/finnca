@@ -73,7 +73,7 @@
   --color-text-strong: #f4f4f5;
   --color-text-white: #ffffff;
 
-  --color-overlay: rgba(0, 0, 0, 0.85);
+  --color-overlay: rgba(0, 0, 0, 0.35);
 
   --color-danger-bg: #1a1113;
   --color-danger-border: #3d181e;
@@ -105,6 +105,17 @@
   --max-width-inspector: 46.25rem;
   --height-inspector-float: 88vh;
   --blur-subtle: 2px;
+
+  --z-base: 0;
+  --z-sticky-header: 10;
+  --z-table-header: 20;
+  --z-popover: 30;
+  --z-palette: 40;
+  --z-modal: 50;
+  --z-drawer: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
+  --z-emergency: 100;
 }
 
 :root {
@@ -125,6 +136,7 @@
   --z-modal: 50;
   --z-drawer: 60;
   --z-toast: 70;
+  --z-tooltip: 80;
   --z-emergency: 100;
 }
 
@@ -546,7 +558,7 @@ h6 {
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: none;
   }
 }
 .anim-modal {

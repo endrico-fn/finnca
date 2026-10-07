@@ -146,7 +146,7 @@
     </div>
   </div>
 
-  <div class="border-line flex gap-2 border-t pt-3">
+  <div class="border-line mt-3 flex shrink-0 gap-2 border-t pt-3">
     <Button variant="ghost" onclick={() => (open = false)} disabled={busy} class="flex-1">
       {i18n.t.cancelBtn}
     </Button>

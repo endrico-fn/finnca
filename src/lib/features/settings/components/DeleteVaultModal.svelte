@@ -92,7 +92,7 @@
         </p>
       {/if}
     </div>
-    <div class="border-line flex justify-end gap-2 border-t pt-3">
+    <div class="border-line mt-3 flex shrink-0 justify-end gap-2 border-t pt-3">
       <Button variant="ghost" onclick={closeDeleteModal} disabled={deleteBusy}>
         {i18n.t.cancelBtn}
       </Button>

@@ -1,3 +1,11 @@
+<script lang="ts" module>
+  const savedPositions: Record<string, { x: number; y: number }> = {};
+
+  export function resetSavedModalPositions() {
+    for (const k of Object.keys(savedPositions)) delete savedPositions[k];
+  }
+</script>
+
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { Snippet } from 'svelte';
@@ -12,7 +20,8 @@
     children,
     widthClass = 'w-[880px] max-w-[calc(100vw-2rem)]',
     heightClass = 'h-[min(85vh,800px)] max-h-[85vh]',
-    zIndex = 'z-50',
+    zIndex = 'z-[var(--z-modal)]',
+    positionKey = '',
   }: {
     open?: boolean;
     title?: string;
@@ -21,6 +30,7 @@
     widthClass?: string;
     heightClass?: string;
     zIndex?: string;
+    positionKey?: string;
   } = $props();
 
   let windowEl: HTMLDivElement | null = $state(null);
@@ -166,6 +176,9 @@
   function handlePointerUp(e?: PointerEvent) {
     if (!isDragging) return;
     isDragging = false;
+    if (hasDragged && posX !== null && posY !== null) {
+      savedPositions[positionKey || title] = { x: posX, y: posY };
+    }
 
     if (rafId) {
       cancelAnimationFrame(rafId);
@@ -214,6 +227,16 @@
       if (typeof document !== 'undefined') {
         prevFocus = document.activeElement;
       }
+      const saved = savedPositions[positionKey || title];
+      if (saved) {
+        const rect = windowEl.getBoundingClientRect();
+        posX = Math.round(
+          Math.max(0, Math.min(Math.max(0, window.innerWidth - rect.width), saved.x))
+        );
+        posY = Math.round(
+          Math.max(0, Math.min(Math.max(0, window.innerHeight - rect.height), saved.y))
+        );
+      }
       windowEl.focus({ preventScroll: true });
       return () => {
         if (rafId) {
@@ -249,7 +272,7 @@
   const positionStyle = $derived(
     posX !== null && posY !== null
       ? `position: fixed; left: ${posX}px; top: ${posY}px; margin: 0;`
-      : `position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0;`
+      : ''
   );
 </script>
 
@@ -257,7 +280,7 @@
 
 {#if open}
   <div
-    class="bg-overlay fixed inset-0 {zIndex} flex overflow-hidden"
+    class="bg-overlay fixed inset-0 backdrop-blur-[var(--blur-subtle)] {zIndex} flex items-center justify-center overflow-hidden"
     role="presentation"
     onpointerdown={handleBackdropPointerDown}
     onclick={handleBackdropClick}

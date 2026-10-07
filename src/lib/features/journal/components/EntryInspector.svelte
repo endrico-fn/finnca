@@ -25,7 +25,7 @@
   import { eventBus } from '$lib/core/events/eventBus.svelte';
   import { closingBooksState } from '$lib/core/state/ledgerLock.svelte';
   import { todayString } from '$lib/core/format/date';
-  import { Button, Icon, AccountSelectDropdown } from '$lib/components/ui';
+  import { Button, Icon, AccountSelectDropdown, CloseButton } from '$lib/components/ui';
   import ConfirmDialog from '$lib/components/feedback/ConfirmDialog.svelte';
   import JournalPreview from './JournalPreview.svelte';
   import JournalSplitsTable from './JournalSplitsTable.svelte';
@@ -572,15 +572,7 @@
         </button>
       </div>
 
-      <button
-        type="button"
-        data-no-drag
-        onclick={onCancel}
-        class="border-line hover:border-danger hover:text-danger bg-bg-app text-text-muted font-proto text-smaller flex h-7 w-7 cursor-pointer items-center justify-center border transition-colors"
-        aria-label={i18n.t.closeBtn}
-      >
-        ✕
-      </button>
+      <CloseButton onclick={onCancel} />
     </div>
   </header>
 

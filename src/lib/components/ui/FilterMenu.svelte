@@ -41,7 +41,16 @@
     if (onOpenChange) onOpenChange(false);
     else open = false;
   }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && open) {
+      e.stopPropagation();
+      setClosed();
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="relative shrink-0 {className}">
   <button
@@ -61,7 +70,9 @@
     {#if count > 0}
       <span class="tabular-nums opacity-60">({count})</span>
     {/if}
-    <span class="inline-flex transition-transform duration-150 {open ? 'rotate-180' : ''}">
+    <span
+      class="inline-flex transition-transform duration-150 {open ? 'text-teal rotate-180' : ''}"
+    >
       <Icon name="chev-down" size={10} />
     </span>
   </button>
@@ -70,13 +81,13 @@
     <button
       type="button"
       aria-label={i18n.t.closeBtn}
-      class="fixed inset-0 z-40 cursor-default"
+      class="fixed inset-0 z-[var(--z-popover)] cursor-default"
       onclick={setClosed}
     ></button>
     <div
       class="border-line bg-bg-card font-proto absolute {align === 'left'
         ? 'left-0'
-        : 'right-0'} z-50 mt-1 border select-none {panelClass}"
+        : 'right-0'} z-[var(--z-popover)] mt-1 border shadow-xl select-none {panelClass}"
     >
       {@render children()}
       {#if onReset}

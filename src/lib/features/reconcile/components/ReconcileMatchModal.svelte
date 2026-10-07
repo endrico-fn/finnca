@@ -318,17 +318,14 @@
     {/if}
 
     <!-- Modal Footer Actions -->
-    <div
-      class="border-line font-proto text-smaller flex items-center justify-between border-t pt-3"
-    >
-      <Button variant="ghost" size="sm" onclick={() => (open = false)}>
+    <div class="border-line mt-3 flex shrink-0 justify-end gap-2 border-t pt-3">
+      <Button variant="ghost" disabled={applying} onclick={() => (open = false)}>
         {i18n.t.cancelBtn}
       </Button>
 
       {#if activeTab === 'matched' && (matchResult?.matches.length ?? 0) > 0}
         <Button
           variant="tactical"
-          size="sm"
           disabled={selectedPostingIds.size === 0 || applying}
           onclick={handleApply}
         >

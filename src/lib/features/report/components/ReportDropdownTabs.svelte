@@ -181,7 +181,7 @@
 
         <span class="tracking-wider uppercase">{i18n.t[group.labelKey]}</span>
 
-        <span class="inline-flex transition-transform duration-150 {isOpen ? 'rotate-180' : ''}">
+        <span class="inline-flex transition-transform duration-150 {isOpen ? 'text-teal rotate-180' : ''}">
           <Icon name="chev-down" size={10} />
         </span>
       </button>
@@ -191,7 +191,7 @@
           id="report-dropdown-{group.id}"
           role="menu"
           aria-label={i18n.t[group.labelKey]}
-          class="border-line bg-bg-card absolute top-full left-0 z-30 mt-1 max-w-[calc(100vw-2rem)] min-w-64 rounded-none border py-1 shadow-xl"
+          class="border-line bg-bg-card absolute top-full left-0 z-[var(--z-popover)] mt-1 max-w-[calc(100vw-2rem)] min-w-64 rounded-none border py-1 shadow-xl"
         >
           {#each group.tabs as tabId (tabId)}
             {@const isSelected = currentTab === tabId}

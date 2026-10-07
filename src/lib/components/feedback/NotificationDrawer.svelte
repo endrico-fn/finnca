@@ -75,18 +75,28 @@
       return '';
     }
   }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && notificationState.drawerOpen) {
+      if (confirmClearOpen) return;
+      e.stopPropagation();
+      notificationState.closeDrawer();
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 {#if notificationState.drawerOpen}
   <button
     type="button"
     aria-label={i18n.t.closeBtn}
     onclick={() => notificationState.closeDrawer()}
-    class="bg-overlay fixed inset-0 z-40 cursor-default"
+    class="bg-overlay fixed inset-0 z-[var(--z-drawer)] cursor-default backdrop-blur-[var(--blur-subtle)]"
   ></button>
 
   <aside
-    class="border-line bg-bg-card anim-drawer fixed top-0 right-0 z-50 flex h-full w-95 flex-col border-l"
+    class="border-line bg-bg-card anim-drawer fixed top-0 right-0 z-[var(--z-drawer)] flex h-full w-95 flex-col border-l"
   >
     <div class="bg-bg-app flex items-center justify-between px-4 py-3">
       <div class="flex items-center gap-2">

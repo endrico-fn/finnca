@@ -25,6 +25,41 @@
 
   let open = $state(false);
   let containerEl: HTMLElement | null = $state(null);
+  let menuCoords = $state({
+    top: 0,
+    left: 0,
+    openUpward: false,
+  });
+
+  function updateCoords() {
+    if (!containerEl || typeof window === 'undefined') return;
+    const rect = containerEl.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      open = false;
+      return;
+    }
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUpward = spaceBelow < 300 && spaceAbove > spaceBelow;
+    const width = 336;
+    let left = rect.right - width;
+    left = Math.max(8, Math.min(window.innerWidth - width - 8, left));
+
+    menuCoords = {
+      top: openUpward ? rect.top : rect.bottom,
+      left,
+      openUpward,
+    };
+  }
+
+  function toggle() {
+    if (!open && containerEl) {
+      updateCoords();
+      open = true;
+    } else {
+      open = false;
+    }
+  }
 
   function applyPreset(presetFn: () => [string, string]) {
     const [s, e] = presetFn();
@@ -47,9 +82,29 @@
     }
   }
 
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && open) {
+      open = false;
+    }
+  }
+
+  function handleScrollOrResize() {
+    if (open) {
+      updateCoords();
+    }
+  }
+
   onMount(() => {
     window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
   });
 
   const displayLabel = $derived(formatRangeDisplayLabel(from, to, i18n.t));
@@ -58,7 +113,7 @@
 <div class="relative inline-flex items-center text-left" bind:this={containerEl}>
   <button
     type="button"
-    onclick={() => (open = !open)}
+    onclick={toggle}
     class="sharp-btn font-proto text-smaller inline-flex cursor-pointer items-center gap-2 border px-2.5 transition-all select-none {size ===
     'md'
       ? 'h-7'
@@ -72,7 +127,7 @@
     <span class="font-semibold tracking-wide uppercase">{displayLabel}</span>
     <span
       class="text-text-muted inline-flex transition-transform duration-150 {open
-        ? 'rotate-180'
+        ? 'text-teal rotate-180'
         : ''}"
     >
       <Icon name="chev-down" size={8} />
@@ -81,7 +136,10 @@
 
   {#if open}
     <div
-      class="bg-bg-card border-line font-proto text-smaller absolute right-0 z-50 mt-1 flex w-84 border select-none"
+      class="bg-bg-card border-line font-proto text-smaller fixed z-[var(--z-popover)] flex w-84 max-w-[calc(100vw-1rem)] border shadow-xl select-none"
+      style="left: {menuCoords.left}px; {menuCoords.openUpward
+        ? `bottom: ${typeof window !== 'undefined' ? window.innerHeight - menuCoords.top + 4 : 0}px;`
+        : `top: ${menuCoords.top + 4}px;`}"
     >
       <div class="border-line bg-bg-app flex w-24 shrink-0 flex-col border-r">
         <button

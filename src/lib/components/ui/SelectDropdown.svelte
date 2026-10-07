@@ -36,13 +36,20 @@
   } = $props();
 
   let open = $state(false);
-  let openUpward = $state(false);
   let query = $state('');
   let containerEl: HTMLElement | null = $state(null);
   let buttonEl: HTMLButtonElement | null = $state(null);
   let searchInputEl: HTMLInputElement | null = $state(null);
   let highlightedIndex = $state(0);
   let optionRefs: HTMLElement[] = [];
+  let menuCoords = $state({
+    top: 0,
+    left: 0,
+    minWidth: 0,
+    maxWidth: 320,
+    maxHeight: 240,
+    openUpward: false,
+  });
 
   const selectedOption = $derived(options.find((o) => o.value === value));
 
@@ -71,22 +78,47 @@
     }
   }
 
+  function updateCoords() {
+    if (!containerEl || typeof window === 'undefined') return;
+    const rect = containerEl.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      open = false;
+      return;
+    }
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp =
+      placement === 'top'
+        ? true
+        : placement === 'bottom'
+          ? false
+          : spaceBelow < 220 && spaceAbove > spaceBelow;
+
+    const minWidth = rect.width;
+    const maxWidth = Math.min(320, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(window.innerWidth - minWidth - 8, rect.left));
+    const availableHeight = openUp ? spaceAbove - 16 : spaceBelow - 16;
+    const maxHeight = Math.max(100, Math.min(240, Math.floor(availableHeight)));
+
+    menuCoords = {
+      top: openUp ? rect.top : rect.bottom,
+      left,
+      minWidth,
+      maxWidth,
+      maxHeight,
+      openUpward: openUp,
+    };
+  }
+
   function toggle() {
     if (disabled) return;
     if (!open && containerEl) {
-      const rect = containerEl.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      if (placement === 'top') {
-        openUpward = true;
-      } else if (placement === 'bottom') {
-        openUpward = false;
-      } else {
-        openUpward = spaceBelow < 220 && spaceAbove > spaceBelow;
-      }
+      updateCoords();
+      query = '';
+      open = true;
+    } else {
+      open = false;
     }
-    query = '';
-    open = !open;
   }
 
   function handleContainerKeydown(e: KeyboardEvent) {
@@ -133,9 +165,21 @@
     }
   }
 
+  function handleScrollOrResize() {
+    if (open) {
+      updateCoords();
+    }
+  }
+
   onMount(() => {
     window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
   });
 </script>
 
@@ -181,9 +225,10 @@
         ? `select-opt-${visibleOptions[highlightedIndex].value}`
         : undefined}
       tabindex="-1"
-      class="border-line bg-bg-card text-small font-proto absolute {openUpward
-        ? 'bottom-full mb-1'
-        : 'top-full mt-1'} left-0 z-50 max-h-60 w-max max-w-xs min-w-full overflow-y-auto border py-1 select-none {menuClass}"
+      class="border-line bg-bg-card text-small font-proto fixed z-[var(--z-popover)] overflow-y-auto border py-1 shadow-xl select-none {menuClass}"
+      style="left: {menuCoords.left}px; {menuCoords.openUpward
+        ? `bottom: ${typeof window !== 'undefined' ? window.innerHeight - menuCoords.top + 4 : 0}px;`
+        : `top: ${menuCoords.top + 4}px;`} min-width: {menuCoords.minWidth}px; max-width: {menuCoords.maxWidth}px; max-height: {menuCoords.maxHeight}px;"
     >
       {#if searchable}
         <div class="border-line/60 bg-bg-card sticky top-0 border-b px-2 py-1.5">

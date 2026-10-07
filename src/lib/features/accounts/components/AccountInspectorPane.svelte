@@ -3,7 +3,7 @@
   import { getAccountLedgerCmd } from '$lib/core/ipc/bindings';
   import { formatMinorToDisplay } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
-  import { Badge, Button, Icon } from '$lib/components/ui';
+  import { Badge, Button, Icon, CloseButton } from '$lib/components/ui';
   import MiniSparkline from '$lib/components/charts/MiniSparkline.svelte';
   import { isDebitNormal } from '../state/accountLedgerUtils';
   import type { BadgeTone } from '$lib/components/ui/badgeTone';
@@ -116,15 +116,7 @@
         {fullPath}
       </p>
     </div>
-    <button
-      type="button"
-      onclick={onClose}
-      class="text-text-muted hover:text-text-strong cursor-pointer p-1"
-      title={i18n.t.closeBtn}
-      aria-label={i18n.t.closeBtn}
-    >
-      <Icon name="close" size={14} />
-    </button>
+    <CloseButton onclick={onClose} />
   </div>
 
   <div class="space-y-2 p-2.5">

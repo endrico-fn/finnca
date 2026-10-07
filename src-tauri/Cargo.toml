@@ -47,6 +47,9 @@ specta-typescript = "0.0.12"
 sha2 = "0.10"
 regex = "1"
 dirs = "6"
+extism = "1"
+toml = "0.8"
+base64 = "0.22"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 zbus = { version = "5", default-features = false, features = ["blocking"] }
@@ -56,6 +59,7 @@ windows-sys = { version = "0.59", features = ["Win32_UI_Shell", "Win32_UI_Window
 
 [dev-dependencies]
 tempfile = "3"
+wat = "1"
 
 [profile.dev]
 # debug = 1 preserves file & line numbers in backtraces while reducing linking RAM by 60%

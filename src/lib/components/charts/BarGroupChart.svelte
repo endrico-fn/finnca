@@ -206,7 +206,10 @@
 
     {#if hoveredIndex !== null}
       {@const g = groups[hoveredIndex]}
-      <div class="pointer-events-none absolute z-50" style="left:{tooltipX}px;top:{tooltipY}px">
+      <div
+        class="pointer-events-none absolute z-[var(--z-tooltip)]"
+        style="left:{tooltipX}px;top:{tooltipY}px"
+      >
         <div class="font-proto border-line bg-bg-card text-smaller min-w-36 border px-2.5 py-2">
           <div class="text-text-dim mb-1 tracking-wide uppercase">{g.label}</div>
           <div class="text-income">+{formatFn(g.income)}</div>

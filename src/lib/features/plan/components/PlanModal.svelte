@@ -8,9 +8,12 @@
   } from '$lib/core/format/currency';
   import { i18n } from '$lib/core/i18n.svelte';
   import { notificationState } from '$lib/core/state/notification.svelte';
-  import { Button, ModalShell, SelectDropdown, AccountSelectDropdown } from '$lib/components/ui';
+  import { Button, CloseButton, SelectDropdown, AccountSelectDropdown } from '$lib/components/ui';
+  import DraggableModal from '$lib/components/layout/DraggableModal.svelte';
   import { planState, type PlanType, type PlanFrequency } from '../state/plan.svelte';
   import { suggestInstallmentOptions } from '../planUtils';
+
+  const modalTitle = $derived(planState.editingPlan ? i18n.t.editPlanTitle : i18n.t.newPlanTitle);
 
   let {
     open = $bindable(false),
@@ -182,8 +185,29 @@
   }
 </script>
 
-<ModalShell bind:open title={planState.editingPlan ? i18n.t.editPlanTitle : i18n.t.newPlanTitle}>
-  <div class="space-y-2">
+<DraggableModal
+  bind:open
+  title={modalTitle}
+  positionKey="plan"
+  widthClass="w-[640px] max-w-[calc(100vw-2rem)]"
+  heightClass="max-h-[90vh]"
+>
+  <header
+    class="border-line bg-bg-card flex shrink-0 cursor-grab items-center justify-between border-b-2 px-3 py-2 select-none active:cursor-grabbing"
+    data-drag-handle
+  >
+    <div class="flex items-center gap-2.5">
+      <span class="text-text-muted text-[10px] tracking-tighter select-none" aria-hidden="true"
+        >⠿</span
+      >
+      <span class="font-proto text-text-strong text-small font-bold tracking-wider uppercase">
+        {modalTitle}
+      </span>
+    </div>
+    <CloseButton onclick={() => (open = false)} />
+  </header>
+
+  <div class="font-aux min-h-0 flex-1 space-y-2 overflow-y-auto p-3 select-text">
     <div>
       <div class="label-xs text-text-base mb-1 block">
         {i18n.t.planTitlePersonLabel}
@@ -352,12 +376,15 @@
     {/if}
   </div>
 
-  <div class="border-line mt-3 flex justify-end gap-2 border-t pt-3">
+  <footer
+    class="border-line bg-bg-card flex shrink-0 justify-end gap-2 border-t-2 px-3 py-2"
+    data-no-drag
+  >
     <Button variant="ghost" onclick={() => (open = false)} disabled={planBusy}>
       {i18n.t.cancelBtn}
     </Button>
     <Button variant="primary" onclick={savePlan} disabled={planBusy}>
       {planBusy ? i18n.t.planProcessing : i18n.t.saveChanges}
     </Button>
-  </div>
-</ModalShell>
+  </footer>
+</DraggableModal>

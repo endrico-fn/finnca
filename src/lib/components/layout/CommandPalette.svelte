@@ -96,7 +96,7 @@
 
 {#if open}
   <div
-    class="bg-overlay fixed inset-0 z-50 flex items-start justify-center p-4 pt-24 select-none"
+    class="bg-overlay fixed inset-0 z-[var(--z-palette)] flex items-start justify-center p-4 pt-24 backdrop-blur-[var(--blur-subtle)] select-none"
     role="dialog"
     aria-modal="true"
     tabindex="-1"

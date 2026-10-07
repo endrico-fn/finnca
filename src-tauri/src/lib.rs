@@ -10,6 +10,7 @@ pub mod db;
 pub mod diagnostics;
 pub mod ledger;
 pub mod plan;
+pub mod plugins;
 pub mod reconcile;
 pub mod report;
 pub mod security;
@@ -214,7 +215,9 @@ pub fn create_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             report::commands::get_trial_balance_report_cmd,
             report::commands::get_fx_revaluation_report_cmd,
             report::commands::get_historical_trends_report_cmd,
-            report::commands::get_monthly_cashflow_summary_cmd
+            report::commands::get_monthly_cashflow_summary_cmd,
+            plugins::commands::list_plugins_cmd,
+            plugins::commands::execute_statement_parser_cmd
         ])
 }
 

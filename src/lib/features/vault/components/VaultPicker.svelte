@@ -138,7 +138,7 @@
 
   {#if open}
     <div
-      class="sharp-card border-line bg-bg-card anim-enter absolute top-full right-0 left-0 z-50 mt-1 border p-2"
+      class="sharp-card border-line bg-bg-card anim-enter absolute top-full right-0 left-0 z-[var(--z-popover)] mt-1 border p-2 shadow-xl"
       role="listbox"
     >
       <!-- Popover Header -->

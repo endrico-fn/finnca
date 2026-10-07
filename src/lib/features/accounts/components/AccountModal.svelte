@@ -278,14 +278,12 @@
     />
   </div>
 
-  <div class="border-line flex shrink-0 gap-2 border-t pt-3">
-    <Button variant="ghost" onclick={handleClose}>
-      <span class="flex-1 text-center">{i18n.t.cancelBtn}</span>
+  <div class="border-line mt-3 flex shrink-0 justify-end gap-2 border-t pt-3">
+    <Button variant="ghost" onclick={handleClose} disabled={saving}>
+      {i18n.t.cancelBtn}
     </Button>
     <Button variant="primary" onclick={save} disabled={saving}>
-      <span class="flex-1 text-center">
-        {saving ? i18n.t.savingBtn : isNew ? i18n.t.createAccountBtn : i18n.t.saveChanges}
-      </span>
+      {saving ? i18n.t.savingBtn : isNew ? i18n.t.createAccountBtn : i18n.t.saveChanges}
     </Button>
   </div>
 </ModalShell>

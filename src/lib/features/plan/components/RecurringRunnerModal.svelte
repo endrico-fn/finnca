@@ -193,10 +193,10 @@
     {/if}
   </div>
 
-  <div class="border-line mt-3 flex items-center justify-between border-t pt-3">
+  <div class="border-line mt-3 flex shrink-0 justify-end gap-2 border-t pt-3">
     <Button
       variant="ghost"
-      class="font-proto text-small h-8 px-3"
+      disabled={posting}
       onclick={() => {
         open = false;
         onClose();
@@ -208,7 +208,6 @@
     {#if planState.duePlans.length > 0}
       <Button
         variant="primary"
-        class="font-proto text-small h-8 px-4 font-bold tracking-wider"
         disabled={selectedPlanIds.size === 0 || posting}
         onclick={handlePostSelected}
       >

@@ -110,7 +110,7 @@
   <div
     bind:this={tooltipEl}
     class="hover-overlay font-proto pointer-events-none fixed"
-    style="left: {tooltipX}px; top: {tooltipY}px; z-index: var(--z-palette);"
+    style="left: {tooltipX}px; top: {tooltipY}px; z-index: var(--z-tooltip);"
     role="tooltip"
     aria-hidden="true"
   >
