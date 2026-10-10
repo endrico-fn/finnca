@@ -1,6 +1,8 @@
-use std::io::{Read, Write};
+use std::io::Read;
+#[cfg(test)]
+use std::io::Write;
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn scrypt_encrypt(password: &str, plaintext: &[u8]) -> Result<Vec<u8>, String> {
     let recipient = age::scrypt::Recipient::new(password.into());
     let encryptor =
@@ -37,7 +39,7 @@ pub fn scrypt_decrypt(password: &str, ciphertext: &[u8]) -> Result<Vec<u8>, Stri
     Ok(out)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn x25519_encrypt(
     identity: &age::x25519::Identity,
     plaintext: &[u8],

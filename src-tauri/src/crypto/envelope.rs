@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::shared::AppError;
 use chacha20poly1305::{
     aead::{Aead, KeyInit},

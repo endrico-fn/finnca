@@ -271,7 +271,7 @@ pub fn run() {
         .manage(app_state)
         .setup(move |app| {
             use tauri::Emitter;
-            security::suspend_daemon::init_suspend_daemon(&app.handle());
+            security::suspend_daemon::init_suspend_daemon(app.handle());
             if let Some(path) = initial_file_clone {
                 let _ = app.emit("finnca:import-file", path);
             }

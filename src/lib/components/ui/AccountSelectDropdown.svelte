@@ -229,7 +229,7 @@
   <!-- Dropdown Popover -->
   {#if open}
     <div
-      class="border-line bg-bg-card fixed z-[var(--z-popover)] border-2 shadow-xl {menuClass}"
+      class="border-line bg-bg-card z-(--z-popover) fixed border-2 shadow-xl {menuClass}"
       style="left: {menuCoords.left}px; {menuCoords.openUpward
         ? `bottom: ${typeof window !== 'undefined' ? window.innerHeight - menuCoords.top + 4 : 0}px;`
         : `top: ${menuCoords.top + 4}px;`} width: {menuCoords.width}px;"

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { resolve } from '$app/paths';
+  import LoadingSpinner from '$lib/components/feedback/LoadingSpinner.svelte';
 
   let {
     variant = 'primary',
@@ -61,7 +62,7 @@
     {title}
   >
     {#if loading}
-      <span class="spinner-sm mr-2 shrink-0" aria-hidden="true"></span>
+      <LoadingSpinner size="sm" tone="current" class="mr-2" />
     {/if}
     {@render children()}
   </a>
@@ -76,7 +77,7 @@
     {title}
   >
     {#if loading}
-      <span class="spinner-sm mr-2 shrink-0" aria-hidden="true"></span>
+      <LoadingSpinner size="sm" tone="current" class="mr-2" />
     {/if}
     {@render children()}
   </button>

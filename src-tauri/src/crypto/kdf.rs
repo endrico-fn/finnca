@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::shared::AppError;
 use argon2::{Algorithm, Argon2, Params, Version};
 use zeroize::Zeroizing;

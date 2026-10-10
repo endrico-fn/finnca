@@ -541,7 +541,7 @@ mod tests {
 
         // Seed 2 active accounts
         let acc1 = crate::accounts::service::create_account(
-            &mut conn,
+            &conn,
             CreateAccountInput {
                 code: "1101".into(),
                 name: "Kas Operasional".into(),
@@ -560,7 +560,7 @@ mod tests {
         .expect("create acc1");
 
         let acc2 = crate::accounts::service::create_account(
-            &mut conn,
+            &conn,
             CreateAccountInput {
                 code: "5101".into(),
                 name: "Beban Operasional".into(),
@@ -762,7 +762,7 @@ mod tests {
         crate::db::schema::run_migrations(&mut conn).expect("run migrations");
 
         let acc1 = crate::accounts::service::create_account(
-            &mut conn,
+            &conn,
             CreateAccountInput {
                 code: "1101".into(),
                 name: "Kas".into(),
@@ -781,7 +781,7 @@ mod tests {
         .expect("create acc1");
 
         let acc2 = crate::accounts::service::create_account(
-            &mut conn,
+            &conn,
             CreateAccountInput {
                 code: "5101".into(),
                 name: "Beban".into(),
@@ -983,7 +983,7 @@ mod tests {
         crate::db::schema::run_migrations(&mut conn).expect("run migrations");
 
         let acc_bank = crate::accounts::service::create_account(
-            &mut conn,
+            &conn,
             CreateAccountInput {
                 code: "1001".into(),
                 name: "USD Bank".into(),
@@ -1002,7 +1002,7 @@ mod tests {
         .unwrap();
 
         let acc_saas = crate::accounts::service::create_account(
-            &mut conn,
+            &conn,
             CreateAccountInput {
                 code: "5001".into(),
                 name: "SaaS Expense".into(),

@@ -280,7 +280,7 @@
 
 {#if open}
   <div
-    class="bg-overlay fixed inset-0 backdrop-blur-[var(--blur-subtle)] {zIndex} flex items-center justify-center overflow-hidden"
+    class="bg-overlay backdrop-blur-subtle fixed inset-0 {zIndex} flex items-center justify-center overflow-hidden"
     role="presentation"
     onpointerdown={handleBackdropPointerDown}
     onclick={handleBackdropClick}
