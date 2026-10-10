@@ -15,14 +15,14 @@
 
 ### 1.1 Audit Metadata
 
-| Metadata Field | Value |
-|:---|:---|
-| **Audit Scope** | Core Cryptography, IPC Capabilities, Sensitive Memory Hygiene, Plugin Architecture, Release Pipelines, Desktop Reliability, Dependency Vulnerabilities, Industry Benchmarks |
-| **Commit Target** | HEAD (Git branch `main`) |
-| **Operating System Targets** | Linux (x86_64 AppImage/deb/rpm), Windows (x64 NSIS currentUser), macOS (Universal planned) |
-| **Lead Survey Explorers** | Explorer 1 (Security & Crypto), Explorer 2 (Plugin Architecture), Explorer 3 (Updates & Desktop Maturity) |
-| **Lead Auditor / Author** | Worker Report 1 (Platform Audit Report Author) |
-| **Primary Frameworks** | Rust 1.85+ (Tauri v2.12.0, SQLCipher 4), Svelte 5 (Runes mode), TypeScript 5.8 |
+| Metadata Field               | Value                                                                                                                                                                       |
+| :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Audit Scope**              | Core Cryptography, IPC Capabilities, Sensitive Memory Hygiene, Plugin Architecture, Release Pipelines, Desktop Reliability, Dependency Vulnerabilities, Industry Benchmarks |
+| **Commit Target**            | HEAD (Git branch `main`)                                                                                                                                                    |
+| **Operating System Targets** | Linux (x86_64 AppImage/deb/rpm), Windows (x64 NSIS currentUser), macOS (Universal planned)                                                                                  |
+| **Lead Survey Explorers**    | Explorer 1 (Security & Crypto), Explorer 2 (Plugin Architecture), Explorer 3 (Updates & Desktop Maturity)                                                                   |
+| **Lead Auditor / Author**    | Worker Report 1 (Platform Audit Report Author)                                                                                                                              |
+| **Primary Frameworks**       | Rust 1.85+ (Tauri v2.12.0, SQLCipher 4), Svelte 5 (Runes mode), TypeScript 5.8                                                                                              |
 
 ---
 
@@ -43,17 +43,17 @@ However, an exhaustive evaluation across the application's attack surface, platf
 
 ### 1.3 Executive Scorecard
 
-| Assessment Dimension | Rating (0–10) | Status | Key Observation |
-|:---|:---:|:---:|:---|
-| **Cryptographic Primitives** | **9.0** | Robust | OWASP-compliant Argon2id parameters; SQLCipher page encryption. |
-| **IPC & Sandboxing Boundaries** | **6.5** | High Risk | Strict capability declarations undermined by `SEC-01` arbitrary file read. |
-| **Sensitive Memory Hygiene** | **7.0** | Needs Hardening | Envelope keys protected, but temporary buffers and V8 memory unzeroized. |
-| **Plugin & Extensibility Blueprint** | **8.5** | High Maturity | Extism (Wasmtime) architecture guarantees linear memory isolation. |
-| **Update Lifecycle & Distribution** | **7.2** | Moderate Risk | In-app Minisign is strong, but distribution scripts lack signature validation. |
-| **Desktop Maturity & Observability** | **6.0** | Incomplete | Zero local crash logging; missing OS sleep lock; transactional migration gaps. |
-| **Accessibility (a11y) & UX Navigation** | **6.5** | Needs Work | Vim hotkeys present, but ARIA widget roles omitted in tabs and dropdowns. |
-| **Supply Chain & Dependency Health** | **7.0** | Moderate Risk | 10 NPM advisories in `pnpm-lock.yaml`; 1 unsoundness advisory in `Cargo.lock`. |
-| **Overall Platform Maturity** | **7.4 / 10** | **Grade B+** | Solid core requiring focused platform hardening before general availability. |
+| Assessment Dimension                     | Rating (0–10) |     Status      | Key Observation                                                                |
+| :--------------------------------------- | :-----------: | :-------------: | :----------------------------------------------------------------------------- |
+| **Cryptographic Primitives**             |    **9.0**    |     Robust      | OWASP-compliant Argon2id parameters; SQLCipher page encryption.                |
+| **IPC & Sandboxing Boundaries**          |    **6.5**    |    High Risk    | Strict capability declarations undermined by `SEC-01` arbitrary file read.     |
+| **Sensitive Memory Hygiene**             |    **7.0**    | Needs Hardening | Envelope keys protected, but temporary buffers and V8 memory unzeroized.       |
+| **Plugin & Extensibility Blueprint**     |    **8.5**    |  High Maturity  | Extism (Wasmtime) architecture guarantees linear memory isolation.             |
+| **Update Lifecycle & Distribution**      |    **7.2**    |  Moderate Risk  | In-app Minisign is strong, but distribution scripts lack signature validation. |
+| **Desktop Maturity & Observability**     |    **6.0**    |   Incomplete    | Zero local crash logging; missing OS sleep lock; transactional migration gaps. |
+| **Accessibility (a11y) & UX Navigation** |    **6.5**    |   Needs Work    | Vim hotkeys present, but ARIA widget roles omitted in tabs and dropdowns.      |
+| **Supply Chain & Dependency Health**     |    **7.0**    |  Moderate Risk  | 10 NPM advisories in `pnpm-lock.yaml`; 1 unsoundness advisory in `Cargo.lock`. |
+| **Overall Platform Maturity**            | **7.4 / 10**  |  **Grade B+**   | Solid core requiring focused platform hardening before general availability.   |
 
 ---
 
@@ -69,6 +69,7 @@ Finnca's IPC surface is governed by Tauri v2's capability engine (`src-tauri/cap
 - `capabilities/reconcile.json`: Confines bank statement imports and rule matching.
 
 #### Architectural Vulnerabilities in Capability Design
+
 1. **False Sense of Sandbox Isolation**: While `capabilities/reconcile.json` permits `reconcile:allow-read-statement-file-cmd`, the underlying Rust handler in `src-tauri/src/reconcile/commands.rs` executes unrestricted POSIX file I/O. Capability scoping at the manifest layer is meaningless if the backend command fails to validate filesystem boundaries.
 2. **Redundant Capabilities**: `capabilities/vault.json:6` grants `opener:default`, yet `src-tauri/src/vault/commands.rs:735-757` bypasses the opener plugin entirely, invoking `std::process::Command::new("xdg-open")` directly.
 3. **Dead Plugins in Runtime**: `src-tauri/src/lib.rs:248` initializes `tauri_plugin_fs::init()`, yet no capability manifest grants access to `fs` plugin commands, unnecessarily enlarging the attack surface.
@@ -107,6 +108,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-01: Arbitrary Local File Read via `read_statement_file_cmd`
+
 - **Severity**: **CRITICAL / HIGH** (CVSS 8.6 — `CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:C/C:H/I:N/A:N`)
 - **Citations**: `src-tauri/src/reconcile/commands.rs:293-321`
 - **Mechanism**:
@@ -123,15 +125,16 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
   ```
   While `vault::commands::validate_safe_export_target` rigorously sanitizes export paths, `read_statement_file_cmd` accepts any path string without canonicalization, boundary validation, or extension checks.
 - **Exploitation Vector & Defense Pitfalls**: Any frontend component, rogue script, or compromised dependency executing in the webview can invoke `commands.readStatementFileCmd("/etc/shadow")` or `commands.readStatementFileCmd("~/.ssh/id_rsa")`. The contents (up to 5 MB) are read into memory and returned directly to the webview caller.
-  - *Dead Symlink Check Pitfall*: Inspecting `symlink_metadata` only *after* invoking `path.canonicalize()` is completely ineffective because `canonicalize()` resolves symlinks to their destination targets, causing `meta.file_type().is_symlink()` to evaluate to `false` permanently. Symlink inspection MUST occur on the raw uncanonicalized path before resolving.
-  - *Extension Whitelist Leakage*: Broad whitelists containing `.txt` permit reading user documents, password lists, and private keys located anywhere outside blocked directories. The extension whitelist must be strictly confined to banking statement formats.
-  - *Platform Parity Gap*: Denying only Unix root paths leaves Windows system targets (`C:\Windows`, `C:\Program Files`, `C:\ProgramData`) vulnerable.
-  - *Legitimate User Vaults*: Blindly blocking all dotfiles breaks user setups (e.g. `~/.local/share/finnca/`). Protection must specifically target sensitive credential roots (`~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.config`) while permitting legitimate user data.
+  - _Dead Symlink Check Pitfall_: Inspecting `symlink_metadata` only _after_ invoking `path.canonicalize()` is completely ineffective because `canonicalize()` resolves symlinks to their destination targets, causing `meta.file_type().is_symlink()` to evaluate to `false` permanently. Symlink inspection MUST occur on the raw uncanonicalized path before resolving.
+  - _Extension Whitelist Leakage_: Broad whitelists containing `.txt` permit reading user documents, password lists, and private keys located anywhere outside blocked directories. The extension whitelist must be strictly confined to banking statement formats.
+  - _Platform Parity Gap_: Denying only Unix root paths leaves Windows system targets (`C:\Windows`, `C:\Program Files`, `C:\ProgramData`) vulnerable.
+  - _Legitimate User Vaults_: Blindly blocking all dotfiles breaks user setups (e.g. `~/.local/share/finnca/`). Protection must specifically target sensitive credential roots (`~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.config`) while permitting legitimate user data.
 - **Remediation**: Implement mandatory pre-canonicalization symlink checking on uncanonicalized input paths (`path.symlink_metadata()`), post-canonicalization path resolution, cross-platform system directory blocklists (Linux `/etc`, `/root`, `/var`, `/proc`; Windows `C:\Windows`, `C:\Program Files`, `C:\ProgramData`), sensitive credential root blocking (`~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.config`) while permitting legitimate user vaults, and strict statement format extension whitelisting (`.csv`, `.ofx`, `.qfx`, `.mt940`, `.sta`), removing broad `.txt`.
 
 ---
 
 #### SEC-02: Forensic Database Residue & Disk Spillage via Missing `PRAGMA temp_store = MEMORY;`
+
 - **Severity**: **MEDIUM / HIGH** (CVSS 6.5 — `CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N`)
 - **Citations**: `src-tauri/src/db/mod.rs:15-24`
 - **Mechanism**: SQLite defaults `temp_store` to file storage (`0` / `FILE`). When complex ledger reports (historical trends, monthly cashflow rollups, multi-thousand transaction sorting) execute, SQLite spills temporary tables, materialized indices, and transient B-trees to disk in `/tmp` or `%TEMP%`.
@@ -141,6 +144,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-03: Incomplete Heap Zeroization for DEK, Hex Key, Snapshot ATTACH, and Master Passwords
+
 - **Severity**: **HIGH** (CVSS 7.0 — `CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:N/A:N`)
 - **Citations**:
   - `src-tauri/src/crypto/envelope.rs:56-68`: Decrypted DEK vector is deallocated without zeroization.
@@ -157,6 +161,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-04: Unhardened Release Build Profile in `src-tauri/Cargo.toml`
+
 - **Severity**: **HIGH** (CVSS 6.8 — `CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L`)
 - **Citations**: `src-tauri/Cargo.toml:54-65`, `src-tauri/Cargo.toml:24`
 - **Mechanism**: `Cargo.toml` specifies `[profile.dev]` and `[profile.test]`, but completely omits `[profile.release]`. Consequently, release builds inherit Rust default settings: Link-Time Optimization (LTO) is disabled, code is split across 16 codegen units, `panic = "unwind"` retains full unwinding tables and landing pads, and debug symbols remain unstripped. Furthermore, `tauri = { version = "2", features = ["devtools"] }` unconditionally compiles webview inspector capabilities into production binaries.
@@ -166,6 +171,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-05: Webview CSP `connect-src` External HTTP Leakage
+
 - **Severity**: **MEDIUM** (CVSS 5.3 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N`)
 - **Citations**: `src-tauri/tauri.conf.json:29`, `src/lib/features/settings/fxSync.ts:8`
 - **Mechanism**:
@@ -179,6 +185,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-06: ChaCha20-Poly1305 Empty Associated Authenticated Data (AAD)
+
 - **Severity**: **MEDIUM** (CVSS 4.8 — `CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:L/I:L/A:N`)
 - **Citations**: `src-tauri/src/crypto/envelope.rs:23-38,40-68`
 - **Mechanism**: ChaCha20-Poly1305 supports AEAD (Authenticated Encryption with Associated Data). In `wrap_dek` and `unwrap_dek`, the envelope ciphertext is created and validated with empty AAD (`b""`).
@@ -188,6 +195,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-07: Svelte 5 Login Form Password Retention in V8 Heap
+
 - **Severity**: **MEDIUM** (CVSS 4.4 — `CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:N/A:N`)
 - **Citations**: `src/lib/features/vault/components/LoginForm.svelte:135-162`
 - **Mechanism**: The master password is bound to a Svelte 5 rune `let password = $state('')`. Upon successful authentication, the component triggers navigation (`goto(resolve('/app'))`) without explicitly clearing the rune value (`password = ''`).
@@ -197,6 +205,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-08: Non-Cryptographic `boot_id` Fast-Unlock Stub
+
 - **Severity**: **MEDIUM** (CVSS 4.0 — `CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N`)
 - **Citations**: `src-tauri/src/security/commands.rs:8-19`, `src/routes/app/+layout.svelte:69-73`
 - **Mechanism**: Fast-unlock reads Linux `/proc/sys/kernel/random/boot_id` and stores it as a plain string in `~/.config/finnca/finnca.json`. Because the Rust backend process drops the SQLite connection and DEK memory upon termination, `boot_id` provides zero cryptographic recovery capability across app restarts.
@@ -206,6 +215,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-09: Unused `tauri-plugin-fs` Runtime Initialization
+
 - **Severity**: **LOW** (CVSS 2.5)
 - **Citations**: `src-tauri/src/lib.rs:248`, `src-tauri/Cargo.toml:29`
 - **Mechanism**: The `tauri-plugin-fs` plugin is registered during Tauri setup, but no capabilities grant access to its endpoints. It represents dead code and unnecessary IPC surface.
@@ -214,6 +224,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-10: Redundant Opener Capability vs Raw Process Execution
+
 - **Severity**: **LOW** (CVSS 2.5)
 - **Citations**: `src-tauri/capabilities/vault.json:6`, `src-tauri/src/vault/commands.rs:735-757`
 - **Mechanism**: The capability manifest authorizes `opener:default`, but `open_vault_folder` spawns OS file managers using raw `std::process::Command::new("xdg-open")`.
@@ -222,6 +233,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-11: Zip Bomb Denial of Service Exposure in Vault Import
+
 - **Severity**: **LOW** (CVSS 3.3 — `CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:L`)
 - **Citations**: `src-tauri/src/vault/commands.rs:480-505`
 - **Mechanism**: In `unpack_finnca_archive`, zip entries are unpacked via `std::io::copy(&mut entry, &mut outfile)` without tracking cumulative uncompressed bytes or limiting total entry counts.
@@ -231,6 +243,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ---
 
 #### SEC-12: Frontend Supply Chain Vulnerabilities (`pnpm audit`)
+
 - **Severity**: **HIGH** (NPM Ecosystem)
 - **Citations**: `package.json`, `pnpm-lock.yaml`
 - **Mechanism**: 10 known advisories affecting `brace-expansion` (uncontrolled recursion DoS) and `devalue` (quadratic expansion and shared memory serialization). Detailed in Section 6.
@@ -240,6 +253,7 @@ SEC-12   HIGH (NPM)     Supply Chain           package.json, pnpm-lock.yaml
 ### 2.3 Concrete Production Remediation Blueprints
 
 #### Remediation Blueprint 1: Hardened Path Gateway for `read_statement_file_cmd` (`SEC-01`)
+
 ```rust
 // Proposed fix in src-tauri/src/reconcile/commands.rs
 use std::path::{Path, PathBuf};
@@ -369,6 +383,7 @@ pub fn read_statement_file_cmd(
 ---
 
 #### Remediation Blueprint 2: Hardened SQLCipher Pragmas (`SEC-02`)
+
 ```rust
 // In src-tauri/src/db/mod.rs open_vault_db()
 pub fn open_vault_db(path: &Path, dek: &[u8; 32]) -> Result<Connection, AppError> {
@@ -409,6 +424,7 @@ pub fn open_vault_db(path: &Path, dek: &[u8; 32]) -> Result<Connection, AppError
 ---
 
 #### Remediation Blueprint 3: Zeroize Sensitive Cryptographic Buffers & Snapshot Keys (`SEC-03`)
+
 ```rust
 // In src-tauri/src/crypto/envelope.rs unwrap_dek()
 use zeroize::{Zeroize, Zeroizing};
@@ -480,6 +496,7 @@ pub fn export_encrypted_snapshot(
 ---
 
 #### Remediation Blueprint 4: Production Release Profile Hardening (`SEC-04`)
+
 ```toml
 # Append to src-tauri/Cargo.toml
 [profile.release]
@@ -520,6 +537,7 @@ To support community bank statement parsers, regional financial reports, and ext
 ```
 
 #### Detailed Technology Rationale
+
 1. **Extism (Bytecode Alliance Wasmtime Engine) — WINNER**:
    - **Isolation**: Runs inside a dedicated WebAssembly linear memory sandbox (32 MB default cap). Plugins have zero access to host memory, SQLite pointers, or KEK/DEK keys.
    - **Deterministic Budgeting**: Instruction fuel consumption (`Store::set_fuel`) and epoch deadlines guarantee that infinite loops or CPU exhaustion cannot freeze the Tauri UI.
@@ -536,21 +554,21 @@ To support community bank statement parsers, regional financial reports, and ext
 
 Plugins declare required capabilities in their manifest. The Finnca host enforces these boundaries at runtime through an isolated capability gate:
 
-| Capability Scope | Identifier | Host Enforcement Mechanism | Default | Audit Severity if Violated |
-|:---|:---|:---|:---:|:---:|
-| **Filesystem** | `fs:none` | Guest has zero filesystem syscalls; WASI fs access disabled. | **YES** | None |
-| | `fs:scoped_read` | Only files explicitly passed via host memory buffer (max 5 MB). Guest cannot initiate path reads. | Opt-in | High (Prevented by host buffer injection) |
-| | `fs:temp` | Sandboxed temporary scratch directory, auto-purged on plugin unload. | Opt-in | Medium |
-| | `fs:write` | **BLOCKED**. Plugins cannot write directly to OS disk. Only return buffers for host to save. | **NEVER** | Critical |
-| **Network** | `net:none` | Network sockets blocked; WASI networking disabled; Extism HTTP disabled. | **YES** | None |
-| | `net:outbound` | Explicit domain whitelist (e.g., `["api.exchangerate.host"]`). HTTPS (port 443) only. | Opt-in | High (Requires user prompt at install time) |
-| **Ledger** | `ledger:none` | Zero ledger access (for statement parsers and utility plugins). | **YES** | None |
-| | `ledger:read_aggregate`| Pre-computed summary data passed (account names, monthly totals, net worth). No raw transaction PII. | Opt-in | Medium |
-| | `ledger:read_full` | Full account hierarchy and posting history. Requires high-privilege user permission prompt. | Opt-in | High |
-| | `ledger:propose_draft` | Plugin outputs `DraftJournalEntry` structures for user review in UI. | Opt-in | Medium |
-| | `ledger:direct_write` | **FORBIDDEN BY ARCHITECTURE**. Host API does NOT expose any direct insert/update/delete. | **NEVER** | Critical (Inadmissible) |
-| **Notifications**| `notify:system` | Emits in-app toasts. Rate-limited to 1 msg / 5 sec. Prefixed with `[Plugin: <name>]`. Cannot spoof system alerts. | Opt-in | Low |
-| **Crypto Secrets**| `crypto:*` | **ABSOLUTELY PROHIBITED**. Plugins have zero access to master key, KEK, DEK, salt, or SQLCipher connection. | **NEVER** | Fatal / Inadmissible |
+| Capability Scope   | Identifier              | Host Enforcement Mechanism                                                                                        |  Default  |         Audit Severity if Violated          |
+| :----------------- | :---------------------- | :---------------------------------------------------------------------------------------------------------------- | :-------: | :-----------------------------------------: |
+| **Filesystem**     | `fs:none`               | Guest has zero filesystem syscalls; WASI fs access disabled.                                                      |  **YES**  |                    None                     |
+|                    | `fs:scoped_read`        | Only files explicitly passed via host memory buffer (max 5 MB). Guest cannot initiate path reads.                 |  Opt-in   |  High (Prevented by host buffer injection)  |
+|                    | `fs:temp`               | Sandboxed temporary scratch directory, auto-purged on plugin unload.                                              |  Opt-in   |                   Medium                    |
+|                    | `fs:write`              | **BLOCKED**. Plugins cannot write directly to OS disk. Only return buffers for host to save.                      | **NEVER** |                  Critical                   |
+| **Network**        | `net:none`              | Network sockets blocked; WASI networking disabled; Extism HTTP disabled.                                          |  **YES**  |                    None                     |
+|                    | `net:outbound`          | Explicit domain whitelist (e.g., `["api.exchangerate.host"]`). HTTPS (port 443) only.                             |  Opt-in   | High (Requires user prompt at install time) |
+| **Ledger**         | `ledger:none`           | Zero ledger access (for statement parsers and utility plugins).                                                   |  **YES**  |                    None                     |
+|                    | `ledger:read_aggregate` | Pre-computed summary data passed (account names, monthly totals, net worth). No raw transaction PII.              |  Opt-in   |                   Medium                    |
+|                    | `ledger:read_full`      | Full account hierarchy and posting history. Requires high-privilege user permission prompt.                       |  Opt-in   |                    High                     |
+|                    | `ledger:propose_draft`  | Plugin outputs `DraftJournalEntry` structures for user review in UI.                                              |  Opt-in   |                   Medium                    |
+|                    | `ledger:direct_write`   | **FORBIDDEN BY ARCHITECTURE**. Host API does NOT expose any direct insert/update/delete.                          | **NEVER** |           Critical (Inadmissible)           |
+| **Notifications**  | `notify:system`         | Emits in-app toasts. Rate-limited to 1 msg / 5 sec. Prefixed with `[Plugin: <name>]`. Cannot spoof system alerts. |  Opt-in   |                     Low                     |
+| **Crypto Secrets** | `crypto:*`              | **ABSOLUTELY PROHIBITED**. Plugins have zero access to master key, KEK, DEK, salt, or SQLCipher connection.       | **NEVER** |            Fatal / Inadmissible             |
 
 ---
 
@@ -591,6 +609,7 @@ To prevent third-party code from contaminating the ledger, all data crossing the
 ```
 
 #### Hardened Zero-Float Validator Implementation
+
 ```rust
 /// Scans raw JSON bytes across the host-plugin boundary to guarantee zero float contamination.
 /// Unconditionally rejects all IEEE-754 floats (including whole floats like 15000.0 or scientific notation 1e2),
@@ -653,6 +672,7 @@ pub fn validate_no_raw_floats(bytes: &[u8]) -> Result<(), AppError> {
 ```
 
 #### Host-Enforced Debit-First Gateway Implementation
+
 While core ledger validation `validate_postings_balance_with_context` validates commodity balance (`sum(postings) == 0`), it does not govern leg indexing. In accordance with `AGENTS.md § 2.5`, all 2-leg entries submitted by plugins must strictly satisfy the **Debit-First Standard** before being presented to the user:
 
 ```rust
@@ -694,6 +714,7 @@ pub fn validate_plugin_draft_entry(
 ### 3.4 Concrete Extension Point Specifications
 
 #### Extension Point A: Statement Parsers (`StatementParser`)
+
 Replaces frontend-only `Papa.parse` with sandboxed parsers supporting CSV, OFX, CAMT.053, and PDF bank statements.
 
 ```rust
@@ -732,6 +753,7 @@ pub struct ParsedStatementOutput {
 ```
 
 #### Extension Point B: Custom Financial Reports (`FinancialReport`)
+
 Enables user-defined regional reports (tax schedules, cashflow runway forecasts) without modifying core Rust code.
 
 ```rust
@@ -801,6 +823,7 @@ pub struct ReportChartSeries {
 ```
 
 #### Extension Point C: External Sync Adapters (`SyncAdapter`)
+
 Enables bidirectional or export-only synchronization to cloud/remote targets (WebDAV, Nextcloud, S3, Beancount plain-text git repo) without exposing raw database handles.
 
 ```rust
@@ -870,23 +893,30 @@ statement_parsers = [
 ### 4.1 In-App Minisign Updater Audit & CI/CD Pipeline Gaps
 
 #### In-App Update Engine
+
 Finnca integrates `tauri-plugin-updater` with Minisign Ed25519 public key verification:
+
 - `src-tauri/tauri.conf.json:65-76`: Enforces signature checks against embedded public key `dW50cnVzdGVkIGNvbW1lbnQ...`.
 - `src/lib/core/updater/updateChecker.ts` and `updaterState.svelte.ts`: Drives checking, downloading, and installing via typed IPC.
 - **Security Assessment**: Tauri v2 discards downloaded packages if signature verification fails, providing strong protection against man-in-the-middle tampering of GitHub Releases.
 
 #### CI/CD Signing Fallback Risk (`.github/workflows/release.yml`)
+
 Lines 89–98 in `.github/workflows/release.yml` reveal a serious security loophole:
+
 ```javascript
 const signingKey = process.env.SIGNING_KEY || '';
 if (!signingKey.trim()) {
-  console.log('NOTE: TAURI_SIGNING_PRIVATE_KEY is not configured in GitHub Secrets. Disabling updater artifact generation to allow package builds.');
+  console.log(
+    'NOTE: TAURI_SIGNING_PRIVATE_KEY is not configured in GitHub Secrets. Disabling updater artifact generation to allow package builds.'
+  );
   tauri.bundle.createUpdaterArtifacts = false;
   if (tauri.plugins && tauri.plugins.updater) {
     delete tauri.plugins.updater.pubkey;
   }
 }
 ```
+
 If `TAURI_SIGNING_PRIVATE_KEY` is accidentally removed or misconfigured in GitHub Secrets, the CI workflow strips `pubkey` and emits unsigned packages without failing the build. The pipeline must be modified to fail with a hard exit code if signing keys are missing.
 
 ---
@@ -894,10 +924,12 @@ If `TAURI_SIGNING_PRIVATE_KEY` is accidentally removed or misconfigured in GitHu
 ### 4.2 Distribution Script Vulnerabilities (`finnca.sh`, `finnca.ps1`)
 
 While in-app updates verify cryptographic signatures, the shell and PowerShell installer scripts completely bypass verification:
+
 - `scripts/finnca.sh`: Lines 331, 355, and 380 download `.deb`, `.rpm`, and `.AppImage` packages using `curl` and install them directly without computing SHA-256 hashes or verifying Minisign signatures. Line 406 downloads the update engine script itself via raw `curl | bash`.
 - `scripts/finnca.ps1`: Line 119 uses `Invoke-WebRequest` to download `_x64-setup.exe` and line 136 immediately executes `Start-Process $TempFile /S` without Authenticode or checksum verification.
 
 #### Remediation Blueprint for Distribution Scripts
+
 Update `scripts/finnca.sh` and `scripts/finnca.ps1` to require **mandatory Minisign Ed25519 digital signature verification** on the checksum manifest before computing hashes or running packages. Falling back to unauthenticated `SHA256SUMS` over raw HTTP leaves users vulnerable to network MITM attacks where an attacker simultaneously replaces both the binary and the checksum file:
 
 ```bash
@@ -991,24 +1023,30 @@ Currently, neither Tauri nor the OS scripts implement startup crash recovery. If
 ```
 
 #### Resolution of Active Binary Replacement Hazards (`ETXTBSY`, Windows Locks, AppImage)
+
 Directly invoking `std::fs::copy(&backup, &self.current_exe)` on a running binary fails across all supported desktop platforms:
+
 1. **Linux `ETXTBSY` (Text File Busy)**:
    - In Linux kernels, attempting to open an active executable file for writing returns `ETXTBSY` (`[Errno 26] Text file busy`).
    - **Remediation**: The watchdog must unlink the file first via `std::fs::remove_file(&self.current_exe)` or atomic `rename(&self.current_exe, &format!("{}.old", self.current_exe.display()))`. In POSIX, unlinking an open file removes its directory entry while existing running processes continue executing until exit. A replacement binary can then be written to the original path without error.
 2. **Windows File Locking (`ERROR_ACCESS_DENIED`)**:
    - The Windows kernel strictly locks executing binaries against deletion or overwriting.
-   - **Remediation**: Windows permits *renaming* an open executable within the same filesystem volume. The updater renames `finnca.exe` to `finnca.exe.old`, writes the new `finnca.exe`, and schedules `.old` cleanup upon process termination via a lightweight detached helper (`finnca-rollback.exe`).
+   - **Remediation**: Windows permits _renaming_ an open executable within the same filesystem volume. The updater renames `finnca.exe` to `finnca.exe.old`, writes the new `finnca.exe`, and schedules `.old` cleanup upon process termination via a lightweight detached helper (`finnca-rollback.exe`).
 3. **Linux AppImage Squashfs Read-Only Mount (`EROFS`)**:
    - In AppImage deployments, `std::env::current_exe()` resolves to `/tmp/.mount_XXXX/usr/bin/finnca`, located on an immutable, read-only squashfs filesystem (`EROFS`).
    - **Remediation**: The watchdog and updater must inspect `std::env::var("APPIMAGE")`. If defined, the target for backup, swap, and rollback is the outer user-facing `.AppImage` file on the host filesystem (e.g. `~/Applications/Finnca.AppImage`), completely avoiding writes inside `/tmp/.mount_*`.
 
 #### Watchdog Short Clean Session Handling
+
 A major operational pitfall of naive startup watchdogs is misinterpreting brief user interactions as application crashes:
+
 - If a user opens Finnca, checks a quick account balance for 5 seconds, and cleanly closes the window or presses `Ctrl+Q`, an unhandled session timer would treat the process termination as an abnormal exit. Two consecutive short sessions would falsely trigger an automated rollback!
 - **Remediation**: The watchdog must hook Tauri's clean application lifecycle events (`RunEvent::Exit`, `WindowEvent::CloseRequested`, and POSIX `SIGTERM`). When a clean shutdown is detected, the watchdog immediately disarms or clears `update_pending.json` before process termination, ensuring that only genuine panics, fatal unhandled exceptions, or abnormal aborts trigger crash loop increments.
 
 #### Pre-Main Crash Loop Protection (Dynamic Linker Failures)
+
 Because the in-process watchdog runs inside Rust `main()`, it cannot intercept pre-`main` failures caused by missing shared libraries (e.g. `libwebkit2gtk-4.1.so.0`, glibc version mismatches) or corrupt ELF/PE headers. To mitigate pre-main crashes:
+
 - `scripts/finnca.sh` and the `.desktop` launcher include a lightweight pre-flight probe (`ldd "$APPIMAGE" | grep "not found"` or launching with `--check-runtime`) before delegating to the primary GUI process. If pre-flight verification fails, the launcher automatically rolls back the binary before entering a dead-lock state.
 
 ---
@@ -1016,7 +1054,9 @@ Because the in-process watchdog runs inside Rust `main()`, it cannot intercept p
 ### 4.4 Multi-Channel Release Pipeline & Offline `.finnca-pkg` Specification
 
 #### Multi-Channel Release Architecture
+
 Expand `tauri.conf.json` updater endpoints to support dynamic channel resolution in `src-tauri/src/updater/`:
+
 - **Stable**: `https://github.com/endrico-fn/finnca/releases/latest/download/latest.json`
 - **Beta**: `https://github.com/endrico-fn/finnca/releases/download/beta/latest-beta.json`
 - **Nightly**: `https://github.com/endrico-fn/finnca/releases/download/nightly/latest-nightly.json`
@@ -1024,7 +1064,9 @@ Expand `tauri.conf.json` updater endpoints to support dynamic channel resolution
 Users select their update channel in Settings (`finnca.json`), which dynamically configures `@tauri-apps/plugin-updater`.
 
 #### Offline / Airgapped Update Package (`.finnca-pkg`)
+
 For airgapped and high-security workstations:
+
 - **Format**: Standard zip archive containing:
   - `payload.tar.gz`: Platform-specific binary archive.
   - `manifest.json`: Version metadata, target OS, minimum schema version.
@@ -1040,6 +1082,7 @@ For airgapped and high-security workstations:
 Finnca currently has zero crash reporting infrastructure: no Rust `panic::set_hook`, no logging crate, and no frontend `window.onerror` handler.
 
 #### Production Crash Hook Architecture
+
 ```rust
 // In src-tauri/src/main.rs
 pub fn init_crash_watchdog() {
@@ -1082,13 +1125,13 @@ fn sanitize_panic_message(info: &std::panic::PanicHookInfo<'_>) -> String {
 
 Finnca features powerful utilitarian keyboard shortcuts (vim navigation in `JournalList.svelte`: `j`/`k`, `n`, `t`, `Space`, `Enter`). However, several components exhibit significant accessibility deficiencies:
 
-| Component | Path | Current Defect | WAI-ARIA Remediation Blueprint |
-|:---|:---|:---|:---|
-| **`Tabs.svelte`** | `src/lib/components/ui/Tabs.svelte:24-85` | Omits `role="tablist"`; buttons use `aria-pressed` instead of `role="tab"`; missing arrow navigation. | Add `role="tablist"`, `role="tab"`, `aria-selected`, and attach `ArrowLeft`/`ArrowRight` key handlers. |
-| **`SelectDropdown.svelte`** | `src/lib/components/ui/SelectDropdown.svelte:88-157` | Button uses `aria-haspopup="listbox"` but dropdown menu lacks `role="listbox"`, options lack `role="option"`. | Wrap items in `role="listbox"`, set `role="option"`, and support `ArrowUp`/`ArrowDown` item cycling. |
-| **`CommandPalette.svelte`** | `src/lib/components/layout/CommandPalette.svelte:58-135` | Lacks `role="combobox"`; Tab focus escapes into background webview DOM. | Add `role="combobox"`, `role="listbox"`, and enforce focus trap using `handleDialogKey` pattern. |
-| **`JournalTable.svelte`** | `src/lib/features/ledger/components/JournalTable.svelte:105` | Action header is an empty `<th>` element with no accessible label. | Add `<span class="sr-only">Actions</span>` to header. |
-| **`DonutChart.svelte`** | `src/lib/components/charts/DonutChart.svelte:133` | Root `<svg>` element has no accessible role or title. | Add `role="img"` and `<title>Asset Allocation Breakdown</title>`. |
+| Component                   | Path                                                         | Current Defect                                                                                                | WAI-ARIA Remediation Blueprint                                                                         |
+| :-------------------------- | :----------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------- |
+| **`Tabs.svelte`**           | `src/lib/components/ui/Tabs.svelte:24-85`                    | Omits `role="tablist"`; buttons use `aria-pressed` instead of `role="tab"`; missing arrow navigation.         | Add `role="tablist"`, `role="tab"`, `aria-selected`, and attach `ArrowLeft`/`ArrowRight` key handlers. |
+| **`SelectDropdown.svelte`** | `src/lib/components/ui/SelectDropdown.svelte:88-157`         | Button uses `aria-haspopup="listbox"` but dropdown menu lacks `role="listbox"`, options lack `role="option"`. | Wrap items in `role="listbox"`, set `role="option"`, and support `ArrowUp`/`ArrowDown` item cycling.   |
+| **`CommandPalette.svelte`** | `src/lib/components/layout/CommandPalette.svelte:58-135`     | Lacks `role="combobox"`; Tab focus escapes into background webview DOM.                                       | Add `role="combobox"`, `role="listbox"`, and enforce focus trap using `handleDialogKey` pattern.       |
+| **`JournalTable.svelte`**   | `src/lib/features/ledger/components/JournalTable.svelte:105` | Action header is an empty `<th>` element with no accessible label.                                            | Add `<span class="sr-only">Actions</span>` to header.                                                  |
+| **`DonutChart.svelte`**     | `src/lib/components/charts/DonutChart.svelte:133`            | Root `<svg>` element has no accessible role or title.                                                         | Add `role="img"` and `<title>Asset Allocation Breakdown</title>`.                                      |
 
 ---
 
@@ -1106,6 +1149,7 @@ Finnca features powerful utilitarian keyboard shortcuts (vim navigation in `Jour
 ### 5.4 Database Schema Longevity & Open-Source Interoperability
 
 #### Transactional Schema Migrations (`REL-DB-01`)
+
 `src-tauri/src/db/schema.rs:18-82` executes migrations sequentially, but fails to wrap each script and its corresponding `PRAGMA user_version = N;` update in an explicit database transaction. In SQLite, DDL statements (`CREATE TABLE`, `CREATE INDEX`, `ALTER TABLE`) are fully transactional; however, executing them non-transactionally creates a severe split-brain vulnerability:
 
 - **Failure Scenario**: If power is cut or the application terminates after table creation DDL executes but before `conn.pragma_update(None, "user_version", N)` completes, the tables persist on disk while `user_version` remains at `N - 1`. On subsequent launch, `migrate_schema` observes `current_version < N` and attempts to rerun migration `N`, immediately crashing with `rusqlite::Error::SqliteFailure: table accounts already exists` and permanently bricking the vault.
@@ -1123,10 +1167,12 @@ pub fn apply_migration(conn: &mut Connection, version: u32, sql: &str) -> Result
 ```
 
 #### Forward-Version Protection & Health Check
+
 1. **Health Verification**: Execute `PRAGMA quick_check;` on every vault unlock.
 2. **Forward-Version Guard**: Reject database files if `current_version > MAX_KNOWN_SCHEMA_VERSION` (preventing older software builds from silently corrupting databases upgraded by future versions).
 
 #### Open-Source Interoperability Status
+
 - **Beancount Plain Text**: Fully implemented via `src-tauri/src/ledger/beancount_export.rs`.
 - **CSV**: Implemented for ledger exports and statement reconciliation.
 - **OFX / QFX / QIF**: Not yet implemented in backend Rust (over-claimed in `04_FEATURE_REGISTRY.md`). Scheduled for Phase 2 via Wasm parsers.
@@ -1140,21 +1186,23 @@ pub fn apply_migration(conn: &mut Connection, version: u32, sql: &str) -> Result
 
 A full audit of the frontend dependency tree (`pnpm v10.6.1`, `Node.js v26.10.0`) identified **10 vulnerabilities** across two packages:
 
-| Advisory ID | Severity | Affected Package | Vulnerable Range | Patched In | Vulnerability Summary | Dependency Chain |
-|:---|:---:|:---|:---:|:---:|:---|:---|
-| `GHSA-j22f-vq7h-c4qm` | **HIGH** | `devalue` | `>=5.1.0 <=5.9.2` | `>=5.9.3` | `stringify`/`uneval` serialize shared memory | Transitive via `svelte@5.56.9`, `@sveltejs/kit@2.70.2` |
-| `GHSA-mcm9-63f2-9j32` | **HIGH** | `devalue` | `<=5.9.2` | `>=5.9.3` | Repeated primitive strings cause quadratic expansion in `uneval` | Transitive via `svelte@5.56.9` |
-| `GHSA-x5rw-q4pp-hg5g` | **HIGH** | `devalue` | `>=5.8.0 <=5.9.2` | `>=5.9.3` | `stringifyAsync` causes unhandled rejection despite caught promise | Transitive via `svelte@5.56.9` |
-| `GHSA-qhr7-859c-m2p7` | **HIGH** | `brace-expansion` | `>=4.0.0 <5.0.11` | `>=5.0.11` | DoS via uncontrolled recursion on nested brace groups | Transitive via `minimatch` in ESLint plugins |
-| `GHSA-6j4f-fj2g-mc7p` | **HIGH** | `brace-expansion` | `>=4.0.0 <5.0.10` | `>=5.0.10` | DoS via uncontrolled recursion in `parseCommaParts` | Transitive via `minimatch` in ESLint plugins |
-| `GHSA-9rgm-9g3h-6x36` | **MODERATE**| `devalue` | `<5.9.1` | `>=5.9.2` | Denial of service via malformed input serialization | Transitive via `svelte@5.56.9` |
-| `GHSA-hx4r-w6wj-j8fg` | **MODERATE**| `devalue` | `<=5.9.2` | `>=5.9.3` | Residual sparse-array CPU amplification in `uneval` | Transitive via `svelte@5.56.9` |
-| `GHSA-4q55-j62x-fr9h` | **MODERATE**| `devalue` | `<=5.9.2` | `>=5.9.3` | Null-prototype object keys bypass `__proto__` rejection | Transitive via `svelte@5.56.9` |
-| `GHSA-q2hr-2g5m-vwhr` | **MODERATE**| `brace-expansion` | `>=4.0.0 <5.0.12` | `>=5.0.12` | Quadratic-time expansion of `{a},b}` rewrite causes CPU DoS | Transitive via `minimatch` in ESLint |
-| `GHSA-wf3x-273g-mvxv` | **LOW** | `devalue` | `>=1.0.0 <=5.9.2` | `>=5.9.3` | Sparse arrays emitted by `uneval` cause eager allocation | Transitive via `svelte@5.56.9` |
+| Advisory ID           |   Severity   | Affected Package  | Vulnerable Range  | Patched In | Vulnerability Summary                                              | Dependency Chain                                       |
+| :-------------------- | :----------: | :---------------- | :---------------: | :--------: | :----------------------------------------------------------------- | :----------------------------------------------------- |
+| `GHSA-j22f-vq7h-c4qm` |   **HIGH**   | `devalue`         | `>=5.1.0 <=5.9.2` | `>=5.9.3`  | `stringify`/`uneval` serialize shared memory                       | Transitive via `svelte@5.56.9`, `@sveltejs/kit@2.70.2` |
+| `GHSA-mcm9-63f2-9j32` |   **HIGH**   | `devalue`         |     `<=5.9.2`     | `>=5.9.3`  | Repeated primitive strings cause quadratic expansion in `uneval`   | Transitive via `svelte@5.56.9`                         |
+| `GHSA-x5rw-q4pp-hg5g` |   **HIGH**   | `devalue`         | `>=5.8.0 <=5.9.2` | `>=5.9.3`  | `stringifyAsync` causes unhandled rejection despite caught promise | Transitive via `svelte@5.56.9`                         |
+| `GHSA-qhr7-859c-m2p7` |   **HIGH**   | `brace-expansion` | `>=4.0.0 <5.0.11` | `>=5.0.11` | DoS via uncontrolled recursion on nested brace groups              | Transitive via `minimatch` in ESLint plugins           |
+| `GHSA-6j4f-fj2g-mc7p` |   **HIGH**   | `brace-expansion` | `>=4.0.0 <5.0.10` | `>=5.0.10` | DoS via uncontrolled recursion in `parseCommaParts`                | Transitive via `minimatch` in ESLint plugins           |
+| `GHSA-9rgm-9g3h-6x36` | **MODERATE** | `devalue`         |     `<5.9.1`      | `>=5.9.2`  | Denial of service via malformed input serialization                | Transitive via `svelte@5.56.9`                         |
+| `GHSA-hx4r-w6wj-j8fg` | **MODERATE** | `devalue`         |     `<=5.9.2`     | `>=5.9.3`  | Residual sparse-array CPU amplification in `uneval`                | Transitive via `svelte@5.56.9`                         |
+| `GHSA-4q55-j62x-fr9h` | **MODERATE** | `devalue`         |     `<=5.9.2`     | `>=5.9.3`  | Null-prototype object keys bypass `__proto__` rejection            | Transitive via `svelte@5.56.9`                         |
+| `GHSA-q2hr-2g5m-vwhr` | **MODERATE** | `brace-expansion` | `>=4.0.0 <5.0.12` | `>=5.0.12` | Quadratic-time expansion of `{a},b}` rewrite causes CPU DoS        | Transitive via `minimatch` in ESLint                   |
+| `GHSA-wf3x-273g-mvxv` |   **LOW**    | `devalue`         | `>=1.0.0 <=5.9.2` | `>=5.9.3`  | Sparse arrays emitted by `uneval` cause eager allocation           | Transitive via `svelte@5.56.9`                         |
 
 #### Remediation Plan for Frontend
+
 Add resolution overrides to `package.json`:
+
 ```json
 "pnpm": {
   "overrides": {
@@ -1163,6 +1211,7 @@ Add resolution overrides to `package.json`:
   }
 }
 ```
+
 Run `pnpm update` to regenerate `pnpm-lock.yaml`.
 
 ---
@@ -1171,13 +1220,14 @@ Run `pnpm update` to regenerate `pnpm-lock.yaml`.
 
 Scanning 635 packages in `src-tauri/Cargo.lock` against the Google OSV and RustSec databases identified 4 items:
 
-| Advisory ID | Severity | Crate | Version | Fixed In | Vulnerability Summary & Impact | Dependency Chain |
-|:---|:---:|:---|:---:|:---:|:---|:---|
-| `RUSTSEC-2024-0429` | **MODERATE** | `glib` | `0.18.5` | `>=0.20.0` | **Unsoundness in `VariantStrIter`**: Passes immutable reference `&p` to a NULL `*mut libc::c_char`, triggering undefined behavior. | `finnca` -> `tauri 2.12.0` -> `tao 0.37.1` -> `gtk 0.18.2` -> `glib 0.18.5` |
-| `RUSTSEC-2024-0436` | **INFO** | `paste` | `1.0.15` | N/A | Crate is officially unmaintained and archived by its author. | `finnca` -> `specta 2.0.0-rc.25` -> `paste 1.0.15` |
-| `RUSTSEC-2024-0370` | **INFO** | `proc-macro-error` | `1.0.4` | N/A | Unmaintained crate with no releases in 4+ years; pulls redundant `syn 1.x`. | `finnca` -> `tauri` -> `gtk` -> `glib-macros` -> `proc-macro-error` |
+| Advisory ID         |   Severity   | Crate              | Version  |  Fixed In  | Vulnerability Summary & Impact                                                                                                     | Dependency Chain                                                            |
+| :------------------ | :----------: | :----------------- | :------: | :--------: | :--------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| `RUSTSEC-2024-0429` | **MODERATE** | `glib`             | `0.18.5` | `>=0.20.0` | **Unsoundness in `VariantStrIter`**: Passes immutable reference `&p` to a NULL `*mut libc::c_char`, triggering undefined behavior. | `finnca` -> `tauri 2.12.0` -> `tao 0.37.1` -> `gtk 0.18.2` -> `glib 0.18.5` |
+| `RUSTSEC-2024-0436` |   **INFO**   | `paste`            | `1.0.15` |    N/A     | Crate is officially unmaintained and archived by its author.                                                                       | `finnca` -> `specta 2.0.0-rc.25` -> `paste 1.0.15`                          |
+| `RUSTSEC-2024-0370` |   **INFO**   | `proc-macro-error` | `1.0.4`  |    N/A     | Unmaintained crate with no releases in 4+ years; pulls redundant `syn 1.x`.                                                        | `finnca` -> `tauri` -> `gtk` -> `glib-macros` -> `proc-macro-error`         |
 
 #### Remediation Plan for Backend
+
 - `glib 0.18.5`: Cannot be updated independently because it is pinned by Tauri's Linux windowing backend (`tao v0.37.1`). Track Tauri upstream release notes and upgrade Tauri when `tao` updates to GTK/Glib `0.20+`.
 - `paste` & `proc-macro-error`: Harmless build-time procedural macro crates. Specta is actively migrating away from `paste` in upcoming Specta v2 stable.
 
@@ -1218,6 +1268,7 @@ Finnca was evaluated against four leading tier-1 desktop applications across fiv
 ### Detailed Benchmarking Analysis
 
 #### 1. Sandboxing & Process Isolation
+
 - **Bitwarden (Rank 1)**: Outstanding renderer isolation. Completely disables Node.js integration, utilizes strict context bridges, and enforces zero-knowledge memory boundaries.
 - **Finnca (Rank 2)**: Strong baseline with Tauri v2. Revokes `fs:default` and confines capabilities. Held back from Rank 1 by the `SEC-01` path validation gap.
 - **VS Code (Rank 3)**: Isolates untrusted extensions in a separate Extension Host process; enforces Workspace Trust boundaries.
@@ -1225,19 +1276,23 @@ Finnca was evaluated against four leading tier-1 desktop applications across fiv
 - **GnuCash (Rank 5)**: Monolithic C/C++ binary with zero internal sandboxing.
 
 #### 2. Memory Safety & Key Hygiene
+
 - **Bitwarden & Finnca (Top Tier)**: Both leverage Rust for core cryptographic operations. Finnca employs Argon2id + ChaCha20-Poly1305 + SQLCipher. Bitwarden leads slightly due to integration with OS memory-locking primitives (`mlock`/DPAPI).
 - **GnuCash**: Uses GMP rational numbers for exact zero-float calculations, but legacy C/C++ memory management exposes buffer overflow risks.
 
 #### 3. Plugin Safety & Extensibility
+
 - **Finnca (Extism Blueprint)**: Extism Wasm provides linear memory isolation, instruction metering, and an invariant gateway that mathematically guarantees third-party code cannot contaminate double-entry balance.
 - **Obsidian**: Plugins execute raw Node.js code with unrestricted filesystem and network access, presenting significant supply-chain risks.
 - **Bitwarden**: Closed architecture. Deliberately rejects plugins to safeguard credential vaults.
 
 #### 4. Update Resilience & Integrity
+
 - **VS Code & Bitwarden**: Gold standard. Background update services with cryptographic code signing, dual channels (Stable/Insiders), atomic binary swaps, and rollback safety.
 - **Finnca**: Excellent cryptographic foundation with in-app Minisign verification. Needs distribution script hardening (`SEC-UP-01`) and a startup crash watchdog (`REL-UP-02`) to match tier-1 resilience.
 
 #### 5. Platform Integration
+
 - **Bitwarden**: Seamless desktop integration with Touch ID, Windows Hello, Linux FIDO2, and OS Keychain services.
 - **Finnca**: Solid window state persistence and single-instance locks, but lacks system tray support and OS sleep auto-lock.
 
@@ -1264,7 +1319,8 @@ PHASED IMPLEMENTATION TIMELINE
 ---
 
 ### Phase 1: Quick Wins / Immediate Hardening (0–30 Days)
-*Focus: Eliminate critical security exposures, harden release binaries, and secure database transactions.*
+
+_Focus: Eliminate critical security exposures, harden release binaries, and secure database transactions._
 
 1. **Patch Arbitrary File Read (`SEC-01`)**:
    - Refactor `src-tauri/src/reconcile/commands.rs` to validate absolute paths, check symlink metadata on the raw uncanonicalized path before resolving, verify canonical targets, enforce cross-platform system directory blocks (Linux `/etc`, `/var`, `/proc`; Windows `C:\Windows`, `C:\Program Files`, `C:\ProgramData`), isolate sensitive credential roots (`~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.config`) while allowing legitimate user vaults, and strictly whitelist statement formats (`.csv`, `.ofx`, `.qfx`, `.mt940`, `.sta`), removing broad `.txt`.
@@ -1284,7 +1340,8 @@ PHASED IMPLEMENTATION TIMELINE
 ---
 
 ### Phase 2: Core Platform Extensions & Reliability (30–90 Days)
-*Focus: Operating system integration, automated crash diagnostics, accessibility, and update safety.*
+
+_Focus: Operating system integration, automated crash diagnostics, accessibility, and update safety._
 
 1. **OS Keychain & Secret Service Integration (`SEC-08` / ADR 0008)**:
    - Integrate `keyring = "3"` in Rust backend with complete sensitive heap zeroization (`Zeroizing<String>`).
@@ -1306,7 +1363,8 @@ PHASED IMPLEMENTATION TIMELINE
 ---
 
 ### Phase 3: Plugin Ecosystem & Release Automation (90–180 Days)
-*Focus: Polyglot Wasm plugin runtime, community parser ecosystem, and enterprise airgapped updates.*
+
+_Focus: Polyglot Wasm plugin runtime, community parser ecosystem, and enterprise airgapped updates._
 
 1. **Extism WebAssembly Plugin Engine (ADR 0007)**:
    - Integrate `extism` crate in `src-tauri/src/plugins/`.

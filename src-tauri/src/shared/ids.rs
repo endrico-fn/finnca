@@ -6,9 +6,13 @@ static GENERATOR: Mutex<Option<Generator>> = Mutex::new(None);
 pub fn generate_id() -> String {
     let mut guard = GENERATOR.lock().unwrap_or_else(|p| p.into_inner());
     let gen = guard.get_or_insert_with(Generator::new);
-    gen.generate()
-        .expect("monotonic ULID generation")
-        .to_string()
+    match gen.generate() {
+        Ok(u) => u.to_string(),
+        Err(_) => {
+            *gen = Generator::new();
+            ulid::Ulid::new().to_string()
+        }
+    }
 }
 
 #[cfg(test)]

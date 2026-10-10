@@ -134,6 +134,9 @@ mod tests {
         let row_count: i64 = conn
             .query_row("SELECT count(*) FROM test_table;", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(row_count, 0, "Partial writes must be rolled back on failure");
+        assert_eq!(
+            row_count, 0,
+            "Partial writes must be rolled back on failure"
+        );
     }
 }

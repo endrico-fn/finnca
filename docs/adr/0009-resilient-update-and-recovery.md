@@ -6,7 +6,7 @@ Accepted (Standar Rekayasa Distribusi & Pemulihan Crash Fase 1 & 2)
 
 ## Context
 
-Sebagai aplikasi pembukuan finansial mandiri (*self-sovereign financial ledger*), Finnca bergantung pada integritas mekanisme distribusi biner dan siklus hidup pembaruan (*update lifecycle*). Pembaruan peranti lunak harus kebal terhadap pembajakan jaringan (*man-in-the-middle*), manipulasi repositori, kegagalan migrasi skema basis data, dan siklus kegagalan peluncuran (*crash loop*).
+Sebagai aplikasi pembukuan finansial mandiri (_self-sovereign financial ledger_), Finnca bergantung pada integritas mekanisme distribusi biner dan siklus hidup pembaruan (_update lifecycle_). Pembaruan peranti lunak harus kebal terhadap pembajakan jaringan (_man-in-the-middle_), manipulasi repositori, kegagalan migrasi skema basis data, dan siklus kegagalan peluncuran (_crash loop_).
 
 Saat ini, aplikasi menggunakan `tauri-plugin-updater` dengan verifikasi kriptografi Minisign Ed25519 untuk pembaruan in-app. Namun, audit rekayasa distribusi mengungkap beberapa kelemahan kritis:
 
@@ -14,19 +14,21 @@ Saat ini, aplikasi menggunakan `tauri-plugin-updater` dengan verifikasi kriptogr
    Dalam workflow GitHub Actions `.github/workflows/release.yml:89-98`, terdapat blok fallback permisif:
    ```javascript
    if (!signingKey.trim()) {
-     console.log('NOTE: TAURI_SIGNING_PRIVATE_KEY is not configured... Disabling updater artifact generation');
+     console.log(
+       'NOTE: TAURI_SIGNING_PRIVATE_KEY is not configured... Disabling updater artifact generation'
+     );
      delete tauri.plugins.updater.pubkey;
    }
    ```
-   Jika secret `TAURI_SIGNING_PRIVATE_KEY` tidak sengaja terhapus atau gagal dibaca oleh runner, pipeline akan secara diam-diam menghapus kunci publik dari `tauri.conf.json` dan merilis artefak biner tanpa tanda tangan Minisign alih-alih membatalkan workflow. Ini merupakan risiko keamanan rantai pasok (*supply chain risk*) yang tidak dapat diterima.
-2. **Ketiadaan Verifikasi Kriptografis pada Skrip Distribusi Terminal (*Shell & PowerShell*)**:
+   Jika secret `TAURI_SIGNING_PRIVATE_KEY` tidak sengaja terhapus atau gagal dibaca oleh runner, pipeline akan secara diam-diam menghapus kunci publik dari `tauri.conf.json` dan merilis artefak biner tanpa tanda tangan Minisign alih-alih membatalkan workflow. Ini merupakan risiko keamanan rantai pasok (_supply chain risk_) yang tidak dapat diterima.
+2. **Ketiadaan Verifikasi Kriptografis pada Skrip Distribusi Terminal (_Shell & PowerShell_)**:
    Skrip instalasi dan pembaruan CLI di `scripts/finnca.sh` (baris 331, 355, 380) dan `scripts/finnca.ps1` (baris 119, 136) mengunduh biner rilis (`.AppImage`, `.deb`, `.rpm`, `_x64-setup.exe`) langsung dari URL GitHub Releases via `curl` atau `Invoke-WebRequest` tanpa memvalidasi checksum SHA-256 maupun tanda tangan Minisign sebelum dieksekusi. Kompromi pada jaringan pengguna atau DNS dapat menyebabkan eksekusi biner palsu dengan hak akses pengguna lokal.
 3. **Ketiadaan Watchdog Peluncuran & Rollback Otomatis Saat Crash**:
-   Jika versi biner baru mengalami kepanikan runtime (*unhandled panic*), regresi dependensi dinamis (misal: inkompatibilitas pustaka WebKitGTK/GLib di Linux), atau kegagalan inisialisasi pada saat booting awal (10–15 detik pertama), aplikasi akan langsung tertutup. Pengguna terjebak dalam *infinite crash loop* tanpa kemampuan untuk secara otomatis memulihkan biner versi sebelumnya.
+   Jika versi biner baru mengalami kepanikan runtime (_unhandled panic_), regresi dependensi dinamis (misal: inkompatibilitas pustaka WebKitGTK/GLib di Linux), atau kegagalan inisialisasi pada saat booting awal (10–15 detik pertama), aplikasi akan langsung tertutup. Pengguna terjebak dalam _infinite crash loop_ tanpa kemampuan untuk secara otomatis memulihkan biner versi sebelumnya.
 4. **Non-Transaksionalitas pada Migrasi Skema Basis Data SQLCipher**:
-   Di `src-tauri/src/db/schema.rs:18-82`, 12 migrasi skema dijalankan satu per satu menggunakan `conn.execute_batch(sql)` dan `PRAGMA user_version = N;` tanpa dibungkus dalam blok transaksi eksplisit (`BEGIN IMMEDIATE ... COMMIT`). Jika terjadi interupsi daya (*power failure*) atau crash di tengah eksekusi DDL, kolom atau tabel baru telah terbentuk di SQLite tetapi `user_version` belum bertambah. Peluncuran ulang berikutnya akan menjalankan kembali migrasi yang sama, memicu galat fatal `duplicate column name` dan mengunci pengguna keluar dari vault mereka.
-5. **Keterbatasan Endpoint Tunggal & Ketiadaan Pembaruan Offline (*Airgapped Environment*)**:
-   Konfigurasi `src-tauri/tauri.conf.json` mengunci endpoint pembaruan ke satu URL statis (`.../releases/latest/download/latest.json`). Tidak ada dukungan untuk kanal pengujian (*Beta* atau *Nightly*). Lebih jauh lagi, pengguna pada workstation berkeamanan tinggi yang terisolasi dari internet (*airgapped vault*) tidak memiliki mekanisme untuk menerapkan pembaruan secara manual via berkas paket terverifikasi (`.finnca-pkg`).
+   Di `src-tauri/src/db/schema.rs:18-82`, 12 migrasi skema dijalankan satu per satu menggunakan `conn.execute_batch(sql)` dan `PRAGMA user_version = N;` tanpa dibungkus dalam blok transaksi eksplisit (`BEGIN IMMEDIATE ... COMMIT`). Jika terjadi interupsi daya (_power failure_) atau crash di tengah eksekusi DDL, kolom atau tabel baru telah terbentuk di SQLite tetapi `user_version` belum bertambah. Peluncuran ulang berikutnya akan menjalankan kembali migrasi yang sama, memicu galat fatal `duplicate column name` dan mengunci pengguna keluar dari vault mereka.
+5. **Keterbatasan Endpoint Tunggal & Ketiadaan Pembaruan Offline (_Airgapped Environment_)**:
+   Konfigurasi `src-tauri/tauri.conf.json` mengunci endpoint pembaruan ke satu URL statis (`.../releases/latest/download/latest.json`). Tidak ada dukungan untuk kanal pengujian (_Beta_ atau _Nightly_). Lebih jauh lagi, pengguna pada workstation berkeamanan tinggi yang terisolasi dari internet (_airgapped vault_) tidak memiliki mekanisme untuk menerapkan pembaruan secara manual via berkas paket terverifikasi (`.finnca-pkg`).
 
 ---
 
@@ -34,9 +36,10 @@ Saat ini, aplikasi menggunakan `tauri-plugin-updater` dengan verifikasi kriptogr
 
 Kami merekayasa ulang seluruh siklus hidup pembaruan, distribusi biner, dan mekanisme pemulihan crash melalui 6 ketetapan arsitektur:
 
-### 1. Saluran Distribusi Multi-Channel Dinamis (*Stable, Beta, Nightly*)
+### 1. Saluran Distribusi Multi-Channel Dinamis (_Stable, Beta, Nightly_)
 
 Kami memisahkan kanal rilis ke dalam tiga jalur terisolasi dengan manifest JSON independen:
+
 - **Stable**: `https://github.com/endrico-fn/finnca/releases/latest/download/latest.json`  
   Rilis yang telah melewati seluruh quality gate dan uji stabilitas.
 - **Beta**: `https://github.com/endrico-fn/finnca/releases/download/beta/latest-beta.json`  
@@ -46,9 +49,10 @@ Kami memisahkan kanal rilis ke dalam tiga jalur terisolasi dengan manifest JSON 
 
 Konfigurasi preferensi kanal disimpan di berkas konfigurasi lokal `~/.config/finnca/finnca.json` (`"update_channel": "stable"`). Modul pengecek pembaruan di frontend (`src/lib/core/updater/updateChecker.ts`) menyelesaikan URL endpoint secara dinamis berdasarkan preferensi pengguna sebelum memanggil plugin updater Tauri.
 
-### 2. Kebijakan Tanda Tangan CI/CD Tanpa Toleransi (*Zero-Fallback Policy*)
+### 2. Kebijakan Tanda Tangan CI/CD Tanpa Toleransi (_Zero-Fallback Policy_)
 
-Kami memusnahkan (*purge*) seluruh skrip fallback yang menonaktifkan tanda tangan di `.github/workflows/release.yml`. Jika `TAURI_SIGNING_PRIVATE_KEY` tidak tersedia di lingkungan CI/CD, proses build rilis **wajib langsung digagalkan (*fail-fast with exit code 1*)**:
+Kami memusnahkan (_purge_) seluruh skrip fallback yang menonaktifkan tanda tangan di `.github/workflows/release.yml`. Jika `TAURI_SIGNING_PRIVATE_KEY` tidak tersedia di lingkungan CI/CD, proses build rilis **wajib langsung digagalkan (_fail-fast with exit code 1_)**:
+
 ```yaml
 - name: Verify Signing Credentials
   run: |
@@ -57,25 +61,27 @@ Kami memusnahkan (*purge*) seluruh skrip fallback yang menonaktifkan tanda tanga
       exit 1
     fi
 ```
+
 Tidak ada biner rilis resmi yang boleh diterbitkan ke publik tanpa tanda tangan kriptografis Minisign Ed25519 yang valid.
 
-### 3. Pengerasan Skrip Distribusi Terminal (*Mandatory Minisign Verification Gateway*)
+### 3. Pengerasan Skrip Distribusi Terminal (_Mandatory Minisign Verification Gateway_)
 
 Skrip instalasi dan pembaruan CLI (`scripts/finnca.sh` di Linux dan `scripts/finnca.ps1` di Windows) diwajibkan melakukan validasi kriptografis mutlak tanpa fallback permisif:
+
 1. Mengunduh berkas biner target beserta manifes `SHA256SUMS` dan berkas tanda tangan digitalnya `SHA256SUMS.minisig`.
 2. **Validasi Tanda Tangan Minisign Wajib (Zero-Unauthenticated-Fallback)**:
    - Skrip memverifikasi integritas dan keaslian `SHA256SUMS` menggunakan tanda tangan Minisign Ed25519 terhadap kunci publik resmi Finnca:
      `RWSDZ0KzV4jU7j9wX8+eY1Z2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8`
-   - Dilarang keras melakukan *silent fallback* ke pengecekan hash tanpa tanda tangan jika `minisign` tidak ada! Jika utilitas `minisign` belum terpasang:
-     - Di Linux (`scripts/finnca.sh`): Skrip mencoba memverifikasi via OpenSSL 3.x Ed25519 (`openssl pkeyutl -verify`) atau mengunduh biner mandiri `minisign` yang terverifikasi. Jika gagal, instalasi **wajib langsung dibatalkan (*fail-fast with exit code 1*)** dengan pesan instruksi kepada pengguna.
+   - Dilarang keras melakukan _silent fallback_ ke pengecekan hash tanpa tanda tangan jika `minisign` tidak ada! Jika utilitas `minisign` belum terpasang:
+     - Di Linux (`scripts/finnca.sh`): Skrip mencoba memverifikasi via OpenSSL 3.x Ed25519 (`openssl pkeyutl -verify`) atau mengunduh biner mandiri `minisign` yang terverifikasi. Jika gagal, instalasi **wajib langsung dibatalkan (_fail-fast with exit code 1_)** dengan pesan instruksi kepada pengguna.
      - Di Windows (`scripts/finnca.ps1`): Skrip memverifikasi tanda tangan menggunakan utilitas `minisign.exe` atau modul kriptografi .NET Ed25519 sebelum mengeksekusi installer NSIS.
 3. Memvalidasi hash SHA-256 dari biner yang diunduh terhadap nilai hash di dalam `SHA256SUMS` yang telah terverifikasi.
 4. Jika hash tidak cocok atau berkas rusak, skrip segera membatalkan proses instalasi, menghapus seluruh berkas sementara, dan keluar dengan galat fatal.
 5. Proses instalasi biner ke direktori target dilakukan secara atomik menggunakan operasi `mv` / `Move-Item`.
 
-### 4. Protokol Watchdog Startup & Rollback Atomik (*Startup Crash Watchdog*)
+### 4. Protokol Watchdog Startup & Rollback Atomik (_Startup Crash Watchdog_)
 
-Untuk menjamin aplikasi kebal terhadap *crash loop* pasca-pembaruan, kami menetapkan protokol state machine watchdog berbasis berkas penanda boot (`~/.config/finnca/.boot_state`):
+Untuk menjamin aplikasi kebal terhadap _crash loop_ pasca-pembaruan, kami menetapkan protokol state machine watchdog berbasis berkas penanda boot (`~/.config/finnca/.boot_state`):
 
 ```
                    [ PEMBARUAN DITERAPKAN ]
@@ -120,30 +126,31 @@ Untuk menjamin aplikasi kebal terhadap *crash loop* pasca-pembaruan, kami meneta
      "confirmed_stable": false
    }
    ```
-3. **Pemberian Sinyal Kestabilan (*Heartbeat Confirmation*)**:
+3. **Pemberian Sinyal Kestabilan (_Heartbeat Confirmation_)**:
    Aplikasi dianggap stabil jika:
-   - Berjalan selama minimal **15 detik** tanpa mengalami *panic* atau *fatal signal*, ATAU
-   - Pengguna berhasil membuka kunci (*unlock*) vault keuangan pertama kali.
-   Ketika syarat ini terpenuhi, proses Rust menandai `confirmed_stable: true`, menghapus berkas `.boot_state`, dan menghapus berkas cadangan `<exe_path>.backup`.
-4. **Hook Penutupan Bersih Pengguna (*Early Clean-Exit Hook*)**:
+   - Berjalan selama minimal **15 detik** tanpa mengalami _panic_ atau _fatal signal_, ATAU
+   - Pengguna berhasil membuka kunci (_unlock_) vault keuangan pertama kali.
+     Ketika syarat ini terpenuhi, proses Rust menandai `confirmed_stable: true`, menghapus berkas `.boot_state`, dan menghapus berkas cadangan `<exe_path>.backup`.
+4. **Hook Penutupan Bersih Pengguna (_Early Clean-Exit Hook_)**:
    Jika pengguna menutup jendela aplikasi, menekan pintasan keluar (Ctrl+Q / Cmd+Q), atau melakukan logout secara normal sebelum batas waktu 15 detik berakhir:
    Lifecycle hook Tauri (`RunEvent::Exit` / `WindowEvent::CloseRequested`) menangkap peristiwa ini sebagai penutupan sah. Watchdog menandai `confirmed_stable: true` atau membersihkan `.boot_state` sehingga penutupan aplikasi secara cepat oleh pengguna **tidak dihitung sebagai crash** dan tidak memicu rollback palsu.
-5. **Mekanisme Rollback Biner Berjalan Lintas-Platform (*Cross-Platform In-Process Rollback*)**:
+5. **Mekanisme Rollback Biner Berjalan Lintas-Platform (_Cross-Platform In-Process Rollback_)**:
    Menimpa langsung biner yang sedang berjalan (`std::fs::copy`) dilarang keras karena memicu `ETXTBSY` di Linux, `ERROR_SHARING_VIOLATION` di Windows, dan `EROFS` pada squashfs AppImage. Watchdog menerapkan strategi pemulihan spesifik platform:
-   - **Pada Linux (Standar ELF)**: Kernel Linux mengizinkan pelepasan tautan (*unlink*) direktori untuk inode berkas yang sedang dieksekusi. Watchdog memanggil `std::fs::remove_file(&target_exe)` untuk menghapus entri direktori lama, kemudian memindahkan cadangan kembali via `std::fs::rename(&backup_exe, &target_exe)`. Alternatifnya, watchdog memicu helper script terpisah (`finnca-rollback.sh`) di latar belakang saat mendeteksi crash loop.
-   - **Pada Windows (PE Biner)**: Windows melarang penghapusan atau penimpaan berkas yang sedang dibuka, namun mengizinkan operasi *rename* dalam volume yang sama. Watchdog menggunakan pola *rename-before-replace*:
+   - **Pada Linux (Standar ELF)**: Kernel Linux mengizinkan pelepasan tautan (_unlink_) direktori untuk inode berkas yang sedang dieksekusi. Watchdog memanggil `std::fs::remove_file(&target_exe)` untuk menghapus entri direktori lama, kemudian memindahkan cadangan kembali via `std::fs::rename(&backup_exe, &target_exe)`. Alternatifnya, watchdog memicu helper script terpisah (`finnca-rollback.sh`) di latar belakang saat mendeteksi crash loop.
+   - **Pada Windows (PE Biner)**: Windows melarang penghapusan atau penimpaan berkas yang sedang dibuka, namun mengizinkan operasi _rename_ dalam volume yang sama. Watchdog menggunakan pola _rename-before-replace_:
      1. `std::fs::rename(&target_exe, target_exe.with_extension("corrupt.old"))`.
      2. `std::fs::rename(&backup_exe, &target_exe)`.
      3. Berkas `.old` dihapus pada peluncuran berikutnya atau dijadwalkan via `MoveFileExW(..., MOVEFILE_DELAY_UNTIL_REBOOT)`. Alternatifnya, helper proses detached (`finnca-rollback.cmd`) dijalankan untuk menunggu PID utama mati sebelum mengganti biner.
    - **Pada Linux AppImage**:
      Di lingkungan AppImage, `/proc/self/exe` berada di dalam mount squashfs yang read-only (`/tmp/.mount_XXXX`). Watchdog mendeteksi variabel environment `$APPIMAGE` yang menunjuk ke berkas paket AppImage fisik di disk pengguna (misal `~/.local/bin/finnca.AppImage`). Operasi rollback dilakukan terhadap berkas outer AppImage tersebut (`$APPIMAGE`), bukan mount squashfs internal.
-6. **Penjagaan Crash Dynamic Linker (*Pre-Main Guard*)**:
+6. **Penjagaan Crash Dynamic Linker (_Pre-Main Guard_)**:
    Kegagalan pemuatan dependensi dinamis sistem operasi (seperti ketidakcocokan glibc atau ketiadaan library runtime WebKitGTK) terjadi pada tahap pemuatan ELF sebelum fungsi Rust `main()` dieksekusi. Skrip peluncur eksternal (`scripts/finnca.sh` / desktop launcher wrapper) menyertakan validasi dependensi via `ldd` atau eksekusi probe (`--probe`) untuk mendeteksi kegagalan linker dan memulihkan biner cadangan secara otomatis di luar proses aplikasi.
 
 ### 5. Migrasi Skema Basis Data Transaksional Atomik
 
 Kami merombak modul migrasi di `src-tauri/src/db/schema.rs`:
-1. **Transaksi DDL Eksplisit (*Immediate Transaction*)**:
+
+1. **Transaksi DDL Eksplisit (_Immediate Transaction_)**:
    Setiap versi migrasi dibungkus di dalam blok transaksi SQLite `Immediate` yang ketat:
    ```rust
    let mut tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
@@ -151,17 +158,18 @@ Kami merombak modul migrasi di `src-tauri/src/db/schema.rs`:
    tx.pragma_update(None, "user_version", target_version)?;
    tx.commit()?;
    ```
-   Jika terjadi interupsi daya atau kesalahan sintaksis di tengah migrasi, seluruh perubahan DDL dibatalkan secara atomik (*rollback*), sehingga integritas database tetap terjaga pada `user_version` sebelumnya.
+   Jika terjadi interupsi daya atau kesalahan sintaksis di tengah migrasi, seluruh perubahan DDL dibatalkan secara atomik (_rollback_), sehingga integritas database tetap terjaga pada `user_version` sebelumnya.
 2. **Pemeriksaan Integritas Saat Membuka Vault**:
-   Setiap kali vault dibuka, aplikasi menjalankan `PRAGMA quick_check;`. Jika terdeteksi korupsi basis data, proses membuka vault dihentikan dan pengguna ditawarkan opsi pemulihan cadangan (*snapshot recovery*).
-3. **Penjaga Versi Masa Depan (*Forward-Version Guard*)**:
-   Jika sebuah basis data dibuka oleh biner Finnca dengan versi skema lebih rendah dari yang tercatat di `PRAGMA user_version` (`current_user_version > MAX_SUPPORTED_SCHEMA_VERSION`), aplikasi menolak membuka vault dengan pesan informatif: *"Basis data ini diperbarui oleh versi Finnca yang lebih baru. Silakan perbarui aplikasi Anda."*
+   Setiap kali vault dibuka, aplikasi menjalankan `PRAGMA quick_check;`. Jika terdeteksi korupsi basis data, proses membuka vault dihentikan dan pengguna ditawarkan opsi pemulihan cadangan (_snapshot recovery_).
+3. **Penjaga Versi Masa Depan (_Forward-Version Guard_)**:
+   Jika sebuah basis data dibuka oleh biner Finnca dengan versi skema lebih rendah dari yang tercatat di `PRAGMA user_version` (`current_user_version > MAX_SUPPORTED_SCHEMA_VERSION`), aplikasi menolak membuka vault dengan pesan informatif: _"Basis data ini diperbarui oleh versi Finnca yang lebih baru. Silakan perbarui aplikasi Anda."_
 
 ### 6. Spesifikasi Berkas Pembaruan Offline Mandiri (`.finnca-pkg`)
 
-Untuk mendukung instalasi pada komputer yang terisolasi dari internet (*airgapped network*), kami menetapkan spesifikasi format kontainer paket pembaruan offline: `.finnca-pkg`.
+Untuk mendukung instalasi pada komputer yang terisolasi dari internet (_airgapped network_), kami menetapkan spesifikasi format kontainer paket pembaruan offline: `.finnca-pkg`.
 
 Struktur kontainer berkas `.finnca-pkg` (format ZIP):
+
 ```
 finnca-0.3.0-linux-x86_64.finnca-pkg
 ├── manifest.json            # Metadata rilis, changelog, dan hash
@@ -171,6 +179,7 @@ finnca-0.3.0-linux-x86_64.finnca-pkg
 ```
 
 Backend Rust menyediakan perintah IPC `import_offline_update_cmd(file_path: String)` yang:
+
 1. Mengekstrak dan memverifikasi tanda tangan `signature.minisig` terhadap kunci publik Minisign bawaan aplikasi.
 2. Memverifikasi hash `checksums.sha256`.
 3. Mempersiapkan biner baru ke area staging dan mengaktifkan protokol watchdog pemulihan crash.
@@ -181,6 +190,7 @@ Backend Rust menyediakan perintah IPC `import_offline_update_cmd(file_path: Stri
 ## Consequences
 
 ### Positif
+
 - **Kekebalan Mutlak Terhadap Crash Loop**: Pengguna terlindungi 100% dari situasi biner rusak atau inkompatibilitas sistem operasi berkat fitur rollback atomik otomatis.
 - **Integritas Rantai Pasok Biner**: Skrip shell, PowerShell, dan in-app updater memiliki perlindungan tanda tangan Minisign dan hash SHA-256 yang seragam.
 - **Ketahanan Basis Data Finansial**: Transaksionalitas migrasi menjamin bahwa kegagalan sistem saat upgrade tidak akan pernah merusak skema SQLCipher.
@@ -188,10 +198,11 @@ Backend Rust menyediakan perintah IPC `import_offline_update_cmd(file_path: Stri
 - **Kepatuhan Fasilitas Airgapped**: Format `.finnca-pkg` memungkinkan pembaharuan di lingkungan institusi atau brankas offline tanpa sambungan internet.
 
 ### Trade-off & Mitigasi
+
 - **Alokasi Ruang Disk Temporer untuk Cadangan Biner**: Penyimpanan berkas `<exe_path>.backup` membutuhkan ruang disk temporer sekitar 60–120 MB selama jendela waktu pengujian 15 detik.  
-  *Mitigasi*: Berkas cadangan otomatis dihapus secara permanen segera setelah aplikasi melewati masa uji coba stabil 15 detik.
+  _Mitigasi_: Berkas cadangan otomatis dihapus secara permanen segera setelah aplikasi melewati masa uji coba stabil 15 detik.
 - **Waktu Eksekusi Skrip CLI Bertambah Sedikit**: Verifikasi hash SHA-256 di skrip bash/PowerShell menambah waktu instalasi sekitar 0.5–1 detik.  
-  *Mitigasi*: Tambahan waktu ini sepadan dengan jaminan keamanan dan pencegahan instalasi berkas biner korup.
+  _Mitigasi_: Tambahan waktu ini sepadan dengan jaminan keamanan dan pencegahan instalasi berkas biner korup.
 
 ---
 
@@ -454,12 +465,12 @@ pub fn run_migrations_transactional(conn: &mut Connection) -> Result<(), AppErro
     // Jalankan seluruh migrasi yang tertunda dalam transaksi terisolasi
     for v in (current_version + 1)..=MAX_SUPPORTED_SCHEMA_VERSION {
         let migration_sql = get_migration_sql(v)?;
-        
+
         let mut tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         tx.execute_batch(migration_sql)?;
         tx.pragma_update(None, "user_version", v)?;
         tx.commit()?;
-        
+
         println!("[MIGRATION SUCCESS] Skema berhasil ditingkatkan ke versi {v}");
     }
 
@@ -577,7 +588,7 @@ Format manifes `manifest.json` di dalam kontainer ZIP `.finnca-pkg`:
 
 ### 6. Metode Verifikasi Independen
 
-1. **Uji Penanganan Crash Watchdog (*Watchdog Simulation*)**:
+1. **Uji Penanganan Crash Watchdog (_Watchdog Simulation_)**:
    - Tulis berkas tiruan `.boot_state` dengan `attempts: 1`.
    - Jalankan fungsi `inspect_and_guard_startup()` di bawah kondisi di mana peluncuran berikutnya crash.
    - Verifikasi bahwa sistem mengeksekusi `execute_atomic_rollback()` dan memulihkan biner cadangan `<exe_path>.backup`.
@@ -599,4 +610,3 @@ Format manifes `manifest.json` di dalam kontainer ZIP `.finnca-pkg`:
 6. **Uji Rollback Biner Berjalan Lintas-Platform**:
    - Simulasikan pemanggilan `execute_atomic_rollback()` saat biner sedang aktif.
    - Verifikasi bahwa pada Linux berkas lama di-unlink sebelum penggantian (menghindari `ETXTBSY`), pada Windows dilakukan rename `.corrupt.old` swap, dan jika `$APPIMAGE` diset, berkas outer AppImage yang dipulihkan (menghindari `EROFS` pada mount squashfs).
-

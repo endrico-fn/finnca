@@ -71,7 +71,10 @@ class DiagnosticsStore {
         /(?:\b(USD|IDR|EUR|GBP|SGD|JPY|CAD|AUD|CHF|CNY|HKD|NZD|KRW|Rp)\b|[$€£¥])/gi,
         '[CURRENCY_MASKED]'
       )
-      .replace(/-?\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2,})?\b|-?\b\d+([.,]\d{2,})?\b/g, '[NUMERIC_MASKED]');
+      .replace(
+        /-?\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2,})?\b|-?\b\d+([.,]\d{2,})?\b/g,
+        '[NUMERIC_MASKED]'
+      );
   }
 
   clear() {

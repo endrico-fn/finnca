@@ -851,10 +851,9 @@ pub fn export_vault_backup_folder(
     let canonical_dest = dest_path
         .canonicalize()
         .map_err(|e| format!("Invalid destination directory: {e}"))?;
-    let dest_str = canonical_dest.to_string_lossy();
-
     #[cfg(unix)]
     {
+        let dest_str = canonical_dest.to_string_lossy();
         let forbidden = [
             "/etc", "/root", "/boot", "/sys", "/proc", "/bin", "/sbin", "/usr", "/dev",
         ];

@@ -6,32 +6,33 @@ Accepted (Standar Arsitektur Ekstensibilitas Fase 2)
 
 ## Context
 
-Aplikasi desktop Finnca dirancang sebagai sistem pencatatan keuangan pribadi tingkat lanjut (*advanced personal finance note & double-entry ledger*) yang mengutamakan privasi terisolasi (*vault-centric*) dan komputasi presisi tinggi tanpa kompromi (*zero-float invariant*). Untuk memperluas kapabilitas ekosistem tanpa membebani repositori inti (*core engine*), Finnca memerlukan arsitektur ekstensibilitas (*plugin system*) pihak ketiga dan komunitas untuk tiga kasus penggunaan utama:
+Aplikasi desktop Finnca dirancang sebagai sistem pencatatan keuangan pribadi tingkat lanjut (_advanced personal finance note & double-entry ledger_) yang mengutamakan privasi terisolasi (_vault-centric_) dan komputasi presisi tinggi tanpa kompromi (_zero-float invariant_). Untuk memperluas kapabilitas ekosistem tanpa membebani repositori inti (_core engine_), Finnca memerlukan arsitektur ekstensibilitas (_plugin system_) pihak ketiga dan komunitas untuk tiga kasus penggunaan utama:
 
 1. **Bank Statement Parsers**: Ekstraksi dan normalisasi mutasi rekening koran dari berbagai institusi perbankan lokal maupun global (misal: BCA, Mandiri, BNI, BRI, Chase, DBS) dengan format dokumen heterogen (CSV, OFX/QFX, SWIFT MT940, CAMT.053 XML, hingga PDF bank statement).
-2. **Custom Financial Reports**: Pembuatan laporan dan analisis keuangan kustom sesuai kebutuhan yurisdiksi atau preferensi personal (misal: formulir pajak penghasilan Indonesia SPT Tahunan PPh 21 / PPh Final 0.5% UMKM, simulasi *cash flow runway*, atau model *portfolio rebalancing* multi-mata uang).
+2. **Custom Financial Reports**: Pembuatan laporan dan analisis keuangan kustom sesuai kebutuhan yurisdiksi atau preferensi personal (misal: formulir pajak penghasilan Indonesia SPT Tahunan PPh 21 / PPh Final 0.5% UMKM, simulasi _cash flow runway_, atau model _portfolio rebalancing_ multi-mata uang).
 3. **External Sync Adapters**: Pengiriman draf cadangan terenkripsi atau sinkronisasi ledger berbasis teks ke penyimpanan terdistribusi (WebDAV, Nextcloud, S3 cold storage, atau Git repository berbasis Beancount/plain-text ledger).
 
 ### Tantangan Keamanan & Invarian Finansial
 
 Pengenalan kode pihak ketiga ke dalam aplikasi keuangan menghadirkan risiko keamanan eksistensial:
-- **Eksfiltrasi Kunci Kriptografi & Database Decrypted**: Finnca menerapkan *envelope encryption* (Argon2id + ChaCha20-Poly1305) dan basis data terenkripsi SQLCipher. Jika plugin berjalan di dalam ruang memori host (*native host address space*), plugin berbahaya dapat memindai heap memori untuk mengekstrak *Key Encryption Key* (KEK), *Data Encryption Key* (DEK), atau membaca halaman plaintext SQLite langsung dari buffer SQLCipher.
-- **Kontaminasi Angka Pecahan (*Zero-Float Violation*)**: Aksioma fundamental Finnca (AGENTS.md § 1.3) melarang keras penggunaan tipe data floating-point (`f32`, `f64`, `number`) dalam komputasi saldo dan jurnal. Seluruh angka moneter wajib beroperasi pada integer minor units (`i64` / `i128`). Plugin yang memancarkan angka desimal IEEE-754 berpotensi merusak integritas pembukuan buku besar.
-- **Invarian Jurnal Berpasangan (*Double-Entry & Debit-First*)**: Setiap mutasi wajib mematuhi aturan balance `sum(Debit) == sum(Credit)` dan urutan kaki standar Debit-First (Index 0 = Debit, Index 1 = Kredit). Plugin tidak boleh diizinkan menulis langsung ke SQLite secara sepihak tanpa validasi host dan konfirmasi pengguna.
-- **Denial of Service (DoS) & UI Freezing**: Parser bank statement yang memproses dokumen besar (hingga 5 MB) atau ekspresi reguler kompleks berisiko mengalami *infinite loop*, menghabiskan memori RAM, atau membekukan event loop Tauri.
+
+- **Eksfiltrasi Kunci Kriptografi & Database Decrypted**: Finnca menerapkan _envelope encryption_ (Argon2id + ChaCha20-Poly1305) dan basis data terenkripsi SQLCipher. Jika plugin berjalan di dalam ruang memori host (_native host address space_), plugin berbahaya dapat memindai heap memori untuk mengekstrak _Key Encryption Key_ (KEK), _Data Encryption Key_ (DEK), atau membaca halaman plaintext SQLite langsung dari buffer SQLCipher.
+- **Kontaminasi Angka Pecahan (_Zero-Float Violation_)**: Aksioma fundamental Finnca (AGENTS.md § 1.3) melarang keras penggunaan tipe data floating-point (`f32`, `f64`, `number`) dalam komputasi saldo dan jurnal. Seluruh angka moneter wajib beroperasi pada integer minor units (`i64` / `i128`). Plugin yang memancarkan angka desimal IEEE-754 berpotensi merusak integritas pembukuan buku besar.
+- **Invarian Jurnal Berpasangan (_Double-Entry & Debit-First_)**: Setiap mutasi wajib mematuhi aturan balance `sum(Debit) == sum(Credit)` dan urutan kaki standar Debit-First (Index 0 = Debit, Index 1 = Kredit). Plugin tidak boleh diizinkan menulis langsung ke SQLite secara sepihak tanpa validasi host dan konfirmasi pengguna.
+- **Denial of Service (DoS) & UI Freezing**: Parser bank statement yang memproses dokumen besar (hingga 5 MB) atau ekspresi reguler kompleks berisiko mengalami _infinite loop_, menghabiskan memori RAM, atau membekukan event loop Tauri.
 
 ### Evaluasi Kandidat Runtime Ekstensibilitas
 
 Kami mengevaluasi 7 kandidat teknologi eksekusi plugin:
 
-| Teknologi Runtime | Isolasi Memori | Pembatasan Komputasi (Fuel/Epoch) | Latensi Eksekusi | Ekosistem Penulis Plugin | Overhead Biner | Keputusan |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Native DLLs (`libloading`)** | **Zero (0/10)**: Akses penuh ke heap host & pointer SQLCipher. | Tidak ada (dapat membekukan host secara permanen). | < 0.01 ms | Terbatas (C ABI, Rust, Zig). | < 50 KB | **DITOLAK MUTLAK**: Melanggar keamanan vault secara fatal. |
-| **Embedded Lua (`mlua`)** | **Rendah (4/10)**: Berbagi heap proses; bergantung pada keamanan C VM. | Hook instruksi sederhana (tidak deterministik). | < 0.2 ms | Sangat sempit untuk komunitas analisis keuangan. | ~ 500 KB | **DITOLAK**: Ekosistem parser perbankan tidak menggunakan Lua. |
-| **Embedded JS (`rquickjs`)** | **Sedang (5/10)**: VM sandbox logis, namun memori berada di proses C/Rust. | Hook waktu/tick sederhana. | < 0.5 ms | Hanya JavaScript/TypeScript; tidak mendukung bahasa kompilasi. | ~ 1.5 MB | **DITOLAK**: Kurang deterministik dan isolasi heap rentan eksfiltrasi. |
-| **Standalone Wasmtime** | **Maksimum (10/10)**: *Linear memory sandbox* terisolasi perangkat keras. | Metering bahan bakar (*fuel*) & epoch timeout deterministik. | Cold: 2 ms<br>Warm: < 0.1 ms | Polyglot (Rust, Go, C, TS via Component Model/Wasm). | ~ 3.5 MB | **ALTERNATIF LAYAK**: Memerlukan boilerplate ABI scaffolding manual yang sangat besar. |
-| **Out-of-Process CLI** | **Tinggi (8/10)**: Proses OS terpisah. | Manajemen via process kill OS (`SIGKILL`). | Cold: 50–200 ms<br>Warm: 5–10 ms | Bergantung pada runtime lokal pengguna (Node/Python). | 0 MB host (tetapi butuh dependensi OS). | **DITOLAK**: Latensi IPC pipa OS terlalu tinggi; instalasi runtime eksternal rapuh. |
-| **Extism (Wasmtime Backend)** | **Maksimum (10/10)**: *Linear memory* Wasmtime + sandboxing WASI. | *Fuel budget* per instruksi + *wall-clock epoch interrupts*. | Cold: 2–4 ms<br>Warm: < 0.2 ms | **Sangat Luas (16+ PDK)**: Rust, TypeScript/JS, Go, Python, Zig, C. | ~ 3.8 MB | **TERPILIH (WINNER)**: Tingkat keamanan militer, PDK terstandarisasi, dan kontrol host ketat. |
+| Teknologi Runtime              | Isolasi Memori                                                             | Pembatasan Komputasi (Fuel/Epoch)                            | Latensi Eksekusi                 | Ekosistem Penulis Plugin                                            | Overhead Biner                          | Keputusan                                                                                     |
+| :----------------------------- | :------------------------------------------------------------------------- | :----------------------------------------------------------- | :------------------------------- | :------------------------------------------------------------------ | :-------------------------------------- | :-------------------------------------------------------------------------------------------- |
+| **Native DLLs (`libloading`)** | **Zero (0/10)**: Akses penuh ke heap host & pointer SQLCipher.             | Tidak ada (dapat membekukan host secara permanen).           | < 0.01 ms                        | Terbatas (C ABI, Rust, Zig).                                        | < 50 KB                                 | **DITOLAK MUTLAK**: Melanggar keamanan vault secara fatal.                                    |
+| **Embedded Lua (`mlua`)**      | **Rendah (4/10)**: Berbagi heap proses; bergantung pada keamanan C VM.     | Hook instruksi sederhana (tidak deterministik).              | < 0.2 ms                         | Sangat sempit untuk komunitas analisis keuangan.                    | ~ 500 KB                                | **DITOLAK**: Ekosistem parser perbankan tidak menggunakan Lua.                                |
+| **Embedded JS (`rquickjs`)**   | **Sedang (5/10)**: VM sandbox logis, namun memori berada di proses C/Rust. | Hook waktu/tick sederhana.                                   | < 0.5 ms                         | Hanya JavaScript/TypeScript; tidak mendukung bahasa kompilasi.      | ~ 1.5 MB                                | **DITOLAK**: Kurang deterministik dan isolasi heap rentan eksfiltrasi.                        |
+| **Standalone Wasmtime**        | **Maksimum (10/10)**: _Linear memory sandbox_ terisolasi perangkat keras.  | Metering bahan bakar (_fuel_) & epoch timeout deterministik. | Cold: 2 ms<br>Warm: < 0.1 ms     | Polyglot (Rust, Go, C, TS via Component Model/Wasm).                | ~ 3.5 MB                                | **ALTERNATIF LAYAK**: Memerlukan boilerplate ABI scaffolding manual yang sangat besar.        |
+| **Out-of-Process CLI**         | **Tinggi (8/10)**: Proses OS terpisah.                                     | Manajemen via process kill OS (`SIGKILL`).                   | Cold: 50–200 ms<br>Warm: 5–10 ms | Bergantung pada runtime lokal pengguna (Node/Python).               | 0 MB host (tetapi butuh dependensi OS). | **DITOLAK**: Latensi IPC pipa OS terlalu tinggi; instalasi runtime eksternal rapuh.           |
+| **Extism (Wasmtime Backend)**  | **Maksimum (10/10)**: _Linear memory_ Wasmtime + sandboxing WASI.          | _Fuel budget_ per instruksi + _wall-clock epoch interrupts_. | Cold: 2–4 ms<br>Warm: < 0.2 ms   | **Sangat Luas (16+ PDK)**: Rust, TypeScript/JS, Go, Python, Zig, C. | ~ 3.8 MB                                | **TERPILIH (WINNER)**: Tingkat keamanan militer, PDK terstandarisasi, dan kontrol host ketat. |
 
 ---
 
@@ -39,37 +40,37 @@ Kami mengevaluasi 7 kandidat teknologi eksekusi plugin:
 
 Kami menetapkan adopsi **Extism** (berbasis runtime Wasmtime dari Bytecode Alliance) yang diintegrasikan langsung ke dalam backend Rust Finnca (`src-tauri/src/plugins/`) sebagai satu-satunya arsitektur ekstensibilitas aplikasi:
 
-1. **Isolasi Memori Linear Wasm (*Hardware-Enforced Linear Memory*)**:
+1. **Isolasi Memori Linear Wasm (_Hardware-Enforced Linear Memory_)**:
    - Setiap instansiasi plugin dieksekusi di dalam ruang memori linier 32-bit WebAssembly yang sepenuhnya terisolasi dari heap proses utama Finnca.
-   - Diberlakukan batas keras alokasi memori (*hard memory cap*) sebesar **32 MB** per plugin (`max_pages = 512`). Upaya alokasi memori melebihi batas ini memicu *out-of-memory trap* yang ditangani secara aman oleh host tanpa memengaruhi kestabilan aplikasi.
+   - Diberlakukan batas keras alokasi memori (_hard memory cap_) sebesar **32 MB** per plugin (`max_pages = 512`). Upaya alokasi memori melebihi batas ini memicu _out-of-memory trap_ yang ditangani secara aman oleh host tanpa memengaruhi kestabilan aplikasi.
    - Plugin tidak memiliki akses ke pointer host, handle koneksi SQLite, KEK, DEK, maupun buffer SQLCipher.
 
-2. **Pengendalian Eksekusi Deterministik (*Instruction Fuel & Epoch Deadlines*)**:
-   - Setiap pemanggilan fungsi plugin dibatasi oleh kuota instruksi (*fuel budget*) maksimal **10.000.000 unit**.
-   - Setiap pemanggilan dibatasi oleh batas waktu jam dinding (*wall-clock timeout*) maksimal **5.000 milidetik (5 detik)** menggunakan mekanisme *epoch deadline* Wasmtime.
-   - *Infinite loop*, *regex catastrophic backtracking* (ReDoS), atau kalkulasi tak terhingga akan dihentikan paksa (*aborted*) oleh host dengan mengembalikan kode kesalahan `ERR_PLUGIN_TIMEOUT` atau `ERR_PLUGIN_OUT_OF_FUEL`.
+2. **Pengendalian Eksekusi Deterministik (_Instruction Fuel & Epoch Deadlines_)**:
+   - Setiap pemanggilan fungsi plugin dibatasi oleh kuota instruksi (_fuel budget_) maksimal **10.000.000 unit**.
+   - Setiap pemanggilan dibatasi oleh batas waktu jam dinding (_wall-clock timeout_) maksimal **5.000 milidetik (5 detik)** menggunakan mekanisme _epoch deadline_ Wasmtime.
+   - _Infinite loop_, _regex catastrophic backtracking_ (ReDoS), atau kalkulasi tak terhingga akan dihentikan paksa (_aborted_) oleh host dengan mengembalikan kode kesalahan `ERR_PLUGIN_TIMEOUT` atau `ERR_PLUGIN_OUT_OF_FUEL`.
 
-3. **Gerbang Validasi Anti-Kontaminasi Pecahan (*Zero-Float Gateway*)**:
+3. **Gerbang Validasi Anti-Kontaminasi Pecahan (_Zero-Float Gateway_)**:
    - Komunikasi data melintasi batas host-plugin menggunakan format serialisasi memori terstruktur (JSON / MessagePack).
    - Seluruh payload keluaran dari plugin dipindai oleh deserializer validasi host (`validate_zero_float_integrity`).
    - **Penolakan Mutlak Seluruh Float IEEE-754**: Setiap token angka pada JSON/MessagePack yang berjenis floating-point (`num.is_f64()`) langsung ditolak tanpa syarat dengan galat fatal `ERR_PLUGIN_FLOAT_VIOLATION`. Tidak ada toleransi untuk angka tanpa sisa pecahan (`fract() == 0.0`), sehingga payload seperti `15000.0`, notasi ilmiah `1e2`, angka besar `1e20`, maupun float berisiko pembulatan presisi mantissa 53-bit langsung ditolak keras sebelum mencapai deserializer DTO. Hanya bilangan bulat murni (`i64` / `u64`) dalam rentang minor units yang diizinkan.
    - **Pemindaian String Numerik Terselubung & Nilai Non-Finit**: Deserializer memeriksa seluruh nilai string (`Value::String`). String yang memuat nilai non-finit (`"NaN"`, `"Infinity"`, `"-Infinity"`, `"inf"`, `"-inf"`) atau representasi angka desimal pecahan/eksponensial (misal `"15000.50"`, `"1e3"`) langsung digagalkan untuk mencegah penyelundupan representasi float melalui tipe data teks.
-   - Seluruh nominal moneter wajib dinyatakan dalam format bilangan bulat terkecil (*integer minor units*, tipe `i64` / `i128`), dan metrik tren persentase wajib dinyatakan dalam *basis points* (`trend_basis_points: Option<i64>`).
+   - Seluruh nominal moneter wajib dinyatakan dalam format bilangan bulat terkecil (_integer minor units_, tipe `i64` / `i128`), dan metrik tren persentase wajib dinyatakan dalam _basis points_ (`trend_basis_points: Option<i64>`).
 
 4. **Invarian Double-Entry & Penegakan Standar Debit-First**:
-   - Plugin **dilarang keras** memiliki akses tulis langsung (*direct write*) ke berkas SQLite atau SQLCipher.
-   - Plugin hanya diizinkan memancarkan objek draf (*draft proposals*): `DraftJournalEntry` atau `ParsedStatementRow`.
-   - **Validasi Gerbang Host (*Host Invariant Gateway*)**:
+   - Plugin **dilarang keras** memiliki akses tulis langsung (_direct write_) ke berkas SQLite atau SQLCipher.
+   - Plugin hanya diizinkan memancarkan objek draf (_draft proposals_): `DraftJournalEntry` atau `ParsedStatementRow`.
+   - **Validasi Gerbang Host (_Host Invariant Gateway_)**:
      Sebelum draf diproses atau disajikan ke pengguna, fungsi validasi host `validate_plugin_draft_entry` secara eksplisit menegakkan:
      - **Invarian Debit-First**: Untuk entri 2-kaki (Transfer / Simple Entry), urutan kaki dibakukan mutlak: `postings[0]` adalah Debit (`amount >= 0`, akun tujuan/penerima) dan `postings[1]` adalah Kredit (`amount <= 0`, akun sumber/pengirim). Proposal draf dengan urutan terbalik (`[Credit, Debit]`) langsung ditolak dengan kode `ERR_PLUGIN_INVARIANT_DEBIT_FIRST`.
      - **Nominal Non-Nol**: Memastikan tidak ada kaki transaksi dengan nominal 0 (`amount != 0`).
      - **Keseimbangan Double-Entry**: Memastikan `sum(Debit) == sum(Credit)` per mata uang / komoditas melalui `validate_postings_balance_with_context`.
-   - Draf transaksi hanya dapat dimasukkan ke dalam buku besar permanen setelah melalui verifikasi visual dan persetujuan eksplisit (*user confirmation*) dari pengguna pada antarmuka frontend.
+   - Draf transaksi hanya dapat dimasukkan ke dalam buku besar permanen setelah melalui verifikasi visual dan persetujuan eksplisit (_user confirmation_) dari pengguna pada antarmuka frontend.
 
-5. **Model Hak Akses Berbasis Manifestasi Kapabilitas (*Capability Manifest*)**:
+5. **Model Hak Akses Berbasis Manifestasi Kapabilitas (_Capability Manifest_)**:
    - Setiap plugin wajib menyertakan berkas konfigurasi deklaratif `plugin.toml` yang mendefinisikan identitas kriptografis dan izin yang dibutuhkan.
    - Hak akses filesystem default adalah `fs:none` (WASI filesystem diblokir). Plugin hanya menerima buffer berkas input yang diinjeksikan secara aman oleh host (maksimal 5 MB).
-   - Hak akses jaringan default adalah `net:none` (WASI socket diblokir). Plugin sync adapter yang memerlukan komunikasi internet wajib mendeklarasikan domain HTTPS yang diizinkan (*domain whitelist*), yang harus disetujui pengguna saat pemasangan plugin.
+   - Hak akses jaringan default adalah `net:none` (WASI socket diblokir). Plugin sync adapter yang memerlukan komunikasi internet wajib mendeklarasikan domain HTTPS yang diizinkan (_domain whitelist_), yang harus disetujui pengguna saat pemasangan plugin.
    - Verifikasi integritas biner: Host memvalidasi checksum SHA-256 dan tanda tangan digital Minisign dari berkas `plugin.wasm` sebelum memuat modul ke dalam memori.
 
 ---
@@ -77,19 +78,21 @@ Kami menetapkan adopsi **Extism** (berbasis runtime Wasmtime dari Bytecode Allia
 ## Consequences
 
 ### Positif
+
 - **Isolasi Keamanan Tingkat Tinggi**: Kunci kriptografi envelope encryption, halaman plaintext SQLite, dan data rahasia pengguna aman 100% dari eksfiltrasi karena isolasi batas memori linier WebAssembly.
 - **Ekosistem Penulis Plugin Multibahasa (Polyglot)**: Komunitas dapat menulis plugin dalam bahasa pemrograman favorit mereka (Rust, TypeScript/JavaScript, Go via TinyGo, Python via Componentize-Py, Zig, atau C) menggunakan Extism Plug-in Development Kit (PDK) resmi.
-- **Kekebalan terhadap UI Freeze & DoS**: Pembatasan *instruction fuel* dan *epoch timeout* menjamin plugin bermasalah tidak akan pernah menggantung antarmuka desktop Finnca.
+- **Kekebalan terhadap UI Freeze & DoS**: Pembatasan _instruction fuel_ dan _epoch timeout_ menjamin plugin bermasalah tidak akan pernah menggantung antarmuka desktop Finnca.
 - **Konsistensi Invarian Akuntansi Mutlak**: Gerbang Zero-Float dan validasi double-entry di sisi Rust host menjamin buku besar tidak akan pernah terkontaminasi oleh angka pecahan floating-point IEEE-754.
-- **Arsitektur Tanpa Instalasi Eksternal**: Pengguna akhir tidak perlu menginstal Node.js, Python, atau runtime pihak ketiga apa pun di komputer mereka; modul `.wasm` berjalan secara *self-contained* di dalam binary Finnca.
+- **Arsitektur Tanpa Instalasi Eksternal**: Pengguna akhir tidak perlu menginstal Node.js, Python, atau runtime pihak ketiga apa pun di komputer mereka; modul `.wasm` berjalan secara _self-contained_ di dalam binary Finnca.
 
 ### Trade-off & Mitigasi
+
 - **Pertambahan Ukuran Biner (+3.8 MB)**: Mesin Wasmtime dan compiler Cranelift menambahkan sekitar 3.8 MB hingga 4.5 MB pada biner terkompilasi `finnca_lib`.  
-  *Mitigasi*: Dikompensasi dengan konfigurasi optimasi biner rilis (*Fat LTO*, `codegen-units = 1`, dan `strip = true`) yang memangkas overhead biner secara keseluruhan.
+  _Mitigasi_: Dikompensasi dengan konfigurasi optimasi biner rilis (_Fat LTO_, `codegen-units = 1`, dan `strip = true`) yang memangkas overhead biner secara keseluruhan.
 - **Overhead Serialisasi Lintas Batas Memori**: Pengiriman buffer data antara memori host Rust dan memori linier Wasm memerlukan serialisasi/deserialisasi (< 0.5 ms untuk berkas 5 MB).  
-  *Mitigasi*: Karena parsing dokumen perbankan dipicu oleh interaksi pengguna (bukan loop animasi 60 FPS), latensi sub-milidetik ini sepenuhnya imperseptibel bagi pengguna.
+  _Mitigasi_: Karena parsing dokumen perbankan dipicu oleh interaksi pengguna (bukan loop animasi 60 FPS), latensi sub-milidetik ini sepenuhnya imperseptibel bagi pengguna.
 - **Kompleksitas Kompilasi Parser PDF di Guest Wasm**: Parsing dokumen PDF di dalam Wasm memerlukan pustaka PDF berbasis Rust/Go murni tanpa dependensi library C sistem (seperti Poppler).  
-  *Mitigasi*: Disediakan template resmi `finnca-plugin-starter` dengan parser PDF berbasis pure-Rust (`lopdf` / `pdf-extract`) yang telah dikonfigurasi untuk target `wasm32-wasip1`.
+  _Mitigasi_: Disediakan template resmi `finnca-plugin-starter` dengan parser PDF berbasis pure-Rust (`lopdf` / `pdf-extract`) yang telah dikonfigurasi untuk target `wasm32-wasip1`.
 
 ---
 
@@ -518,18 +521,18 @@ pub fn validate_plugin_draft_entry(
 
 ### 5. Strategi Pengujian & Verifikasi Kepatuhan Invarian
 
-1. **Uji Penolakan Floating Point Komprehensif (*Zero-Float Rejection Test*)**:
+1. **Uji Penolakan Floating Point Komprehensif (_Zero-Float Rejection Test_)**:
    - Menyuapkan payload dengan pecahan desimal: `{"amount": 15000.50}` -> Wajib gagal (`ERR_PLUGIN_FLOAT_VIOLATION`).
    - Menyuapkan payload dengan pecahan nol: `{"amount": 15000.0}` -> Wajib gagal (`num.is_f64()` ditolak tanpa syarat).
    - Menyuapkan notasi ilmiah: `{"amount": 1e2}` dan `{"amount": 1e20}` -> Wajib gagal (`ERR_PLUGIN_FLOAT_VIOLATION`).
    - Menyuapkan string angka pecahan: `{"amount": "15000.50"}` -> Wajib gagal (`ERR_PLUGIN_FLOAT_VIOLATION`).
    - Menyuapkan string non-finit: `{"amount": "NaN"}`, `{"trend": "Infinity"}` -> Wajib gagal (`ERR_PLUGIN_FLOAT_VIOLATION`).
    - Menyuapkan integer valid: `{"amount": 1500000, "trend_basis_points": 520}` -> Wajib sukses (`Ok(())`).
-2. **Uji Penegakan Invarian Debit-First (*Debit-First Enforcement Test*)**:
+2. **Uji Penegakan Invarian Debit-First (_Debit-First Enforcement Test_)**:
    - Menyuapkan draf 2-kaki standar: `[Debit: +10000, Credit: -10000]` -> Lulus verifikasi (`Ok(())`).
    - Menyuapkan draf terbalik: `[Credit: -10000, Debit: +10000]` -> Ditolak keras oleh host gateway dengan kode `ERR_PLUGIN_INVARIANT_DEBIT_FIRST`.
    - Menyuapkan draf tidak seimbang: `[Debit: +10000, Credit: -9000]` -> Ditolak dengan kode `ERR_PLUGIN_UNBALANCED_ENTRY`.
-3. **Uji Isolasi Memori (*Out-of-Memory Trap Test*)**:
+3. **Uji Isolasi Memori (_Out-of-Memory Trap Test_)**:
    Menjalankan modul WebAssembly yang mencoba mengalokasikan memori melebihi 32 MB (`vec![0u8; 40 * 1024 * 1024]`). Verifikasi bahwa Extism memicu trap dan host menangani error secara elegan tanpa crash.
-4. **Uji Batas Waktu (*Timeout / Infinite Loop Test*)**:
+4. **Uji Batas Waktu (_Timeout / Infinite Loop Test_)**:
    Menjalankan modul WebAssembly yang memuat `loop {}`. Verifikasi bahwa host memutus eksekusi tepat setelah 5.000 milidetik dan mengembalikan `ERR_PLUGIN_TIMEOUT`.

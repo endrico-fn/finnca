@@ -58,20 +58,44 @@ pub fn get_account_reconciliation_status(
 
     for r in rows {
         let p = r?;
-        total_balance += p.amount;
+        total_balance = total_balance.checked_add(p.amount).ok_or_else(|| {
+            AppError::InvalidInput(
+                "Integer overflow detected during reconciliation calculation".into(),
+            )
+        })?;
 
         match p.reconciled.as_str() {
             "y" => {
-                reconciled_balance += p.amount;
-                cleared_balance += p.amount;
+                reconciled_balance = reconciled_balance.checked_add(p.amount).ok_or_else(|| {
+                    AppError::InvalidInput(
+                        "Integer overflow detected during reconciliation calculation".into(),
+                    )
+                })?;
+                cleared_balance = cleared_balance.checked_add(p.amount).ok_or_else(|| {
+                    AppError::InvalidInput(
+                        "Integer overflow detected during reconciliation calculation".into(),
+                    )
+                })?;
             }
             "c" => {
-                cleared_balance += p.amount;
-                uncleared_balance += p.amount;
+                cleared_balance = cleared_balance.checked_add(p.amount).ok_or_else(|| {
+                    AppError::InvalidInput(
+                        "Integer overflow detected during reconciliation calculation".into(),
+                    )
+                })?;
+                uncleared_balance = uncleared_balance.checked_add(p.amount).ok_or_else(|| {
+                    AppError::InvalidInput(
+                        "Integer overflow detected during reconciliation calculation".into(),
+                    )
+                })?;
                 uncleared_postings.push(p);
             }
             _ => {
-                uncleared_balance += p.amount;
+                uncleared_balance = uncleared_balance.checked_add(p.amount).ok_or_else(|| {
+                    AppError::InvalidInput(
+                        "Integer overflow detected during reconciliation calculation".into(),
+                    )
+                })?;
                 uncleared_postings.push(p);
             }
         }
@@ -98,21 +122,35 @@ pub fn get_reconciliation_status_cmd(
     get_account_reconciliation_status(&conn, &account_id)
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn set_posting_reconciled_cmd(
-    state: State<'_, AppState>,
-    posting_id: String,
-    status: String,
+pub fn set_posting_reconciled(
+    conn: &mut Connection,
+    actor: &str,
+    posting_id: &str,
+    status: &str,
 ) -> Result<(), AppError> {
-    if !matches!(status.as_str(), "n" | "c" | "y") {
+    if !matches!(status, "n" | "c" | "y") {
         return Err(AppError::InvalidInput(
             "reconciled status must be 'n', 'c', or 'y'".into(),
         ));
     }
 
-    let db = state.get_db()?;
-    let conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    let tx = conn.transaction()?;
+    let closing_date = crate::ledger::repository::get_closing_date(&tx)?;
+
+    let entry_date: String = tx
+        .query_row(
+            "SELECT je.date FROM postings p JOIN journal_entries je ON je.id = p.entry_id WHERE p.id = ?1;",
+            params![posting_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => {
+                AppError::NotFound(format!("posting id={posting_id}"))
+            }
+            other => AppError::Database(other),
+        })?;
+
+    crate::ledger::validation::validate_not_in_locked_period(&entry_date, closing_date.as_deref())?;
 
     let reconciled_at = if status == "y" {
         Some(now_unix())
@@ -120,7 +158,7 @@ pub fn set_posting_reconciled_cmd(
         None
     };
 
-    let affected = conn.execute(
+    let affected = tx.execute(
         "UPDATE postings SET reconciled = ?2, reconciled_at = ?3 WHERE id = ?1;",
         params![posting_id, status, reconciled_at],
     )?;
@@ -129,25 +167,37 @@ pub fn set_posting_reconciled_cmd(
         return Err(AppError::NotFound(format!("posting id={posting_id}")));
     }
 
+    let _ = audit::record(
+        &tx,
+        actor,
+        AuditAction::ReconcileAccount,
+        "POSTING",
+        posting_id,
+        Some(&format!("Set posting reconciliation status to '{status}'")),
+    );
+
+    tx.commit()?;
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn bulk_set_postings_reconciled_cmd(
-    state: State<'_, AppState>,
-    posting_ids: Vec<String>,
-    status: String,
+pub fn bulk_set_postings_reconciled(
+    conn: &mut Connection,
+    actor: &str,
+    posting_ids: &[String],
+    status: &str,
 ) -> Result<(), AppError> {
-    if !matches!(status.as_str(), "n" | "c" | "y") {
+    if !matches!(status, "n" | "c" | "y") {
         return Err(AppError::InvalidInput(
             "reconciled status must be 'n', 'c', or 'y'".into(),
         ));
     }
 
-    let db = state.get_db()?;
-    let mut conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    if posting_ids.is_empty() {
+        return Ok(());
+    }
+
     let tx = conn.transaction()?;
+    let closing_date = crate::ledger::repository::get_closing_date(&tx)?;
 
     let reconciled_at = if status == "y" {
         Some(now_unix())
@@ -156,12 +206,134 @@ pub fn bulk_set_postings_reconciled_cmd(
     };
 
     {
+        let mut check_stmt = tx.prepare(
+            "SELECT je.date FROM postings p JOIN journal_entries je ON je.id = p.entry_id WHERE p.id = ?1;",
+        )?;
+        for id in posting_ids {
+            let entry_date: String = check_stmt
+                .query_row(params![id], |row| row.get(0))
+                .map_err(|e| match e {
+                    rusqlite::Error::QueryReturnedNoRows => {
+                        AppError::NotFound(format!("posting id={id}"))
+                    }
+                    other => AppError::Database(other),
+                })?;
+            crate::ledger::validation::validate_not_in_locked_period(
+                &entry_date,
+                closing_date.as_deref(),
+            )?;
+        }
+    }
+
+    {
         let mut stmt =
             tx.prepare("UPDATE postings SET reconciled = ?2, reconciled_at = ?3 WHERE id = ?1;")?;
         for id in posting_ids {
             stmt.execute(params![id, status, reconciled_at])?;
         }
     }
+
+    let _ = audit::record(
+        &tx,
+        actor,
+        AuditAction::ReconcileAccount,
+        "POSTING",
+        "BULK",
+        Some(&format!(
+            "Bulk set {} postings reconciliation status to '{status}'",
+            posting_ids.len()
+        )),
+    );
+
+    tx.commit()?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn set_posting_reconciled_cmd(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    posting_id: String,
+    status: String,
+) -> Result<(), AppError> {
+    let actor = get_actor(&app);
+    let db = state.get_db()?;
+    let mut conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    set_posting_reconciled(&mut conn, &actor, &posting_id, &status)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn bulk_set_postings_reconciled_cmd(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    posting_ids: Vec<String>,
+    status: String,
+) -> Result<(), AppError> {
+    let actor = get_actor(&app);
+    let db = state.get_db()?;
+    let mut conn = db.lock().map_err(|_| AppError::VaultLocked)?;
+    bulk_set_postings_reconciled(&mut conn, &actor, &posting_ids, &status)
+}
+
+pub fn finish_reconciliation(
+    conn: &mut Connection,
+    actor: &str,
+    account_id: &str,
+    posting_ids: &[String],
+) -> Result<(), AppError> {
+    if posting_ids.is_empty() {
+        return Ok(());
+    }
+
+    let tx = conn.transaction()?;
+    let closing_date = crate::ledger::repository::get_closing_date(&tx)?;
+    let now = now_unix();
+
+    {
+        let mut check_stmt = tx.prepare(
+            "SELECT je.date FROM postings p JOIN journal_entries je ON je.id = p.entry_id WHERE p.id = ?1 AND p.account_id = ?2;",
+        )?;
+        for id in posting_ids {
+            let entry_date: String = check_stmt
+                .query_row(params![id, account_id], |row| row.get(0))
+                .map_err(|e| match e {
+                    rusqlite::Error::QueryReturnedNoRows => {
+                        AppError::NotFound(format!("posting id={id} for account={account_id}"))
+                    }
+                    other => AppError::Database(other),
+                })?;
+            crate::ledger::validation::validate_not_in_locked_period(
+                &entry_date,
+                closing_date.as_deref(),
+            )?;
+        }
+    }
+
+    {
+        let mut stmt = tx.prepare(
+            "UPDATE postings SET reconciled = 'y', reconciled_at = ?3
+             WHERE id = ?1 AND account_id = ?2;",
+        )?;
+
+        for id in posting_ids {
+            stmt.execute(params![id, account_id, now])?;
+        }
+    }
+
+    let _ = audit::record(
+        &tx,
+        actor,
+        AuditAction::ReconcileAccount,
+        "ACCOUNT",
+        account_id,
+        Some(&format!(
+            "Reconciled {} postings for account {}",
+            posting_ids.len(),
+            account_id
+        )),
+    );
 
     tx.commit()?;
     Ok(())
@@ -178,36 +350,7 @@ pub fn finish_reconciliation_cmd(
     let actor = get_actor(&app);
     let db = state.get_db()?;
     let mut conn = db.lock().map_err(|_| AppError::VaultLocked)?;
-
-    let now = now_unix();
-    let tx = conn.transaction()?;
-
-    {
-        let mut stmt = tx.prepare(
-            "UPDATE postings SET reconciled = 'y', reconciled_at = ?3
-             WHERE id = ?1 AND account_id = ?2;",
-        )?;
-
-        for id in &posting_ids {
-            stmt.execute(params![id, account_id, now])?;
-        }
-    }
-
-    let _ = audit::record(
-        &tx,
-        &actor,
-        AuditAction::ReconcileAccount,
-        "ACCOUNT",
-        &account_id,
-        Some(&format!(
-            "Reconciled {} postings for account {}",
-            posting_ids.len(),
-            account_id
-        )),
-    );
-
-    tx.commit()?;
-    Ok(())
+    finish_reconciliation(&mut conn, &actor, &account_id, &posting_ids)
 }
 
 #[tauri::command]
@@ -229,13 +372,28 @@ pub fn match_statement_cmd(
     rules::apply_rules_to_unmatched_statements(&mut result.unmatched_statement_rows, &active_rules);
 
     if auto_clear && !result.matches.is_empty() {
+        let closing_date = crate::ledger::repository::get_closing_date(&conn)?;
         let tx = conn.transaction()?;
         {
+            let mut check_stmt = tx.prepare(
+                "SELECT je.date FROM postings p JOIN journal_entries je ON je.id = p.entry_id WHERE p.id = ?1;",
+            )?;
             let mut stmt = tx.prepare(
                 "UPDATE postings SET reconciled = 'c' WHERE id = ?1 AND reconciled = 'n';",
             )?;
             for m in &result.matches {
-                stmt.execute(params![m.posting_id])?;
+                let entry_date: Result<String, _> =
+                    check_stmt.query_row(params![m.posting_id], |row| row.get(0));
+                if let Ok(ref date) = entry_date {
+                    if crate::ledger::validation::validate_not_in_locked_period(
+                        date,
+                        closing_date.as_deref(),
+                    )
+                    .is_ok()
+                    {
+                        stmt.execute(params![m.posting_id])?;
+                    }
+                }
             }
         }
         tx.commit()?;
@@ -307,7 +465,9 @@ pub(crate) fn validate_statement_path(raw_path: &str) -> Result<PathBuf, AppErro
         ));
     }
 
-    if p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+    if p.components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
         return Err(AppError::InvalidInput(
             "Path traversal components ('..') are strictly forbidden".into(),
         ));
@@ -383,7 +543,9 @@ pub(crate) fn validate_statement_path(raw_path: &str) -> Result<PathBuf, AppErro
 
     #[cfg(windows)]
     {
-        let canonical_str_norm = canonical_str.strip_prefix(r"\\?\").unwrap_or(&canonical_str);
+        let canonical_str_norm = canonical_str
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&canonical_str);
         let canonical_upper = canonical_str_norm.to_uppercase();
         let forbidden_windows = [
             "\\WINDOWS",
@@ -654,5 +816,308 @@ mod tests {
                 "Sensitive credential file '{filename}' must be rejected even outside .ssh"
             );
         }
+    }
+
+    #[test]
+    fn test_reconciliation_status_overflow_detected() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        conn.execute(
+            "INSERT INTO accounts (id, code, name, type, currency, placeholder, created_at) VALUES ('acc1', '1001', 'Cash', 'ASSET', 'IDR', 0, 100);",
+            [],
+        )
+        .expect("insert account");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je1', '2026-01-01', 'Deposit', 'IDR', 1, 100);",
+            [],
+        )
+        .expect("insert je1");
+
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p1', 'je1', 'acc1', ?1, 'n');",
+            params![i64::MAX],
+        )
+        .expect("insert p1");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je2', '2026-01-02', 'Deposit 2', 'IDR', 1, 200);",
+            [],
+        )
+        .expect("insert je2");
+
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p2', 'je2', 'acc1', 1, 'n');",
+            [],
+        )
+        .expect("insert p2");
+
+        let res = get_account_reconciliation_status(&conn, "acc1");
+        assert!(matches!(res, Err(AppError::InvalidInput(msg)) if msg.contains("overflow")));
+    }
+
+    #[test]
+    fn test_reconciliation_period_lock_and_audit() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        conn.execute(
+            "INSERT INTO accounts (id, code, name, type, currency, placeholder, created_at) VALUES ('acc1', '1001', 'Cash', 'ASSET', 'IDR', 0, 100);",
+            [],
+        )
+        .expect("insert account");
+
+        // Old entry before lock
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je_old', '2026-01-15', 'Old Tx', 'IDR', 1, 100);",
+            [],
+        )
+        .expect("insert je_old");
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p_old', 'je_old', 'acc1', 50000, 'n');",
+            [],
+        )
+        .expect("insert p_old");
+
+        // Set closing date
+        crate::ledger::repository::set_closing_date(&conn, Some("2026-01-31"))
+            .expect("set closing date");
+
+        // Attempting to set old posting reconciled must fail due to locked period
+        let err_single = set_posting_reconciled(&mut conn, "auditor", "p_old", "y");
+        assert!(matches!(err_single, Err(AppError::PeriodLocked(_))));
+
+        let err_bulk =
+            bulk_set_postings_reconciled(&mut conn, "auditor", &["p_old".to_string()], "y");
+        assert!(matches!(err_bulk, Err(AppError::PeriodLocked(_))));
+
+        // New entry after locked period
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je_new', '2026-02-15', 'New Tx', 'IDR', 1, 200);",
+            [],
+        )
+        .expect("insert je_new");
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p_new', 'je_new', 'acc1', 30000, 'n');",
+            [],
+        )
+        .expect("insert p_new");
+
+        // Single reconciliation update succeeds and records audit log
+        let ok_single = set_posting_reconciled(&mut conn, "auditor", "p_new", "y");
+        assert!(ok_single.is_ok());
+
+        let audit_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM audit_log WHERE entity_id = 'p_new' AND action = 'RECONCILE_ACCOUNT';",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count audit");
+        assert_eq!(audit_count, 1);
+
+        // Bulk reconciliation update succeeds and records audit log
+        let ok_bulk =
+            bulk_set_postings_reconciled(&mut conn, "auditor", &["p_new".to_string()], "c");
+        assert!(ok_bulk.is_ok());
+
+        let bulk_audit_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM audit_log WHERE entity_type = 'POSTING' AND entity_id = 'BULK';",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count bulk audit");
+        assert_eq!(bulk_audit_count, 1);
+    }
+
+    #[test]
+    fn test_reconciliation_status_underflow_detected() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        conn.execute(
+            "INSERT INTO accounts (id, code, name, type, currency, placeholder, created_at) VALUES ('acc1', '1001', 'Cash', 'ASSET', 'IDR', 0, 100);",
+            [],
+        )
+        .expect("insert account");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je1', '2026-01-01', 'Deposit', 'IDR', 1, 100);",
+            [],
+        )
+        .expect("insert je1");
+
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p1', 'je1', 'acc1', ?1, 'n');",
+            params![i64::MIN],
+        )
+        .expect("insert p1");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je2', '2026-01-02', 'Deposit 2', 'IDR', 1, 200);",
+            [],
+        )
+        .expect("insert je2");
+
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p2', 'je2', 'acc1', -1, 'n');",
+            [],
+        )
+        .expect("insert p2");
+
+        let res = get_account_reconciliation_status(&conn, "acc1");
+        assert!(matches!(res, Err(AppError::InvalidInput(msg)) if msg.contains("overflow")));
+    }
+
+    #[test]
+    fn test_bulk_reconcile_atomic_rollback_on_locked_posting() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        conn.execute(
+            "INSERT INTO accounts (id, code, name, type, currency, placeholder, created_at) VALUES ('acc1', '1001', 'Cash', 'ASSET', 'IDR', 0, 100);",
+            [],
+        )
+        .expect("insert account");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je_old', '2026-01-10', 'Locked', 'IDR', 1, 100);",
+            [],
+        )
+        .expect("insert je_old");
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p_old', 'je_old', 'acc1', 10000, 'n');",
+            [],
+        )
+        .expect("insert p_old");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je_new', '2026-02-10', 'Unlocked', 'IDR', 1, 200);",
+            [],
+        )
+        .expect("insert je_new");
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p_new', 'je_new', 'acc1', 20000, 'n');",
+            [],
+        )
+        .expect("insert p_new");
+
+        crate::ledger::repository::set_closing_date(&conn, Some("2026-01-31"))
+            .expect("set closing date");
+
+        // Mixed array: valid posting first, locked posting second
+        let err = bulk_set_postings_reconciled(
+            &mut conn,
+            "tester",
+            &["p_new".to_string(), "p_old".to_string()],
+            "y",
+        );
+        assert!(matches!(err, Err(AppError::PeriodLocked(_))));
+
+        // Atomic rollback verification: p_new MUST still be 'n'
+        let p_new_status: String = conn
+            .query_row(
+                "SELECT reconciled FROM postings WHERE id = 'p_new';",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query p_new status");
+        assert_eq!(
+            p_new_status, "n",
+            "p_new must remain untouched due to atomic rollback"
+        );
+
+        // Verify zero audit logs were created
+        let audit_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM audit_log WHERE entity_id = 'BULK';",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query audit count");
+        assert_eq!(
+            audit_count, 0,
+            "No audit log should exist for rolled-back transaction"
+        );
+    }
+
+    #[test]
+    fn test_finish_reconciliation_period_lock_and_account_scoping() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        conn.execute(
+            "INSERT INTO accounts (id, code, name, type, currency, placeholder, created_at) VALUES ('acc1', '1001', 'Cash', 'ASSET', 'IDR', 0, 100);",
+            [],
+        )
+        .expect("insert account 1");
+        conn.execute(
+            "INSERT INTO accounts (id, code, name, type, currency, placeholder, created_at) VALUES ('acc2', '1002', 'Bank', 'ASSET', 'IDR', 0, 100);",
+            [],
+        )
+        .expect("insert account 2");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je1', '2026-01-10', 'Tx 1', 'IDR', 1, 100);",
+            [],
+        )
+        .expect("insert je1");
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p1', 'je1', 'acc1', 50000, 'c');",
+            [],
+        )
+        .expect("insert p1");
+
+        conn.execute(
+            "INSERT INTO journal_entries (id, date, description, currency, fx_rate, posted_at) VALUES ('je2', '2026-02-10', 'Tx 2', 'IDR', 1, 200);",
+            [],
+        )
+        .expect("insert je2");
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p2', 'je2', 'acc1', 30000, 'c');",
+            [],
+        )
+        .expect("insert p2");
+        conn.execute(
+            "INSERT INTO postings (id, entry_id, account_id, amount, reconciled) VALUES ('p3_other', 'je2', 'acc2', 30000, 'c');",
+            [],
+        )
+        .expect("insert p3_other");
+
+        crate::ledger::repository::set_closing_date(&conn, Some("2026-01-31"))
+            .expect("set closing date");
+
+        // 1. Locked posting must be rejected
+        let lock_err = finish_reconciliation(&mut conn, "auditor", "acc1", &["p1".to_string()]);
+        assert!(matches!(lock_err, Err(AppError::PeriodLocked(_))));
+
+        // 2. Posting belonging to another account must be rejected
+        let foreign_err =
+            finish_reconciliation(&mut conn, "auditor", "acc1", &["p3_other".to_string()]);
+        assert!(matches!(foreign_err, Err(AppError::NotFound(_))));
+
+        // 3. Valid posting belonging to acc1 after lock date must succeed
+        let ok_res = finish_reconciliation(&mut conn, "auditor", "acc1", &["p2".to_string()]);
+        assert!(ok_res.is_ok());
+
+        let p2_reconciled: String = conn
+            .query_row(
+                "SELECT reconciled FROM postings WHERE id = 'p2';",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query p2");
+        assert_eq!(p2_reconciled, "y");
+
+        let audit_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM audit_log WHERE entity_id = 'acc1' AND action = 'RECONCILE_ACCOUNT';",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count audit");
+        assert_eq!(audit_count, 1);
     }
 }

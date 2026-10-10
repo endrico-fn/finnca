@@ -15,11 +15,11 @@ pub fn sanitize_panic_message(raw: &str) -> String {
     let re_unix = RE_PATH_UNIX.get_or_init(|| {
         Regex::new(r"(/home/[^/:\s\)'\x22\x3c\x3e]+|/Users/[^/:\s\)'\x22\x3c\x3e]+|/root)").unwrap()
     });
-    let re_win = RE_PATH_WIN.get_or_init(|| {
-        Regex::new(r"(?i)([a-zA-Z]:\\Users\\[^\\/:\s\)'\x22\x3c\x3e]+)").unwrap()
-    });
+    let re_win = RE_PATH_WIN
+        .get_or_init(|| Regex::new(r"(?i)([a-zA-Z]:\\Users\\[^\\/:\s\)'\x22\x3c\x3e]+)").unwrap());
     let re_curr = RE_CURRENCY.get_or_init(|| {
-        Regex::new(r"(?i)\b(USD|IDR|EUR|GBP|SGD|JPY|CAD|AUD|CHF|CNY|HKD|NZD|KRW|Rp)\b|[$€£¥]").unwrap()
+        Regex::new(r"(?i)\b(USD|IDR|EUR|GBP|SGD|JPY|CAD|AUD|CHF|CNY|HKD|NZD|KRW|Rp)\b|[$€£¥]")
+            .unwrap()
     });
     let re_money = RE_MONEY.get_or_init(|| {
         Regex::new(r"-?\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2,})?\b|-?\b\d+([.,]\d{2,})?\b").unwrap()
@@ -48,14 +48,18 @@ pub fn sanitize_panic_message(raw: &str) -> String {
     }
 
     // Generic path redacting for other users or system paths
-    scrubbed = re_unix.replace_all(&scrubbed, "[REDACTED_PATH]").to_string();
+    scrubbed = re_unix
+        .replace_all(&scrubbed, "[REDACTED_PATH]")
+        .to_string();
     scrubbed = re_win.replace_all(&scrubbed, "[REDACTED_PATH]").to_string();
 
     // 2. Scrub sensitive account IDs first, then hierarchical account paths
     scrubbed = re_acc_id
         .replace_all(&scrubbed, "[ACCOUNT_ID_MASKED]")
         .to_string();
-    scrubbed = re_acc.replace_all(&scrubbed, "[ACCOUNT_MASKED]").to_string();
+    scrubbed = re_acc
+        .replace_all(&scrubbed, "[ACCOUNT_MASKED]")
+        .to_string();
 
     // 3. Redact currency codes and symbols
     scrubbed = re_curr
@@ -115,8 +119,7 @@ pub fn rotate_crash_dumps(dir: &Path, max_keep: usize) -> Result<(), String> {
 
 pub fn write_sanitized_crash_report(report: &serde_json::Value) -> Result<PathBuf, String> {
     let crash_dir = get_crash_dir();
-    fs::create_dir_all(&crash_dir)
-        .map_err(|e| format!("Failed to create crash directory: {e}"))?;
+    fs::create_dir_all(&crash_dir).map_err(|e| format!("Failed to create crash directory: {e}"))?;
 
     #[cfg(unix)]
     {
@@ -244,7 +247,8 @@ mod tests {
         );
 
         // Conjunction preservation and variable name acc_* preservation
-        let conj_msg = "Error in Assets > Banking > Checking in transfer for account with note and acc_cash";
+        let conj_msg =
+            "Error in Assets > Banking > Checking in transfer for account with note and acc_cash";
         let conj_cleaned = sanitize_panic_message(conj_msg);
         assert_eq!(
             conj_cleaned,

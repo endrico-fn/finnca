@@ -1317,5 +1317,6 @@ export const en = {
   updaterRestartingMsg: 'RELAUNCHING APPLICATION...',
   updaterSessionExpiredWarning: 'SESSION EXPIRED DURING UPDATE · VAULT WILL RE-LOCK ON RELAUNCH',
   rollbackNoticeTitle: 'RECOVERY NOTICE',
-  rollbackNotice: 'A recent update ({version}) failed to boot and was rolled back to the previous stable version.',
+  rollbackNotice:
+    'A recent update ({version}) failed to boot and was rolled back to the previous stable version.',
 };

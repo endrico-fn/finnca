@@ -181,7 +181,11 @@
 
         <span class="tracking-wider uppercase">{i18n.t[group.labelKey]}</span>
 
-        <span class="inline-flex transition-transform duration-150 {isOpen ? 'text-teal rotate-180' : ''}">
+        <span
+          class="inline-flex transition-transform duration-150 {isOpen
+            ? 'text-teal rotate-180'
+            : ''}"
+        >
           <Icon name="chev-down" size={10} />
         </span>
       </button>

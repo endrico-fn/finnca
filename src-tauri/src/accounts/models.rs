@@ -21,10 +21,6 @@ impl AccountType {
             AccountType::Expense => "EXPENSE",
         }
     }
-
-    pub fn is_debit_normal(&self) -> bool {
-        matches!(self, AccountType::Asset | AccountType::Expense)
-    }
 }
 
 impl FromStr for AccountType {

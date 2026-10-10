@@ -1,6 +1,6 @@
+use crate::shared::AppError;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use crate::shared::AppError;
 
 pub const DEFAULT_MAX_MEMORY_MB: u64 = 32;
 pub const DEFAULT_TIMEOUT_MS: u64 = 5000;

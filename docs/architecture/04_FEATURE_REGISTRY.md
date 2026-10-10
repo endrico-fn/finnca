@@ -15,39 +15,40 @@ Dokumen ini memetakan seluruh kapabilitas sistem, mencatat status operasional, s
 
 ## 2. Matriks Inventaris Fitur
 
-| Domain        | Fitur / Komponen                 |      Status      | Backend Engine               | Frontend Interface             | Catatan Arsitektural                          |
-| :------------ | :------------------------------- | :--------------: | :--------------------------- | :----------------------------- | :-------------------------------------------- |
-| **Vault**     | Create & Register Vault          |     `[LIVE]`     | `vault::manager`             | `RegisterForm.svelte`          | Argon2id + envelope master key                |
-| **Vault**     | Login & Unlock Vault             |     `[LIVE]`     | `auth::login`                | `LoginForm.svelte`             | SQLCipher key unwrapping                      |
-| **Vault**     | Multi-Vault Switcher             |     `[LIVE]`     | `vault::manager`             | `VaultPicker.svelte`           | Format path `finnca-<nama>`                   |
-| **Vault**     | Delete Vault with Password       |     `[LIVE]`     | `vault::manager`             | `ConfirmDialog.svelte`         | Wajib verifikasi password sebelum unlink      |
-| **Vault**     | Legacy Migration (Age -> SQLite) |     `[LIVE]`     | `vault::legacy_migration`    | Otomatis saat unlock           | Verifikasi checksum & oracle saldo            |
-| **Vault**     | Automated Backup / Export Zip    | `[STUB/PLANNED]` | `export_text_file` siap      | UI belum dipasang              | Ekspor arsip terenkripsi untuk backup         |
-| **Ledger**    | Double-Entry Transaction Posting |     `[LIVE]`     | `ledger::service`            | `JournalEntryForm.svelte`      | Invarian sum(dr) == sum(cr) dikunci di Rust   |
-| **Ledger**    | Multi-Split Splits Table         |     `[LIVE]`     | `ledger::service`            | `JournalSplitsTable.svelte`    | Multi akun debit & kredit                     |
-| **Ledger**    | Simple Fast Transfer             |     `[LIVE]`     | `ledger::service`            | `JournalSimpleTransfer.svelte` | Form transfer cepat 2 baris                   |
-| **Ledger**    | Receipt Scanner (Struk Belanja)  | `[STUB/PLANNED]` | Belum ada                    | `ReceiptScanner.svelte`        | UI widget ada, parser OCR direncanakan        |
-| **Accounts**  | Flat Path Chart of Accounts      |     `[LIVE]`     | `accounts::service`          | `AccountList` / Flat Row       | Tampilan `Root > Sub > Leaf`, bukan deep tree |
-| **Accounts**  | Balance Rollup Calculation       |     `[LIVE]`     | `accounts::service`          | `AccountDetail.svelte`         | Rollup rekursif aman siklus di Rust           |
-| **Security**  | Auto-Lock Countdown Timer        |     `[LIVE]`     | `security::activity_tracker` | `security.svelte.ts`           | Reactive countdown dari event Rust            |
-| **Security**  | Window Close / Blur Lock Policy  |     `[LIVE]`     | `security::lock_policy`      | `AutoLockSettings.svelte`      | Pilihan: on-close, on-timeout                 |
-| **Budget**    | Monthly Budget Allocation        |     `[LIVE]`     | `budget::service`            | `budget/+page.svelte`          | Perbandingan budget vs realisasi              |
-| **Plan**      | Installment & Payoff Planner     |     `[LIVE]`     | `plan::service`              | `PlansOverview.svelte`         | Simulasi amortisasi utang                     |
-| **Plan**      | Calendar Agenda Financial View   |     `[LIVE]`     | `plan::service`              | `CalendarAgenda.svelte`        | Kalender jatuh tempo pembayaran               |
-| **Reconcile** | Statement Reader (CSV/OFX/QIF)   |     `[LIVE]`     | `reconcile::commands`        | `ReconcileWizard.svelte`       | Session-gated IPC, clamped 5 MB               |
-| **Reconcile** | Rule-Based Transaction Matcher   |     `[LIVE]`     | `reconcile::matcher`         | `ReconcileWizard.svelte`       | Skor kecocokan tanggal, nominal & deskripsi   |
-| **Reports**   | Balance Sheet & Profit Loss      |     `[LIVE]`     | `report::generators`         | `ReportViewer.svelte`          | Query SQL murni di SQLite                     |
-| **Reports**   | Native FX Revaluation Report     |     `[LIVE]`     | `report::generators::fx`     | `FxReport.svelte`              | Laba/rugi selisih kurs belum terealisasi      |
-| **Reports**   | Native Historical Trends Report  |     `[LIVE]`     | `report::generators::trends` | `Trends.svelte`                | Agregasi bulanan saldo akun di Rust           |
-| **Reports**   | PDF & CSV Export Overlay         |     `[LIVE]`     | `export_text_file`           | `ExportOverlay.svelte`         | Menggunakan pdfmake vfsFonts terisolasi       |
-| **Audit**     | Append-Only Audit Trail          |     `[LIVE]`     | `audit::repository`          | `audit/+page.svelte`           | Read-only paginated log viewer                |
-| **Diagnostics**| Privacy-First Local Crash Logger |     `[LIVE]`     | `diagnostics::crash`         | `diagnostics.svelte.ts`        | Redacted paths, masked money, 0600 file modes |
-| **Security**  | OS Sleep / Suspend Auto-Lock     |     `[LIVE]`     | `security::suspend_daemon`   | Session auto-lock via D-Bus/Win32 | Kunci koneksi SQLCipher seketika saat OS suspend |
-| **Updater**   | Crash Watchdog & Rollback        |     `[LIVE]`     | `updater::watchdog`          | `updaterState.svelte.ts`       | Deteksi 2x crash boot, rollback otomatis      |
-| **Plugins**   | Extism WebAssembly Runtime       |     `[LIVE]`     | `plugins::manager`           | Host capability & sandbox      | Linear memory 32MB, fuel limit, SHA-256 hash |
-| **Plugins**   | Zero-Float & Debit-First Gate    |     `[LIVE]`     | `plugins::gateway`           | Host invariant gate            | Tolak mutlak IEEE-754 float & tegakkan Dr/Cr |
-| **Plugins**   | Statement Parser Extension Point |     `[LIVE]`     | `plugins::commands`          | `execute_statement_parser_cmd` | Kontrak terisolasi parser rekening bank Wasm |
-| **Distribution**| Mandatory CI/CD Signing Gate   |     `[LIVE]`     | `.github/workflows/release`  | GitHub Release Pipeline        | Gagalkan build jika private key Minisign nihil |
+| Domain           | Fitur / Komponen                     |      Status      | Backend Engine               | Frontend Interface                | Catatan Arsitektural                                    |
+| :--------------- | :----------------------------------- | :--------------: | :--------------------------- | :-------------------------------- | :------------------------------------------------------ |
+| **Vault**        | Create & Register Vault              |     `[LIVE]`     | `vault::manager`             | `RegisterForm.svelte`             | Argon2id + envelope master key                          |
+| **Vault**        | Login & Unlock Vault                 |     `[LIVE]`     | `auth::login`                | `LoginForm.svelte`                | SQLCipher key unwrapping                                |
+| **Vault**        | Multi-Vault Switcher                 |     `[LIVE]`     | `vault::manager`             | `VaultPicker.svelte`              | Format path `finnca-<nama>`                             |
+| **Vault**        | Delete Vault with Password           |     `[LIVE]`     | `vault::manager`             | `ConfirmDialog.svelte`            | Wajib verifikasi password sebelum unlink                |
+| **Vault**        | Legacy Migration (Age -> SQLite)     |     `[LIVE]`     | `vault::legacy_migration`    | Otomatis saat unlock              | Verifikasi checksum & oracle saldo                      |
+| **Vault**        | Automated Backup / Export Zip        | `[STUB/PLANNED]` | `export_text_file` siap      | UI belum dipasang                 | Ekspor arsip terenkripsi untuk backup                   |
+| **Ledger**       | Double-Entry Transaction Posting     |     `[LIVE]`     | `ledger::service`            | `JournalEntryForm.svelte`         | Invarian sum(dr) == sum(cr), FX context & locked period |
+| **Ledger**       | Multi-Split Splits Table             |     `[LIVE]`     | `ledger::service`            | `JournalSplitsTable.svelte`       | Multi akun debit & kredit                               |
+| **Ledger**       | Simple Fast Transfer                 |     `[LIVE]`     | `ledger::service`            | `JournalSimpleTransfer.svelte`    | Form transfer cepat 2 baris                             |
+| **Ledger**       | Receipt Scanner (Struk Belanja)      | `[STUB/PLANNED]` | Belum ada                    | `ReceiptScanner.svelte`           | UI widget ada, parser OCR direncanakan                  |
+| **Accounts**     | Flat Path Chart of Accounts          |     `[LIVE]`     | `accounts::service`          | `AccountList` / Flat Row          | Tampilan `Root > Sub > Leaf`, bukan deep tree           |
+| **Accounts**     | Balance Rollup Calculation           |     `[LIVE]`     | `accounts::service`          | `AccountDetail.svelte`            | Rollup rekursif aman siklus di Rust                     |
+| **Security**     | Auto-Lock Countdown Timer            |     `[LIVE]`     | `security::activity_tracker` | `security.svelte.ts`              | Reactive countdown dari event Rust                      |
+| **Security**     | Window Close / Blur Lock Policy      |     `[LIVE]`     | `security::lock_policy`      | `AutoLockSettings.svelte`         | Pilihan: on-close, on-timeout                           |
+| **Budget**       | Monthly Budget Allocation            |     `[LIVE]`     | `budget::service`            | `budget/+page.svelte`             | Perbandingan budget vs realisasi                        |
+| **Plan**         | Installment & Payoff Planner         |     `[LIVE]`     | `plan::service`              | `PlansOverview.svelte`            | Simulasi amortisasi utang                               |
+| **Plan**         | Calendar Agenda Financial View       |     `[LIVE]`     | `plan::service`              | `CalendarAgenda.svelte`           | Kalender jatuh tempo pembayaran                         |
+| **Reconcile**    | Statement Reader (CSV/OFX/QIF)       |     `[LIVE]`     | `reconcile::commands`        | `ReconcileWizard.svelte`          | Session-gated IPC, clamped 5 MB                         |
+| **Reconcile**    | Rule-Based Transaction Matcher       |     `[LIVE]`     | `reconcile::matcher`         | `ReconcileWizard.svelte`          | Skor kecocokan tanggal, nominal & deskripsi             |
+| **Reconcile**    | Period-Locked Reconciliation & Audit |     `[LIVE]`     | `reconcile::commands`        | `ReconcileWizard.svelte`          | Status update dicek closing_date & dicatat audit        |
+| **Reports**      | Balance Sheet & Profit Loss          |     `[LIVE]`     | `report::generators`         | `ReportViewer.svelte`             | Query SQL murni di SQLite                               |
+| **Reports**      | Native FX Revaluation Report         |     `[LIVE]`     | `report::generators::fx`     | `FxReport.svelte`                 | Laba/rugi selisih kurs belum terealisasi                |
+| **Reports**      | Native Historical Trends Report      |     `[LIVE]`     | `report::generators::trends` | `Trends.svelte`                   | Agregasi bulanan saldo akun di Rust                     |
+| **Reports**      | PDF & CSV Export Overlay             |     `[LIVE]`     | `export_text_file`           | `ExportOverlay.svelte`            | Menggunakan pdfmake vfsFonts terisolasi                 |
+| **Audit**        | Append-Only Audit Trail              |     `[LIVE]`     | `audit::repository`          | `audit/+page.svelte`              | Read-only paginated log viewer                          |
+| **Diagnostics**  | Privacy-First Local Crash Logger     |     `[LIVE]`     | `diagnostics::crash`         | `diagnostics.svelte.ts`           | Redacted paths, masked money, 0600 file modes           |
+| **Security**     | OS Sleep / Suspend Auto-Lock         |     `[LIVE]`     | `security::suspend_daemon`   | Session auto-lock via D-Bus/Win32 | Kunci koneksi SQLCipher seketika saat OS suspend        |
+| **Updater**      | Crash Watchdog & Rollback            |     `[LIVE]`     | `updater::watchdog`          | `updaterState.svelte.ts`          | Deteksi 2x crash boot, rollback otomatis                |
+| **Plugins**      | Extism WebAssembly Runtime           |     `[LIVE]`     | `plugins::manager`           | Host capability & sandbox         | Linear memory 32MB, fuel limit, SHA-256 hash            |
+| **Plugins**      | Zero-Float & Debit-First Gate        |     `[LIVE]`     | `plugins::gateway`           | Host invariant gate               | Tolak mutlak IEEE-754 float & tegakkan Dr/Cr            |
+| **Plugins**      | Statement Parser Extension Point     |     `[LIVE]`     | `plugins::commands`          | `execute_statement_parser_cmd`    | Kontrak terisolasi parser rekening bank Wasm            |
+| **Distribution** | Mandatory CI/CD Signing Gate         |     `[LIVE]`     | `.github/workflows/release`  | GitHub Release Pipeline           | Gagalkan build jika private key Minisign nihil          |
 
 ---
 
@@ -63,4 +64,6 @@ Daftar kode yang telah dimusnahkan karena digantikan oleh mesin Rust baru:
 6. `scripts/generate-golden-fixtures.ts`: Dihapus (skrip transisi migrasi TS->Rust; fixtures telah permanen di `src-tauri/tests/fixtures/` dan `src/tests/fixtures/ledger-golden/`).
 7. `scripts/env.ts`: Dihapus (skrip mock deklarasi global yatim yang tidak direferensikan).
 8. `tauri-plugin-fs`: Dihapus dari `Cargo.toml` & `lib.rs` (dead capability tanpa grant, meminimalisir attack surface).
-
+9. `AccountType::is_debit_normal` di `src-tauri/src/accounts/models.rs`: Dihapus (helper method yatim yang tidak digunakan).
+10. `AppState::take_pending_import_path` di `src-tauri/src/app_state.rs`: Dihapus (digantikan oleh `get_pending_import_path`).
+11. `ReconcileRule` di `src-tauri/src/reconcile/dto.rs`: Dihapus (dead DTO; IPC dan frontend menggunakan `ReconcileRuleWithAccount`).

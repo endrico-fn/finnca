@@ -86,7 +86,7 @@
     style="top: {coords.openUpward ? 'auto' : `${coords.top}px`}; bottom: {coords.openUpward
       ? `${typeof window !== 'undefined' ? window.innerHeight - coords.top : 0}px`
       : 'auto'}; left: {coords.left}px;"
-    class="border-line bg-bg-card font-proto z-(--z-tooltip) pointer-events-none fixed flex w-64 flex-col gap-2 border p-3 shadow-xl select-none"
+    class="border-line bg-bg-card font-proto pointer-events-none fixed z-(--z-tooltip) flex w-64 flex-col gap-2 border p-3 shadow-xl select-none"
   >
     <div class="border-line flex items-center justify-between border-b pb-2">
       <div class="flex items-center gap-1.5">

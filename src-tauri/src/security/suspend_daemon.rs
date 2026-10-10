@@ -5,7 +5,9 @@ use tauri::{AppHandle, Emitter, Manager};
 pub fn handle_os_suspend(app: &AppHandle) -> bool {
     if let Some(state) = app.try_state::<AppState>() {
         if state.is_unlocked() {
-            eprintln!("[SECURITY] OS Suspend signal received. Auto-locking vault and clearing session.");
+            eprintln!(
+                "[SECURITY] OS Suspend signal received. Auto-locking vault and clearing session."
+            );
             state.clear_session();
             let _ = app.emit("vault:locked", ());
             return true;
@@ -64,10 +66,8 @@ pub fn spawn_linux_suspend_listener(app: AppHandle) {
 
 #[cfg(target_os = "windows")]
 pub fn register_windows_power_broadcast(window: &tauri::WebviewWindow) {
-    use windows_sys::Win32::UI::Shell::{RemoveWindowSubclass, SetWindowSubclass};
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        DefSubclassProc, WM_NCDESTROY, WM_POWERBROADCAST,
-    };
+    use windows_sys::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{WM_NCDESTROY, WM_POWERBROADCAST};
 
     const PBT_APMSUSPEND: usize = 0x0004;
 

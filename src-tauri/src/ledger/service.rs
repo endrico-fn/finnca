@@ -20,8 +20,6 @@ pub fn post_journal_entry(
     validation::validate_date_format(&input.date)?;
     let closing_date = repository::get_closing_date(conn)?;
     validation::validate_not_in_locked_period(&input.date, closing_date.as_deref())?;
-    validation::validate_postings_balance(&input.postings)?;
-
     if let Some(fx) = input.fx_rate {
         if fx <= 0 {
             return Err(AppError::InvalidInput(
@@ -29,6 +27,12 @@ pub fn post_journal_entry(
             ));
         }
     }
+
+    validation::validate_postings_balance_with_context(
+        &input.postings,
+        input.currency.as_deref().unwrap_or("IDR"),
+        input.fx_rate.unwrap_or(DEFAULT_FX_RATE),
+    )?;
 
     let description = input.description.trim();
     if description.is_empty() {
@@ -175,14 +179,22 @@ pub fn update_journal_entry(
         )?;
     }
 
+    let description = if let Some(desc) = input.description {
+        let trimmed = desc.trim();
+        if trimmed.is_empty() {
+            return Err(AppError::InvalidInput(
+                "Transaction description cannot be empty".into(),
+            ));
+        }
+        trimmed.to_string()
+    } else {
+        existing.description
+    };
+
     let updated_entry = JournalEntry {
         id: id.to_string(),
         date: input.date.unwrap_or(existing.date),
-        description: input
-            .description
-            .unwrap_or(existing.description)
-            .trim()
-            .to_string(),
+        description,
         notes: match input.notes {
             Some(n) => n,
             None => existing.notes,
@@ -1064,5 +1076,321 @@ mod tests {
         let metrics = get_dashboard_metrics(&conn, Some(16000), Some("2026-09-20".into())).unwrap();
         assert_eq!(metrics.monthly_burn_30d, 1_600_000);
         assert_eq!(metrics.this_month_expense, 1_600_000);
+    }
+
+    #[test]
+    fn test_post_journal_entry_with_custom_currency_and_fx_rate() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        let acc_bank = crate::accounts::service::create_account(
+            &conn,
+            CreateAccountInput {
+                code: "1002".into(),
+                name: "EUR Bank".into(),
+                account_type: AccountType::Asset,
+                parent_id: None,
+                currency: Some("EUR".into()),
+                placeholder: Some(false),
+                hidden: None,
+                color: None,
+                note: None,
+                description: None,
+                interest_rate: None,
+            },
+            "tester",
+        )
+        .unwrap();
+
+        let acc_idr = crate::accounts::service::create_account(
+            &conn,
+            CreateAccountInput {
+                code: "1003".into(),
+                name: "IDR Cash".into(),
+                account_type: AccountType::Asset,
+                parent_id: None,
+                currency: Some("IDR".into()),
+                placeholder: Some(false),
+                hidden: None,
+                color: None,
+                note: None,
+                description: None,
+                interest_rate: None,
+            },
+            "tester",
+        )
+        .unwrap();
+
+        let entry = post_journal_entry(
+            &mut conn,
+            CreateJournalEntryInput {
+                id: None,
+                date: "2026-09-15".into(),
+                description: "EUR to IDR Exchange".into(),
+                notes: None,
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
+                currency: Some("EUR".into()),
+                fx_rate: Some(17500),
+                postings: vec![
+                    PostingInput {
+                        id: None,
+                        account_id: acc_bank.id.clone(),
+                        amount: -1000,
+                        memo: None,
+                        action: None,
+                        reconcile: None,
+                        currency: Some("EUR".into()),
+                        fx_rate: Some(17500),
+                        cost_amount: None,
+                    },
+                    PostingInput {
+                        id: None,
+                        account_id: acc_idr.id.clone(),
+                        amount: 175000,
+                        memo: None,
+                        action: None,
+                        reconcile: None,
+                        currency: Some("IDR".into()),
+                        fx_rate: None,
+                        cost_amount: None,
+                    },
+                ],
+            },
+            "tester",
+        );
+        assert!(
+            entry.is_ok(),
+            "Posting with custom currency and FX rate should balance and succeed"
+        );
+
+        let invalid_fx = post_journal_entry(
+            &mut conn,
+            CreateJournalEntryInput {
+                id: None,
+                date: "2026-09-15".into(),
+                description: "Invalid FX".into(),
+                notes: None,
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
+                currency: Some("EUR".into()),
+                fx_rate: Some(0),
+                postings: vec![],
+            },
+            "tester",
+        );
+        assert!(matches!(invalid_fx, Err(AppError::InvalidInput(_))));
+    }
+
+    #[test]
+    fn test_update_journal_entry_empty_description_rejected() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        let acc_cash = crate::accounts::service::create_account(
+            &conn,
+            CreateAccountInput {
+                code: "1004".into(),
+                name: "Cash".into(),
+                account_type: AccountType::Asset,
+                parent_id: None,
+                currency: Some("IDR".into()),
+                placeholder: Some(false),
+                hidden: None,
+                color: None,
+                note: None,
+                description: None,
+                interest_rate: None,
+            },
+            "tester",
+        )
+        .unwrap();
+
+        let acc_food = crate::accounts::service::create_account(
+            &conn,
+            CreateAccountInput {
+                code: "5002".into(),
+                name: "Food".into(),
+                account_type: AccountType::Expense,
+                parent_id: None,
+                currency: Some("IDR".into()),
+                placeholder: Some(false),
+                hidden: None,
+                color: None,
+                note: None,
+                description: None,
+                interest_rate: None,
+            },
+            "tester",
+        )
+        .unwrap();
+
+        let entry = post_journal_entry(
+            &mut conn,
+            CreateJournalEntryInput {
+                id: None,
+                date: "2026-09-15".into(),
+                description: "Lunch".into(),
+                notes: None,
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
+                currency: None,
+                fx_rate: None,
+                postings: vec![
+                    PostingInput {
+                        id: None,
+                        account_id: acc_food.id.clone(),
+                        amount: 50000,
+                        memo: None,
+                        action: None,
+                        reconcile: None,
+                        currency: None,
+                        fx_rate: None,
+                        cost_amount: None,
+                    },
+                    PostingInput {
+                        id: None,
+                        account_id: acc_cash.id.clone(),
+                        amount: -50000,
+                        memo: None,
+                        action: None,
+                        reconcile: None,
+                        currency: None,
+                        fx_rate: None,
+                        cost_amount: None,
+                    },
+                ],
+            },
+            "tester",
+        )
+        .unwrap();
+
+        let update_res = update_journal_entry(
+            &mut conn,
+            &entry.id,
+            UpdateJournalEntryInput {
+                date: None,
+                description: Some("   ".into()),
+                notes: None,
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
+                currency: None,
+                fx_rate: None,
+                postings: None,
+            },
+            "tester",
+        );
+        assert!(matches!(update_res, Err(AppError::InvalidInput(_))));
+
+        let update_none = update_journal_entry(
+            &mut conn,
+            &entry.id,
+            UpdateJournalEntryInput {
+                date: None,
+                description: None,
+                notes: Some(Some("delicious".into())),
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
+                currency: None,
+                fx_rate: None,
+                postings: None,
+            },
+            "tester",
+        )
+        .unwrap();
+        assert_eq!(update_none.description, "Lunch");
+    }
+
+    #[test]
+    fn test_post_journal_entry_multicurrency_jpy_roundtrip() {
+        let mut conn = Connection::open_in_memory().expect("open db");
+        crate::db::schema::run_migrations(&mut conn).expect("run migrations");
+
+        let acc_jpy = crate::accounts::service::create_account(
+            &conn,
+            CreateAccountInput {
+                code: "1005".into(),
+                name: "JPY Bank".into(),
+                account_type: AccountType::Asset,
+                parent_id: None,
+                currency: Some("JPY".into()),
+                placeholder: Some(false),
+                hidden: None,
+                color: None,
+                note: None,
+                description: None,
+                interest_rate: None,
+            },
+            "tester",
+        )
+        .unwrap();
+
+        let acc_idr = crate::accounts::service::create_account(
+            &conn,
+            CreateAccountInput {
+                code: "1006".into(),
+                name: "IDR Wallet".into(),
+                account_type: AccountType::Asset,
+                parent_id: None,
+                currency: Some("IDR".into()),
+                placeholder: Some(false),
+                hidden: None,
+                color: None,
+                note: None,
+                description: None,
+                interest_rate: None,
+            },
+            "tester",
+        )
+        .unwrap();
+
+        let entry = post_journal_entry(
+            &mut conn,
+            CreateJournalEntryInput {
+                id: None,
+                date: "2026-09-20".into(),
+                description: "JPY to IDR Exchange".into(),
+                notes: None,
+                reference_no: None,
+                due_date: None,
+                plan_id: None,
+                currency: Some("JPY".into()),
+                fx_rate: Some(105),
+                postings: vec![
+                    PostingInput {
+                        id: None,
+                        account_id: acc_jpy.id.clone(),
+                        amount: -1000, // 1000 JPY
+                        memo: None,
+                        action: None,
+                        reconcile: None,
+                        currency: Some("JPY".into()),
+                        fx_rate: Some(105),
+                        cost_amount: None,
+                    },
+                    PostingInput {
+                        id: None,
+                        account_id: acc_idr.id.clone(),
+                        amount: 105000, // 105,000 IDR
+                        memo: None,
+                        action: None,
+                        reconcile: None,
+                        currency: Some("IDR".into()),
+                        fx_rate: None,
+                        cost_amount: None,
+                    },
+                ],
+            },
+            "tester",
+        );
+        assert!(
+            entry.is_ok(),
+            "JPY to IDR exchange must succeed with correct currency factor and FX rate"
+        );
     }
 }

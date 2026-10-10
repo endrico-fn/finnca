@@ -44,13 +44,6 @@ impl AppState {
         }
     }
 
-    pub fn take_pending_import_path(&self) -> Option<String> {
-        match self.pending_import_path.lock() {
-            Ok(mut guard) => guard.take(),
-            Err(poisoned) => poisoned.into_inner().take(),
-        }
-    }
-
     pub fn set_session(&self, session: Session) {
         match self.session.lock() {
             Ok(mut guard) => *guard = Some(session),

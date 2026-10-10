@@ -1,10 +1,10 @@
-use std::path::{Path, PathBuf};
 use extism::{Manifest, Plugin, PluginBuilder, Wasm};
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
-use crate::shared::AppError;
 use super::gateway::validate_no_raw_floats;
 use super::manifest::PluginManifest;
+use crate::shared::AppError;
 
 pub struct PluginManager {
     plugins_directory: PathBuf,
@@ -88,12 +88,12 @@ impl PluginManager {
 
         // 2. Configure Extism Manifest with linear memory cap & timeout
         let max_pages = (manifest.limits.max_memory_mb * 1024 * 1024 / 65536) as u32;
-        let mut extism_manifest = Manifest::new([Wasm::data(wasm_bytes)]).with_memory_max(max_pages);
+        let mut extism_manifest =
+            Manifest::new([Wasm::data(wasm_bytes)]).with_memory_max(max_pages);
 
         if manifest.limits.timeout_ms > 0 {
-            extism_manifest = extism_manifest.with_timeout(std::time::Duration::from_millis(
-                manifest.limits.timeout_ms,
-            ));
+            extism_manifest = extism_manifest
+                .with_timeout(std::time::Duration::from_millis(manifest.limits.timeout_ms));
         }
 
         // 3. Build sandboxed plugin with fuel budget bounds
@@ -102,9 +102,9 @@ impl PluginManager {
             builder = builder.with_fuel_limit(manifest.limits.fuel_budget);
         }
 
-        let plugin = builder
-            .build()
-            .map_err(|e| AppError::InvalidInput(format!("Failed to instantiate Wasm sandbox: {e}")))?;
+        let plugin = builder.build().map_err(|e| {
+            AppError::InvalidInput(format!("Failed to instantiate Wasm sandbox: {e}"))
+        })?;
 
         Ok((plugin, manifest))
     }
@@ -116,8 +116,9 @@ impl PluginManager {
         function_name: &str,
         input: &I,
     ) -> Result<O, AppError> {
-        let input_bytes = serde_json::to_vec(input)
-            .map_err(|e| AppError::InvalidInput(format!("Failed to serialize plugin input: {e}")))?;
+        let input_bytes = serde_json::to_vec(input).map_err(|e| {
+            AppError::InvalidInput(format!("Failed to serialize plugin input: {e}"))
+        })?;
 
         // Zero-Float Gateway: reject IEEE-754 floats on outbound host payload
         validate_no_raw_floats(&input_bytes)?;
@@ -141,8 +142,9 @@ impl PluginManager {
         // Zero-Float Gateway: unconditionally reject IEEE-754 floats in inbound plugin payload
         validate_no_raw_floats(output_bytes)?;
 
-        let output: O = serde_json::from_slice(output_bytes)
-            .map_err(|e| AppError::InvalidInput(format!("Failed to deserialize plugin output: {e}")))?;
+        let output: O = serde_json::from_slice(output_bytes).map_err(|e| {
+            AppError::InvalidInput(format!("Failed to deserialize plugin output: {e}"))
+        })?;
 
         Ok(output)
     }
@@ -401,8 +403,9 @@ statement_parsers = [
             options: std::collections::HashMap::new(),
         };
 
-        let output: crate::plugins::statement::ParsedStatementOutput =
-            manager.invoke_function(&mut plugin, "parse_statement", &input).unwrap();
+        let output: crate::plugins::statement::ParsedStatementOutput = manager
+            .invoke_function(&mut plugin, "parse_statement", &input)
+            .unwrap();
 
         assert_eq!(output.rows.len(), 1);
         assert_eq!(output.rows[0].date, "2026-10-06");

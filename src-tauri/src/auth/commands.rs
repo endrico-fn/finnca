@@ -17,7 +17,10 @@ pub async fn unlock(
     state: State<'_, AppState>,
     password: String,
 ) -> Result<AppStateView, String> {
+    #[cfg(target_os = "linux")]
     let mut config = config::load(&app)?;
+    #[cfg(not(target_os = "linux"))]
+    let config = config::load(&app)?;
     let vault = config
         .vault
         .as_ref()

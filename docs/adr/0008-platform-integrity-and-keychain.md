@@ -6,24 +6,24 @@ Accepted (Standar Penguatan Keamanan Platform Fase 1 & 2)
 
 ## Context
 
-Sebagai aplikasi pencatatan keuangan pribadi tingkat lanjut (*advanced personal finance ledger*), integritas platform, kerahasiaan kunci kriptografi di dalam memori, serta kekebalan terhadap rekayasa balik (*reverse engineering*) dan manipulasi berkas lokal merupakan prasyarat mutlak. Audit keamanan platform yang komprehensif mengungkap sejumlah kelemahan struktural pada fondasi keamanan saat ini:
+Sebagai aplikasi pencatatan keuangan pribadi tingkat lanjut (_advanced personal finance ledger_), integritas platform, kerahasiaan kunci kriptografi di dalam memori, serta kekebalan terhadap rekayasa balik (_reverse engineering_) dan manipulasi berkas lokal merupakan prasyarat mutlak. Audit keamanan platform yang komprehensif mengungkap sejumlah kelemahan struktural pada fondasi keamanan saat ini:
 
 1. **Ketiadaan Integrasi OS Credential Store & Stub `boot_id` Non-Kriptografis**:
-   Saat ini, pengguna diwajibkan memasukkan password master secara manual setiap kali aplikasi dibuka. Fitur pembukaan cepat (*fast-unlock*) yang ada di `src-tauri/src/security/commands.rs:8-19` hanya membaca nilai `/proc/sys/kernel/random/boot_id` di Linux dan menyimpannya sebagai string teks terbuka (*plaintext*) di berkas konfigurasi `~/.config/finnca/finnca.json`. Pengecekan ini tidak memiliki ikatan kriptografis (*cryptographic binding*) ke dekripsi database, tidak dapat memulihkan *Data Encryption Key* (DEK) setelah proses ditutup, dan tidak didukung oleh penyimpanan kredensial perangkat keras (*hardware-backed security module*) seperti TPM, Apple Secure Enclave, atau Windows Hello.
+   Saat ini, pengguna diwajibkan memasukkan password master secara manual setiap kali aplikasi dibuka. Fitur pembukaan cepat (_fast-unlock_) yang ada di `src-tauri/src/security/commands.rs:8-19` hanya membaca nilai `/proc/sys/kernel/random/boot_id` di Linux dan menyimpannya sebagai string teks terbuka (_plaintext_) di berkas konfigurasi `~/.config/finnca/finnca.json`. Pengecekan ini tidak memiliki ikatan kriptografis (_cryptographic binding_) ke dekripsi database, tidak dapat memulihkan _Data Encryption Key_ (DEK) setelah proses ditutup, dan tidak didukung oleh penyimpanan kredensial perangkat keras (_hardware-backed security module_) seperti TPM, Apple Secure Enclave, atau Windows Hello.
 2. **Residu Forensik SQLCipher & Pertahanan Memori Disk (`temp_store`)**:
-   Dalam `src-tauri/src/db/mod.rs:15-24`, inisialisasi SQLCipher mengaktifkan `PRAGMA cipher_memory_security = ON;` dan `PRAGMA journal_mode = WAL;`, namun **mengabaikan** `PRAGMA temp_store = MEMORY;`. Meskipun SQLCipher mengenkripsi berkas sementara secara otomatis pada koneksi yang telah di-key, ketiadaan `PRAGMA temp_store = MEMORY;` menyebabkan tabel sementara (*temporary tables*), indeks sementara, dan hasil pengurutan (*B-tree sorts*) untuk kueri agregasi laporan keuangan yang kompleks tetap tumpah (*spill*) ke disk OS (`/tmp/etilqs_*` di Linux atau `%TEMP%` di Windows). Penerapan `PRAGMA temp_store = MEMORY;` mutlak diperlukan sebagai pertahanan berlapis (*defense-in-depth*) agar data intermediat keuangan tidak pernah menyentuh media penyimpanan fisik.
-3. **Kebocoran Material Kunci & Higiene Memori Sensitif (*Zeroization Gap*)**:
-   - Di `src-tauri/src/crypto/envelope.rs:56-68`, saat `unwrap_dek` mendekripsi paket amplop menggunakan ChaCha20-Poly1305, hasil dekripsi ditampung di dalam `Vec<u8>` standar sebelum disalin ke `Zeroizing<[u8; 32]>`. Buffer `Vec<u8>` tersebut dialokasikan di heap dan dideallokasi oleh allocator Rust tanpa pembersihan memori (*zeroize*).
+   Dalam `src-tauri/src/db/mod.rs:15-24`, inisialisasi SQLCipher mengaktifkan `PRAGMA cipher_memory_security = ON;` dan `PRAGMA journal_mode = WAL;`, namun **mengabaikan** `PRAGMA temp_store = MEMORY;`. Meskipun SQLCipher mengenkripsi berkas sementara secara otomatis pada koneksi yang telah di-key, ketiadaan `PRAGMA temp_store = MEMORY;` menyebabkan tabel sementara (_temporary tables_), indeks sementara, dan hasil pengurutan (_B-tree sorts_) untuk kueri agregasi laporan keuangan yang kompleks tetap tumpah (_spill_) ke disk OS (`/tmp/etilqs_*` di Linux atau `%TEMP%` di Windows). Penerapan `PRAGMA temp_store = MEMORY;` mutlak diperlukan sebagai pertahanan berlapis (_defense-in-depth_) agar data intermediat keuangan tidak pernah menyentuh media penyimpanan fisik.
+3. **Kebocoran Material Kunci & Higiene Memori Sensitif (_Zeroization Gap_)**:
+   - Di `src-tauri/src/crypto/envelope.rs:56-68`, saat `unwrap_dek` mendekripsi paket amplop menggunakan ChaCha20-Poly1305, hasil dekripsi ditampung di dalam `Vec<u8>` standar sebelum disalin ke `Zeroizing<[u8; 32]>`. Buffer `Vec<u8>` tersebut dialokasikan di heap dan dideallokasi oleh allocator Rust tanpa pembersihan memori (_zeroize_).
    - Di `src-tauri/src/db/mod.rs:11-12`, kunci didekodekan menjadi string hexadesimal `let dek_hex = hex::encode(dek);` dan diformat menjadi perintah SQL `format!("PRAGMA key = \"x'{dek_hex}'\";")`. Kedua objek `String` ini dialokasikan di heap tanpa pembungkus `Zeroize`, meninggalkan jejak kunci enkripsi mentah pada memori virtual proses.
    - Di `src-tauri/src/db/mod.rs:49-55` (`export_encrypted_snapshot`), `let target_dek_hex = hex::encode(target_dek);` dan perintah SQL format `ATTACH DATABASE ... KEY "x'{target_dek_hex}'"` menciptakan alokasi heap `String` dan internal `CString` yang memuat kunci DEK snapshot tanpa pembungkus `Zeroize`.
    - Pada batas IPC autentikasi (`src-tauri/src/auth/commands.rs:18,63-64`), parameter password diterima sebagai `String` biasa tanpa pembungkus proteksi memori rahasia.
    - Pada frontend Svelte (`LoginForm.svelte:135-162`), variabel password pada rune `$state('')` tidak di-reset secara higienis setelah proses login selesai, membiarkannya menetap di heap garbage collector JavaScript V8.
-4. **Celah Keamanan Pembacaan Berkas Lokal Sewenang-wenang (*Arbitrary Local File Read*)**:
-   Di `src-tauri/src/reconcile/commands.rs:291-321`, IPC command `read_statement_file_cmd` menerima parameter string `path` mentah dan langsung memanggil `std::fs::read_to_string(p)` hingga batas 5 MB tanpa melalui validasi batas path (*path canonicalization*) atau pemeriksaan direktori sensitif. Hal ini memungkinkan kode front-end atau dependensi terkompromi membaca berkas sistem sensitif (`/etc/passwd`, `~/.ssh/id_rsa`, `~/.aws/credentials`, dll).
-5. **Ketiadaan Pengerasan Profil Rilis Biner (*Release Build Hardening*)**:
-   Berkas `src-tauri/Cargo.toml` tidak mendefinisikan blok `[profile.release]`. Akibatnya, biner rilis terkompilasi menggunakan konfigurasi default: *Link-Time Optimization (LTO)* nonaktif, 16 unit codegen (*codegen-units*), *panic unwinding* dipertahankan, dan tabel simbol debugging tidak di-strip. Selain itu, fitur `tauri/devtools` diaktifkan secara unconditionally di dependensi, memungkinkan webview inspector diakses pada biner produksi.
+4. **Celah Keamanan Pembacaan Berkas Lokal Sewenang-wenang (_Arbitrary Local File Read_)**:
+   Di `src-tauri/src/reconcile/commands.rs:291-321`, IPC command `read_statement_file_cmd` menerima parameter string `path` mentah dan langsung memanggil `std::fs::read_to_string(p)` hingga batas 5 MB tanpa melalui validasi batas path (_path canonicalization_) atau pemeriksaan direktori sensitif. Hal ini memungkinkan kode front-end atau dependensi terkompromi membaca berkas sistem sensitif (`/etc/passwd`, `~/.ssh/id_rsa`, `~/.aws/credentials`, dll).
+5. **Ketiadaan Pengerasan Profil Rilis Biner (_Release Build Hardening_)**:
+   Berkas `src-tauri/Cargo.toml` tidak mendefinisikan blok `[profile.release]`. Akibatnya, biner rilis terkompilasi menggunakan konfigurasi default: _Link-Time Optimization (LTO)_ nonaktif, 16 unit codegen (_codegen-units_), _panic unwinding_ dipertahankan, dan tabel simbol debugging tidak di-strip. Selain itu, fitur `tauri/devtools` diaktifkan secara unconditionally di dependensi, memungkinkan webview inspector diakses pada biner produksi.
 6. **Eksfiltrasi Jaringan Melalui Celah CSP Webview**:
-   Konfigurasi CSP di `src-tauri/tauri.conf.json:29` mengizinkan `connect-src` ke `https://open.er-api.com` agar modul `src/lib/features/settings/fxSync.ts` dapat melakukan `fetch()` kurs valuta asing secara langsung dari webview, melanggar prinsip *airgapped local ledger* dan membuka celah eksfiltrasi data via modifikasi URL.
+   Konfigurasi CSP di `src-tauri/tauri.conf.json:29` mengizinkan `connect-src` ke `https://open.er-api.com` agar modul `src/lib/features/settings/fxSync.ts` dapat melakukan `fetch()` kurs valuta asing secara langsung dari webview, melanggar prinsip _airgapped local ledger_ dan membuka celah eksfiltrasi data via modifikasi URL.
 
 ---
 
@@ -34,29 +34,31 @@ Kami merekayasa ulang postur integritas platform dan keamanan kriptografi Finnca
 ### 1. Integrasi OS Credential Store via Arsitektur Dual-Envelope KDF
 
 Kami mengadopsi integrasi native dengan manajer kredensial sistem operasi menggunakan crate `keyring` (v3):
-- **Model Dua Amplop Kunci (*Dual-Envelope Model*)**:
+
+- **Model Dua Amplop Kunci (_Dual-Envelope Model_)**:
   Metadata vault (`vault.meta.json`) kini mendukung dua amplop enkripsi independen untuk membungkus `db_key` (DEK 256-bit):
   1. `wrapped_dek_password`: Amplop utama yang dienkripsi menggunakan KEK turunan password master via Argon2id (standar ADR 0001).
-  2. `wrapped_dek_keychain`: Amplop opsional yang dienkripsi menggunakan kunci acak 256-bit berdaya tahan tinggi (*Device Unlock Key* / DUK) yang disimpan secara aman di dalam OS Credential Store:
+  2. `wrapped_dek_keychain`: Amplop opsional yang dienkripsi menggunakan kunci acak 256-bit berdaya tahan tinggi (_Device Unlock Key_ / DUK) yang disimpan secara aman di dalam OS Credential Store:
      - **macOS**: Apple Keychain Services dengan proteksi biometrik Secure Enclave (`kSecAccessControlTouchIDAny`).
      - **Windows**: Windows Credential Manager yang dilindungi oleh Windows Data Protection API (DPAPI) / Windows Hello.
      - **Linux**: Secret Service API via D-Bus (`org.freedesktop.secrets` / `gnome-keyring` / `keepassxc-service`).
 - **Skema Metadata v2 dengan `vault_id` Imutabel**:
-  Untuk mencegah benturan kunci kredensial (*key collisions*) antar-vault dan mengamankan integritas saat vault diubah namanya (*renamed*), skema `VaultMetadata` menambahkan atribut `vault_id: String` (UUID v4 / ULID) yang bersifat imutabel. Entri OS Keychain selalu diikat pada `(KEYRING_SERVICE, vault_id)`, bukan nama vault yang dapat berubah.
+  Untuk mencegah benturan kunci kredensial (_key collisions_) antar-vault dan mengamankan integritas saat vault diubah namanya (_renamed_), skema `VaultMetadata` menambahkan atribut `vault_id: String` (UUID v4 / ULID) yang bersifat imutabel. Entri OS Keychain selalu diikat pada `(KEYRING_SERVICE, vault_id)`, bukan nama vault yang dapat berubah.
 - **Proteksi Non-Blocking & Batas Waktu D-Bus Linux**:
   Pada Linux, pemanggilan synchronous ke Secret Service daemon berisiko membekukan thread pemanggil hingga 25 detik jika daemon terkunci atau menampilkan dialog GUI otorisasi. Seluruh pemanggilan `keyring` wajib dibungkus di dalam task non-blocking (`spawn_blocking`) dengan batas waktu ketat **2 detik** (`tokio::time::timeout`). Jika batas waktu terlampaui atau daemon terkunci, sistem langsung mengembalikan galat non-fatal dan beralih ke formulir password master manual tanpa membekukan UI Tauri.
-- **Penanganan Desinkronisasi Pergantian Password (*Atomic Split-Brain Mitigation*)**:
-  Saat pengguna mengganti password master (`change_password_cmd`), sistem berusaha memperbarui kedua amplop (`wrapped_dek_password` dan `wrapped_dek_keychain`). Jika OS Keychain sedang terkunci atau gagal diperbarui, sistem menerapkan **kebijakan fallback atomik**: `wrapped_dek_keychain` di dalam `vault.meta.json` **wajib di-purge secara permanen (`wrapped_dek_keychain = None`)**. Ini menjamin tidak terjadi kondisi *split-brain* di mana DUK lama masih dapat membuka database lama atau gagal membuka database baru. Pengguna dapat mengaktifkan kembali "Fast Unlock" setelah berhasil masuk dengan password baru.
+- **Penanganan Desinkronisasi Pergantian Password (_Atomic Split-Brain Mitigation_)**:
+  Saat pengguna mengganti password master (`change_password_cmd`), sistem berusaha memperbarui kedua amplop (`wrapped_dek_password` dan `wrapped_dek_keychain`). Jika OS Keychain sedang terkunci atau gagal diperbarui, sistem menerapkan **kebijakan fallback atomik**: `wrapped_dek_keychain` di dalam `vault.meta.json` **wajib di-purge secara permanen (`wrapped_dek_keychain = None`)**. Ini menjamin tidak terjadi kondisi _split-brain_ di mana DUK lama masih dapat membuka database lama atau gagal membuka database baru. Pengguna dapat mengaktifkan kembali "Fast Unlock" setelah berhasil masuk dengan password baru.
 - **Pembersihan & Reset Kredensial**:
   Saat pengguna menonaktifkan "Fast Unlock" atau "Remember Vault", kunci DUK dihapus secara atomik dari OS Keychain via `purge_device_key`.
 
 ### 2. Penghapusan Total Stub `boot_id` Non-Kriptografis
 
-Kami memusnahkan (*deprecate and purge*) implementasi `boot_id` di `src-tauri/src/security/commands.rs`. Validasi integritas sesi kini sepenuhnya dikelola oleh state machine memori Rust yang terikat pada event siklus hidup OS (*OS lifecycle hooks*) dan timer inaktivitas aplikasi, bukan pembacaan string OS acak yang tidak bernilai kriptografis.
+Kami memusnahkan (_deprecate and purge_) implementasi `boot_id` di `src-tauri/src/security/commands.rs`. Validasi integritas sesi kini sepenuhnya dikelola oleh state machine memori Rust yang terikat pada event siklus hidup OS (_OS lifecycle hooks_) dan timer inaktivitas aplikasi, bukan pembacaan string OS acak yang tidak bernilai kriptografis.
 
-### 3. Pembersihan Memori Sensitif Komprehensif (*Zeroize-on-Drop Everywhere*)
+### 3. Pembersihan Memori Sensitif Komprehensif (_Zeroize-on-Drop Everywhere_)
 
 Seluruh alokasi heap dan stack yang menangani material rahasia wajib menerapkan pembungkusan anti-residu memori:
+
 1. **DEK Decryption Buffer**:
    Fungsi `unwrap_dek` di `src-tauri/src/crypto/envelope.rs` wajib mendekripsi ciphertext langsung ke buffer yang dibungkus oleh `zeroize::Zeroizing<Vec<u8>>` atau array stack berukuran tetap `zeroize::Zeroizing<[u8; 32]>`.
 2. **Kunci SQLCipher Hex**:
@@ -71,15 +73,18 @@ Seluruh alokasi heap dan stack yang menangani material rahasia wajib menerapkan 
 ### 4. Mandat `PRAGMA temp_store = MEMORY;` pada SQLCipher
 
 Pada inisialisasi basis data `open_vault_db()` di `src-tauri/src/db/mod.rs`, kami mewajibkan eksekusi pragma memori sementara:
+
 ```sql
 PRAGMA temp_store = MEMORY;
 ```
-Pragma ini menjamin bahwa seluruh tabel sementara, pengurutan B-tree, dan hasil antara kueri laporan keuangan hanya dialokasikan di dalam RAM virtual proses yang dilindungi oleh proteksi memori SQLCipher (`cipher_memory_security = ON`), dan tidak akan pernah ditulis ke disk `/tmp` dalam bentuk berkas sementara fisik. Perlu ditegaskan bahwa SQLCipher secara bawaan telah mengenkripsi berkas sementara jika terpaksa dibuat, namun mandat `PRAGMA temp_store = MEMORY;` memberikan pertahanan berlapis (*defense-in-depth*) mutlak terhadap jejak forensik media penyimpanan.
 
-### 5. Pengerasan Profil Kompilasi Rilis Biner (*Release Profile Hardening*)
+Pragma ini menjamin bahwa seluruh tabel sementara, pengurutan B-tree, dan hasil antara kueri laporan keuangan hanya dialokasikan di dalam RAM virtual proses yang dilindungi oleh proteksi memori SQLCipher (`cipher_memory_security = ON`), dan tidak akan pernah ditulis ke disk `/tmp` dalam bentuk berkas sementara fisik. Perlu ditegaskan bahwa SQLCipher secara bawaan telah mengenkripsi berkas sementara jika terpaksa dibuat, namun mandat `PRAGMA temp_store = MEMORY;` memberikan pertahanan berlapis (_defense-in-depth_) mutlak terhadap jejak forensik media penyimpanan.
+
+### 5. Pengerasan Profil Kompilasi Rilis Biner (_Release Profile Hardening_)
 
 Kami menambahkan konfigurasi profil rilis biner berstandar keamanan tinggi pada `src-tauri/Cargo.toml`:
-- **Fat Link-Time Optimization (`lto = "fat"`)**: Memaksa analisis program menyeluruh (*whole-program analysis*) lintas seluruh crate dependensi, mengoptimalkan inlining fungsi kriptografi, dan menghapus kode usang (*dead code elimination*).
+
+- **Fat Link-Time Optimization (`lto = "fat"`)**: Memaksa analisis program menyeluruh (_whole-program analysis_) lintas seluruh crate dependensi, mengoptimalkan inlining fungsi kriptografi, dan menghapus kode usang (_dead code elimination_).
 - **Single Codegen Unit (`codegen-units = 1`)**: Menghilangkan batas modul kompilasi terpisah, memaksimalkan efektivitas LTO, serta mempersulit disassembler memetakan batas unit logika internal.
 - **Panic Abort (`panic = "abort"`)**: Menghapus tabel unwinding dan landing pads, mencegah penyerang mengekstrak struktur kontrol alur program dari metadata panic handler.
 - **Simbol Dihapus Mutlak (`strip = true`)**: Membersihkan seluruh tabel simbol fungsi dan metadata debug dari artefak biner produksi.
@@ -88,9 +93,10 @@ Kami menambahkan konfigurasi profil rilis biner berstandar keamanan tinggi pada 
 ### 6. Pengerasan Batas IPC & Pertahanan Path Traversal pada `read_statement_file_cmd`
 
 Kami mengamankan perintah IPC `read_statement_file_cmd` dengan mekanisme validasi ketat yang kebal terhadap symlink bypass dan directory traversal:
+
 1. Memvalidasi bahwa sesi vault aktif dan terotentikasi.
 2. Memeriksa bahwa input path adalah path absolut yang valid.
-3. **Pemeriksaan Symlink pada Input Mentah**: Memeriksa metadata `std::fs::symlink_metadata(p)` pada path input *sebelum* dikanonikalisasi. Jika path adalah tautan simbolik (*symlink*), eksekusi langsung digagalkan dengan galat `Akses melalui tautan simbolik dilarang`.
+3. **Pemeriksaan Symlink pada Input Mentah**: Memeriksa metadata `std::fs::symlink_metadata(p)` pada path input _sebelum_ dikanonikalisasi. Jika path adalah tautan simbolik (_symlink_), eksekusi langsung digagalkan dengan galat `Akses melalui tautan simbolik dilarang`.
 4. **Kanonikalisasi Penuh**: Menyelesaikan path menjadi bentuk kanonik (`p.canonicalize()`).
 5. **Pemblokiran Direktori Sistem Operasi Lintas-Platform**:
    - **Linux / Unix**: Menolak akses ke `/etc`, `/root`, `/boot`, `/sys`, `/proc`, `/bin`, `/sbin`, `/usr`, `/dev`, `/var`.
@@ -104,7 +110,7 @@ Kami mengamankan perintah IPC `read_statement_file_cmd` dengan mekanisme validas
 ### 7. Isolasi Jaringan Webview CSP & Pemindahan FX Sync ke Backend Rust
 
 1. **Airgapped Webview CSP**:
-   Kebijakan CSP di `src-tauri/tauri.conf.json` dikembalikan ke status *airgapped mutlak*:
+   Kebijakan CSP di `src-tauri/tauri.conf.json` dikembalikan ke status _airgapped mutlak_:
    ```json
    "connect-src 'ipc:' https://ipc.localhost"
    ```
@@ -117,20 +123,22 @@ Kami mengamankan perintah IPC `read_statement_file_cmd` dengan mekanisme validas
 ## Consequences
 
 ### Positif
+
 - **Kekebalan Forensik Disk**: Mengeliminasi risiko residu data finansial di media penyimpanan `/tmp` berkat `PRAGMA temp_store = MEMORY;`.
-- **Higiene Memori Tingkat Tinggi**: Kunci enkripsi DEK, KEK, dan password master terjamin dibersihkan dari RAM virtual saat objek dilepas (*drop*), memitigasi serangan memory dumping atau crash inspection.
+- **Higiene Memori Tingkat Tinggi**: Kunci enkripsi DEK, KEK, dan password master terjamin dibersihkan dari RAM virtual saat objek dilepas (_drop_), memitigasi serangan memory dumping atau crash inspection.
 - **Eliminasi Kerentanan Path Traversal**: Frontend tidak dapat lagi menyalahgunakan `read_statement_file_cmd` untuk membaca berkas arbitrer sistem operasi host.
 - **Pengalaman Pengguna Modern yang Aman**: Integrasi OS Keychain memungkinkan pembukaan vault secara instan menggunakan sensor biometrik (Touch ID, Windows Hello) tanpa mengorbankan keamanan envelope encryption.
 - **Proteksi Rekayasa Balik & Anti-Tamper**: Profil rilis Fat LTO, stripping simbol, dan eliminasi Devtools mempersulit analisis statis/dinamis oleh pihak yang tidak berwenang.
 - **Kepatuhan Arsitektur Airgapped**: Webview kembali sepenuhnya terisolasi dari akses jaringan internet langsung.
 
 ### Trade-off & Mitigasi
+
 - **Ketergantungan Eksternal OS Keychain di Linux**: Distribusi Linux minimal tanpa Secret Service daemon memerlukan penanganan error yang anggun.  
-  *Mitigasi*: Crate `keyring` dibungkus dalam modul abstraksi yang mendeteksi ketersediaan backend D-Bus. Jika tidak tersedia, UI secara otomatis beralih ke formulir password manual dengan notifikasi informatif.
+  _Mitigasi_: Crate `keyring` dibungkus dalam modul abstraksi yang mendeteksi ketersediaan backend D-Bus. Jika tidak tersedia, UI secara otomatis beralih ke formulir password manual dengan notifikasi informatif.
 - **Waktu Kompilasi Rilis Lebih Lama**: Penggunaan `lto = "fat"` dan `codegen-units = 1` meningkatkan durasi build CI/CD rilis (dari ~3 menit menjadi ~7 menit).  
-  *Mitigasi*: Konfigurasi dev dan test profile (`profile.dev`, `profile.test`) tetap mempertahankan `incremental = true` dan `lto = false` sehingga kecepatan iterasi harian pengembang tidak terpengaruh.
+  _Mitigasi_: Konfigurasi dev dan test profile (`profile.dev`, `profile.test`) tetap mempertahankan `incremental = true` dan `lto = false` sehingga kecepatan iterasi harian pengembang tidak terpengaruh.
 - **Konsumsi RAM Tambahan untuk Temp Tables**: Kueri laporan raksasa akan menggunakan memori RAM aplikasi alih-alih disk swap.  
-  *Mitigasi*: Data finansial personal jarang melampaui jutaan baris dalam basis data tunggal, sehingga konsumsi RAM temporer untuk kueri agregasi tahunan diperkirakan < 20 MB.
+  _Mitigasi_: Data finansial personal jarang melampaui jutaan baris dalam basis data tunggal, sehingga konsumsi RAM temporer untuk kueri agregasi tahunan diperkirakan < 20 MB.
 
 ---
 
@@ -574,7 +582,7 @@ devtools = ["tauri/devtools"]
    Aktifkan "Fast Unlock" di pengaturan aplikasi. Periksa entri sistem credential store:
    - macOS: `security find-generic-password -s "org.finnca.vault"`
    - Linux: `secret-tool lookup service "org.finnca.vault"`
-   Pastikan kunci tersimpan dalam representasi biner terenkripsi dan dapat dihapus seketika saat user memilih "Lupakan Vault".
+     Pastikan kunci tersimpan dalam representasi biner terenkripsi dan dapat dihapus seketika saat user memilih "Lupakan Vault".
 4. **Verifikasi Binary Stripping**:
    Kompilasi paket rilis (`cargo build --release --manifest-path src-tauri/Cargo.toml`). Jalankan perintah `nm` atau `objdump`:
    ```bash

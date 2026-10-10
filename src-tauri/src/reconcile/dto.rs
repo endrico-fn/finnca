@@ -23,18 +23,6 @@ pub struct ReconciliationStatusView {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-pub struct ReconcileRule {
-    pub id: String,
-    pub pattern: String,
-    pub is_regex: bool,
-    pub match_type: String,
-    pub account_id: String,
-    pub priority: i64,
-    pub description_override: Option<String>,
-    pub created_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct ReconcileRuleWithAccount {
     pub id: String,
     pub pattern: String,

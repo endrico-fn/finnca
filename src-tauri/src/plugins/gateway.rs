@@ -221,21 +221,23 @@ mod tests {
     #[test]
     fn test_zero_float_gateway_accepts_integers() {
         // Pure integer minor units
-        assert!(validate_no_raw_floats(br#"{"amount": 1500000, "trend_basis_points": 520}"#).is_ok());
+        assert!(
+            validate_no_raw_floats(br#"{"amount": 1500000, "trend_basis_points": 520}"#).is_ok()
+        );
         assert!(validate_no_raw_floats(br#"{"negative": -1500000, "zero": 0}"#).is_ok());
         // Safe string text (not numeric floats)
-        assert!(validate_no_raw_floats(
-            br#"{"name": "Bank Central Asia", "date": "2026-10-06"}"#
-        )
-        .is_ok());
+        assert!(
+            validate_no_raw_floats(br#"{"name": "Bank Central Asia", "date": "2026-10-06"}"#)
+                .is_ok()
+        );
         assert!(validate_no_raw_floats(
             br#"{"description": "Transfer to John.Doe", "version": "1.0.0"}"#
         )
         .is_ok());
-        assert!(validate_no_raw_floats(
-            br#"{"status": "ok", "tags": ["salary", "fixed_income"]}"#
-        )
-        .is_ok());
+        assert!(
+            validate_no_raw_floats(br#"{"status": "ok", "tags": ["salary", "fixed_income"]}"#)
+                .is_ok()
+        );
     }
 
     #[test]

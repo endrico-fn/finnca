@@ -55,8 +55,8 @@
       inner: 'bg-teal',
     },
     neutral: {
-      outer: 'border-text-secondary',
-      inner: 'bg-text-secondary',
+      outer: 'border-text-muted',
+      inner: 'bg-text-muted',
     },
     ok: {
       outer: 'border-income',
@@ -80,7 +80,8 @@
 <div
   role="status"
   aria-label={label}
-  class="relative inline-flex shrink-0 items-center justify-center select-none {sizeMap[size].container} {customClass}"
+  class="relative inline-flex shrink-0 items-center justify-center select-none {sizeMap[size]
+    .container} {customClass}"
 >
   <!-- Kotak fill di dalam (berputar berlawanan arah jarum jam) -->
   <div
@@ -90,7 +91,8 @@
 
   <!-- Kotak border di atas/luar (berputar searah jarum jam) -->
   <div
-    class="spin-outer pointer-events-none absolute z-10 rounded-none bg-transparent {sizeMap[size].outer} {sizeMap[size].border} {toneMap[tone].outer}"
+    class="spin-outer pointer-events-none absolute z-10 rounded-none bg-transparent {sizeMap[size]
+      .outer} {sizeMap[size].border} {toneMap[tone].outer}"
     aria-hidden="true"
   ></div>
 
