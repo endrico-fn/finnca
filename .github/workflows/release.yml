@@ -99,6 +99,33 @@ jobs:
           sed -i "0,/^version = .*/s//version = \"${VERSION}\"/" src-tauri/Cargo.toml
           cargo update --manifest-path src-tauri/Cargo.toml -p finnca --precise "${VERSION}" || echo "WARN: cargo update lock failed, build will refresh src-tauri/Cargo.lock"
 
+      - name: Extract Release Notes
+        id: notes
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          python3 - <<PYEOF >> "${GITHUB_OUTPUT}"
+          import pathlib
+          import re
+
+          version = "${VERSION}"
+          text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          match = re.search(
+              r"^## \[" + re.escape(version) + r"\].*?\n(.*?)(?=^## \[|\Z)",
+              text,
+              re.MULTILINE | re.DOTALL,
+          )
+          body = match.group(1).strip() if match else ""
+          if not body:
+              body = "See commit history for details."
+          print("body<<NOTES_EOF")
+          print(f"## Finnca v{version}")
+          print()
+          print(body)
+          print("NOTES_EOF")
+          PYEOF
+
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
@@ -109,7 +136,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Finnca ${{ github.ref_name }}'
           releaseBody: |
-            ## Finnca ${{ github.ref_name }}
+            ${{ steps.notes.outputs.body }}
 
             Personal double-entry ledger notes — privacy-first, local encrypted vault, zero tracking.
 
