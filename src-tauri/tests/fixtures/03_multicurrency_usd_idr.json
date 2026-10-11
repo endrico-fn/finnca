@@ -1,0 +1,157 @@
+{
+  "scenarioName": "Multi-Currency USD & IDR Operations",
+  "generatedAt": "2026-09-13T19:32:09.040Z",
+  "engine": "TypeScript Reference Oracle v1",
+  "inputVault": {
+    "version": 2,
+    "fxRate": 16250,
+    "updatedAt": "2026-09-14T00:00:00Z",
+    "accounts": [
+      {
+        "id": "acc-bca-idr",
+        "code": "1001",
+        "name": "Bank BCA IDR",
+        "type": "ASSET",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-wise-usd",
+        "code": "1002",
+        "name": "Wise USD Account",
+        "type": "ASSET",
+        "currency": "USD",
+        "placeholder": false
+      },
+      {
+        "id": "acc-client-usd",
+        "code": "4010",
+        "name": "Global Client Revenue",
+        "type": "INCOME",
+        "currency": "USD",
+        "placeholder": false
+      },
+      {
+        "id": "acc-saas-usd",
+        "code": "5010",
+        "name": "Cloud Infrastructure SaaS",
+        "type": "EXPENSE",
+        "currency": "USD",
+        "placeholder": false
+      }
+    ],
+    "transactions": [
+      {
+        "id": "tx-usd-inv",
+        "date": "2026-09-02",
+        "description": "Client Invoice #8841 Payment",
+        "currency": "USD",
+        "fxRateAtTransaction": 16200,
+        "splits": [
+          {
+            "id": "sp-u1",
+            "accountId": "acc-client-usd",
+            "amount": -150000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-u2",
+            "accountId": "acc-wise-usd",
+            "amount": 150000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-saas-aws",
+        "date": "2026-09-05",
+        "description": "AWS Cloud Hosting",
+        "currency": "USD",
+        "fxRateAtTransaction": 16250,
+        "splits": [
+          {
+            "id": "sp-u3",
+            "accountId": "acc-saas-usd",
+            "amount": 12550,
+            "reconcile": "n"
+          },
+          {
+            "id": "sp-u4",
+            "accountId": "acc-wise-usd",
+            "amount": -12550,
+            "reconcile": "n"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedOutput": {
+    "accountBalances": {
+      "acc-bca-idr": 0,
+      "acc-wise-usd": 137450,
+      "acc-client-usd": -150000,
+      "acc-saas-usd": 12550
+    },
+    "accountLedgers": {
+      "acc-bca-idr": [],
+      "acc-wise-usd": [
+        {
+          "txId": "tx-usd-inv",
+          "date": "2026-09-02",
+          "amount": 150000,
+          "running": 150000
+        },
+        {
+          "txId": "tx-saas-aws",
+          "date": "2026-09-05",
+          "amount": -12550,
+          "running": 137450
+        }
+      ],
+      "acc-client-usd": [
+        {
+          "txId": "tx-usd-inv",
+          "date": "2026-09-02",
+          "amount": -150000,
+          "running": -150000
+        }
+      ],
+      "acc-saas-usd": [
+        {
+          "txId": "tx-saas-aws",
+          "date": "2026-09-05",
+          "amount": 12550,
+          "running": 12550
+        }
+      ]
+    },
+    "totals": {
+      "totalAssets": 22335625,
+      "totalLiabilities": 0,
+      "totalEquity": 0,
+      "totalIncome": 24300000,
+      "totalExpenses": 2039375,
+      "netIncome": 22260625,
+      "balanceSheetDiscrepancy": 75000,
+      "isBalanceSheetAligned": false
+    },
+    "invariants": {
+      "totalDebits": 162550,
+      "totalCredits": 162550,
+      "isZeroSum": true,
+      "allTransactionsBalanced": true,
+      "transactionChecks": [
+        {
+          "id": "tx-usd-inv",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-saas-aws",
+          "balanced": true,
+          "imbalance": 0
+        }
+      ]
+    }
+  }
+}

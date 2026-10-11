@@ -1,0 +1,2 @@
+ALTER TABLE plans ADD COLUMN last_posted_date TEXT;
+ALTER TABLE plans ADD COLUMN auto_post INTEGER NOT NULL DEFAULT 0;

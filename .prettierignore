@@ -1,0 +1,10 @@
+node_modules
+.svelte-kit
+build
+dist
+target
+src-tauri
+pnpm-lock.yaml
+Cargo.lock
+*.log
+src/lib/core/ipc/bindings.gen.ts

@@ -1,0 +1,237 @@
+{
+  "scenarioName": "Multi-Split Expenses & Payroll",
+  "generatedAt": "2026-09-13T19:32:09.038Z",
+  "engine": "TypeScript Reference Oracle v1",
+  "inputVault": {
+    "version": 2,
+    "fxRate": 16000,
+    "updatedAt": "2026-09-14T00:00:00Z",
+    "accounts": [
+      {
+        "id": "acc-bca",
+        "code": "1001",
+        "name": "Bank BCA",
+        "type": "ASSET",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-salary",
+        "code": "4001",
+        "name": "Gross Salary",
+        "type": "INCOME",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-tax",
+        "code": "5001",
+        "name": "Income Tax PPh21",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-bpjs",
+        "code": "5002",
+        "name": "Health Insurance",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-groceries",
+        "code": "5003",
+        "name": "Food & Groceries",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-household",
+        "code": "5004",
+        "name": "Household Supplies",
+        "type": "EXPENSE",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-discount",
+        "code": "4002",
+        "name": "Store Discounts/Rebates",
+        "type": "INCOME",
+        "currency": "IDR",
+        "placeholder": false
+      }
+    ],
+    "transactions": [
+      {
+        "id": "tx-salary-sep",
+        "date": "2026-09-01",
+        "description": "Monthly Salary with Deductions",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-s1",
+            "accountId": "acc-salary",
+            "amount": -25000000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-s2",
+            "accountId": "acc-tax",
+            "amount": 2500000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-s3",
+            "accountId": "acc-bpjs",
+            "amount": 500000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-s4",
+            "accountId": "acc-bca",
+            "amount": 22000000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-supermarket",
+        "date": "2026-09-03",
+        "description": "GrandLucky Supermarket run",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-m1",
+            "accountId": "acc-groceries",
+            "amount": 1250000,
+            "reconcile": "n"
+          },
+          {
+            "id": "sp-m2",
+            "accountId": "acc-household",
+            "amount": 350000,
+            "reconcile": "n"
+          },
+          {
+            "id": "sp-m3",
+            "accountId": "acc-discount",
+            "amount": -100000,
+            "reconcile": "n"
+          },
+          {
+            "id": "sp-m4",
+            "accountId": "acc-bca",
+            "amount": -1500000,
+            "reconcile": "y"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedOutput": {
+    "accountBalances": {
+      "acc-bca": 20500000,
+      "acc-salary": -25000000,
+      "acc-tax": 2500000,
+      "acc-bpjs": 500000,
+      "acc-groceries": 1250000,
+      "acc-household": 350000,
+      "acc-discount": -100000
+    },
+    "accountLedgers": {
+      "acc-bca": [
+        {
+          "txId": "tx-salary-sep",
+          "date": "2026-09-01",
+          "amount": 22000000,
+          "running": 22000000
+        },
+        {
+          "txId": "tx-supermarket",
+          "date": "2026-09-03",
+          "amount": -1500000,
+          "running": 20500000
+        }
+      ],
+      "acc-salary": [
+        {
+          "txId": "tx-salary-sep",
+          "date": "2026-09-01",
+          "amount": -25000000,
+          "running": -25000000
+        }
+      ],
+      "acc-tax": [
+        {
+          "txId": "tx-salary-sep",
+          "date": "2026-09-01",
+          "amount": 2500000,
+          "running": 2500000
+        }
+      ],
+      "acc-bpjs": [
+        {
+          "txId": "tx-salary-sep",
+          "date": "2026-09-01",
+          "amount": 500000,
+          "running": 500000
+        }
+      ],
+      "acc-groceries": [
+        {
+          "txId": "tx-supermarket",
+          "date": "2026-09-03",
+          "amount": 1250000,
+          "running": 1250000
+        }
+      ],
+      "acc-household": [
+        {
+          "txId": "tx-supermarket",
+          "date": "2026-09-03",
+          "amount": 350000,
+          "running": 350000
+        }
+      ],
+      "acc-discount": [
+        {
+          "txId": "tx-supermarket",
+          "date": "2026-09-03",
+          "amount": -100000,
+          "running": -100000
+        }
+      ]
+    },
+    "totals": {
+      "totalAssets": 20500000,
+      "totalLiabilities": 0,
+      "totalEquity": 0,
+      "totalIncome": 25100000,
+      "totalExpenses": 4600000,
+      "netIncome": 20500000,
+      "balanceSheetDiscrepancy": 0,
+      "isBalanceSheetAligned": true
+    },
+    "invariants": {
+      "totalDebits": 26600000,
+      "totalCredits": 26600000,
+      "isZeroSum": true,
+      "allTransactionsBalanced": true,
+      "transactionChecks": [
+        {
+          "id": "tx-salary-sep",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-supermarket",
+          "balanced": true,
+          "imbalance": 0
+        }
+      ]
+    }
+  }
+}

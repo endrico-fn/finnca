@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "plugins-capability",
+  "description": "Capability for sandboxed WebAssembly plugins and statement parsers",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:default"]
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "reports-capability",
+  "description": "Capability for generating and exporting financial reports",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:default"]
+}

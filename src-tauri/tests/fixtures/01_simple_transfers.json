@@ -1,0 +1,182 @@
+{
+  "scenarioName": "Simple Asset Transfers",
+  "generatedAt": "2026-09-13T19:32:09.035Z",
+  "engine": "TypeScript Reference Oracle v1",
+  "inputVault": {
+    "version": 2,
+    "fxRate": 16000,
+    "updatedAt": "2026-09-14T00:00:00Z",
+    "accounts": [
+      {
+        "id": "acc-eq-opening",
+        "code": "3000",
+        "name": "Opening Balance Equity",
+        "type": "EQUITY",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-asset-bank-bca",
+        "code": "1001",
+        "name": "Bank BCA",
+        "type": "ASSET",
+        "currency": "IDR",
+        "placeholder": false
+      },
+      {
+        "id": "acc-asset-cash",
+        "code": "1002",
+        "name": "Cash Wallet",
+        "type": "ASSET",
+        "currency": "IDR",
+        "placeholder": false
+      }
+    ],
+    "transactions": [
+      {
+        "id": "tx-01",
+        "date": "2026-09-01",
+        "description": "Opening Capital injection",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-01-1",
+            "accountId": "acc-asset-bank-bca",
+            "amount": 50000000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-01-2",
+            "accountId": "acc-eq-opening",
+            "amount": -50000000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-02",
+        "date": "2026-09-02",
+        "description": "ATM Cash Withdrawal",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-02-1",
+            "accountId": "acc-asset-cash",
+            "amount": 2000000,
+            "reconcile": "n"
+          },
+          {
+            "id": "sp-02-2",
+            "accountId": "acc-asset-bank-bca",
+            "amount": -2000000,
+            "reconcile": "y"
+          }
+        ]
+      },
+      {
+        "id": "tx-03",
+        "date": "2026-09-05",
+        "description": "Deposit unused cash back to BCA",
+        "currency": "IDR",
+        "splits": [
+          {
+            "id": "sp-03-1",
+            "accountId": "acc-asset-bank-bca",
+            "amount": 500000,
+            "reconcile": "y"
+          },
+          {
+            "id": "sp-03-2",
+            "accountId": "acc-asset-cash",
+            "amount": -500000,
+            "reconcile": "n"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedOutput": {
+    "accountBalances": {
+      "acc-eq-opening": -50000000,
+      "acc-asset-bank-bca": 48500000,
+      "acc-asset-cash": 1500000
+    },
+    "accountLedgers": {
+      "acc-eq-opening": [
+        {
+          "txId": "tx-01",
+          "date": "2026-09-01",
+          "amount": -50000000,
+          "running": -50000000
+        }
+      ],
+      "acc-asset-bank-bca": [
+        {
+          "txId": "tx-01",
+          "date": "2026-09-01",
+          "amount": 50000000,
+          "running": 50000000
+        },
+        {
+          "txId": "tx-02",
+          "date": "2026-09-02",
+          "amount": -2000000,
+          "running": 48000000
+        },
+        {
+          "txId": "tx-03",
+          "date": "2026-09-05",
+          "amount": 500000,
+          "running": 48500000
+        }
+      ],
+      "acc-asset-cash": [
+        {
+          "txId": "tx-02",
+          "date": "2026-09-02",
+          "amount": 2000000,
+          "running": 2000000
+        },
+        {
+          "txId": "tx-03",
+          "date": "2026-09-05",
+          "amount": -500000,
+          "running": 1500000
+        }
+      ]
+    },
+    "totals": {
+      "totalAssets": 50000000,
+      "totalLiabilities": 0,
+      "totalEquity": 50000000,
+      "totalIncome": 0,
+      "totalExpenses": 0,
+      "netIncome": 0,
+      "balanceSheetDiscrepancy": 0,
+      "isBalanceSheetAligned": true
+    },
+    "invariants": {
+      "totalDebits": 52500000,
+      "totalCredits": 52500000,
+      "isZeroSum": true,
+      "allTransactionsBalanced": true,
+      "transactionChecks": [
+        {
+          "id": "tx-01",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-02",
+          "balanced": true,
+          "imbalance": 0
+        },
+        {
+          "id": "tx-03",
+          "balanced": true,
+          "imbalance": 0
+        }
+      ]
+    }
+  }
+}

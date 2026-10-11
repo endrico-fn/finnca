@@ -1,0 +1,8 @@
+# Cargo Configuration optimized for Low-Resource Environments (Celeron & 4GB RAM)
+# Prevents RAM exhaustion and disk swap thrashing without losing Rust capability
+
+[build]
+# Limit parallel compilation jobs to 2 threads.
+# On 4GB RAM, 4 rustc jobs cause heavy swap choking and system freezes.
+# 2 parallel jobs stay safely within available RAM and compile significantly faster.
+jobs = 2
