@@ -30,6 +30,8 @@ finnca status
 finnca upgrade
 ```
 
+Sehari-hari pakai update di dalam app (bertanda tangan, ada rollback). Script dipakai untuk install awal, perbaikan saat app rusak, dan uninstall bersih.
+
 Alternatif manual: `.AppImage` portable, `.deb` (`sudo apt install ./finnca_*.deb`), `.rpm` (`sudo dnf install ./finnca_*.rpm`), atau `_x64-setup.exe` di [Releases](https://github.com/endrico-fn/finnca/releases).
 
 ## Isinya

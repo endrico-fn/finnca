@@ -42,8 +42,8 @@ print_box_line() {
   local text="$1"
   local plain
   plain=$(printf "%s" "${text}" | sed -E $'s/\x1B\\[[0-9;]*[a-zA-Z]//g')
-  local pad=$(( 60 - ${#plain} ))
-  if (( pad < 0 )); then pad=0; fi
+  local pad=$((60 - ${#plain}))
+  if ((pad < 0)); then pad=0; fi
   local spaces
   spaces=$(printf "%*s" "${pad}" "")
   printf "${C_TEAL}${C_BOLD}│${C_RESET}  %s%s${C_TEAL}${C_BOLD}│${C_RESET}\n" "${text}" "${spaces}"
@@ -74,9 +74,9 @@ log_step() {
   fi
 }
 
-log_ok()   { printf "   ${C_GREEN}✔${C_RESET} %s\n" "$*"; }
+log_ok() { printf "   ${C_GREEN}✔${C_RESET} %s\n" "$*"; }
 log_warn() { printf "   ${C_YELLOW}⚠${C_RESET} %s\n" "$*"; }
-log_err()  { printf "   ${C_RED}✖${C_RESET} %s\n" "$*" >&2; }
+log_err() { printf "   ${C_RED}✖${C_RESET} %s\n" "$*" >&2; }
 
 # --- Path Resolution & Privileges ---
 detect_paths() {
@@ -116,8 +116,8 @@ require_tool() {
 
 get_latest_version() {
   local version
-  version="$(curl -sSL "${GITHUB_API_URL}/releases/latest" 2>/dev/null \
-    | grep '"tag_name"' | head -n 1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' || true)"
+  version="$(curl -sSL "${GITHUB_API_URL}/releases/latest" 2>/dev/null |
+    grep '"tag_name"' | head -n 1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' || true)"
   echo "${version}"
 }
 
@@ -155,7 +155,7 @@ install_completions() {
   # 1. Bash completion
   if [[ -d "${BASH_COMP_DIR}" || -d "$(dirname "${BASH_COMP_DIR}")" ]]; then
     ${SUDO_CMD} mkdir -p "${BASH_COMP_DIR}"
-    cat << 'EOF' | ${SUDO_CMD} tee "${BASH_COMP_DIR}/${APP_NAME}" > /dev/null
+    cat <<'EOF' | ${SUDO_CMD} tee "${BASH_COMP_DIR}/${APP_NAME}" >/dev/null
 _finnca_completions() {
   local cur="${COMP_WORDS[COMP_CWORD]}"
   local opts="--update update -u --upgrade upgrade --uninstall uninstall --status status --version -v --help -h"
@@ -173,7 +173,7 @@ EOF
   # 2. Zsh completion
   if [[ -d "${ZSH_COMP_DIR}" || -d "$(dirname "${ZSH_COMP_DIR}")" ]]; then
     ${SUDO_CMD} mkdir -p "${ZSH_COMP_DIR}"
-    cat << 'EOF' | ${SUDO_CMD} tee "${ZSH_COMP_DIR}/_${APP_NAME}" > /dev/null
+    cat <<'EOF' | ${SUDO_CMD} tee "${ZSH_COMP_DIR}/_${APP_NAME}" >/dev/null
 #compdef finnca
 
 _finnca() {
@@ -197,7 +197,7 @@ EOF
   # 3. Fish completion
   if [[ -d "${FISH_COMP_DIR}" || -d "$(dirname "${FISH_COMP_DIR}")" ]]; then
     ${SUDO_CMD} mkdir -p "${FISH_COMP_DIR}"
-    cat << 'EOF' | ${SUDO_CMD} tee "${FISH_COMP_DIR}/${APP_NAME}.fish" > /dev/null
+    cat <<'EOF' | ${SUDO_CMD} tee "${FISH_COMP_DIR}/${APP_NAME}.fish" >/dev/null
 complete -c finnca -l update -d "Check GitHub releases and upgrade"
 complete -c finnca -l uninstall -d "Safely remove Finnca application"
 complete -c finnca -l status -d "Display installation diagnostics"
@@ -225,20 +225,59 @@ cmd_install() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --system) is_system=true; shift ;;
-      --version=*) target_ver="${1#*=}"; shift ;;
-      --version) target_ver="${2:-}"; shift 2 ;;
-      --dir=*) explicit_dir="${1#*=}"; shift ;;
-      --dir) explicit_dir="${2:-}"; shift 2 ;;
-      --format=*) target_format="${1#*=}"; shift ;;
-      --format) target_format="${2:-}"; shift 2 ;;
-      --appimage) target_format="appimage"; shift ;;
-      --deb) target_format="deb"; shift ;;
-      --rpm) target_format="rpm"; shift ;;
-      --local) use_local=true; shift ;;
-      v[0-9]*|[0-9]*) target_ver="$1"; shift ;;
-      local) use_local=true; shift ;;
-      *) shift ;;
+    --system)
+      is_system=true
+      shift
+      ;;
+    --version=*)
+      target_ver="${1#*=}"
+      shift
+      ;;
+    --version)
+      target_ver="${2:-}"
+      shift 2
+      ;;
+    --dir=*)
+      explicit_dir="${1#*=}"
+      shift
+      ;;
+    --dir)
+      explicit_dir="${2:-}"
+      shift 2
+      ;;
+    --format=*)
+      target_format="${1#*=}"
+      shift
+      ;;
+    --format)
+      target_format="${2:-}"
+      shift 2
+      ;;
+    --appimage)
+      target_format="appimage"
+      shift
+      ;;
+    --deb)
+      target_format="deb"
+      shift
+      ;;
+    --rpm)
+      target_format="rpm"
+      shift
+      ;;
+    --local)
+      use_local=true
+      shift
+      ;;
+    v[0-9]* | [0-9]*)
+      target_ver="$1"
+      shift
+      ;;
+    local)
+      use_local=true
+      shift
+      ;;
+    *) shift ;;
     esac
   done
 
@@ -286,9 +325,9 @@ cmd_install() {
     target_ver="$(get_latest_version)"
     if [[ -z "${target_ver}" ]]; then
       case "${target_format}" in
-        appimage) [[ -n "${local_appimage}" ]] && use_local=true && target_ver="local" ;;
-        deb)      [[ -n "${local_deb}" ]]      && use_local=true && target_ver="local" ;;
-        rpm)      [[ -n "${local_rpm}" ]]      && use_local=true && target_ver="local" ;;
+      appimage) [[ -n "${local_appimage}" ]] && use_local=true && target_ver="local" ;;
+      deb) [[ -n "${local_deb}" ]] && use_local=true && target_ver="local" ;;
+      rpm) [[ -n "${local_rpm}" ]] && use_local=true && target_ver="local" ;;
       esac
     fi
   fi
@@ -358,80 +397,89 @@ cmd_install() {
   }
 
   case "${target_format}" in
-    deb)
-      local deb_path=""
-      if [[ "${use_local}" == true ]]; then
-        [[ -z "${local_deb}" || ! -f "${local_deb}" ]] && { log_err "No local .deb build artifact found."; exit 1; }
-        log_step "Local Artifact" "${local_deb}"
-        deb_path="${local_deb}"
-      else
-        require_tool curl
-        deb_path="${tmp_dir}/${APP_NAME}_${clean_num}_amd64.deb"
-        local deb_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.deb"
-        log_step "Downloading Payload" "${target_ver} (.deb)"
-        COLUMNS=40 curl -# -fSL "${deb_url}" -o "${deb_path}"
-        verify_payload_checksum "${deb_path}" "${target_ver}" "${tmp_dir}"
-      fi
-
-      log_phase "3" "3" "Integrating System Package (APT/DPKG)"
-      if command -v apt &>/dev/null; then
-        ${SUDO_CMD} apt install -y "${deb_path}"
-      elif command -v dpkg &>/dev/null; then
-        ${SUDO_CMD} dpkg -i "${deb_path}"
-      fi
-      log_ok "Debian package integrated successfully."
-      return 0
-      ;;
-
-    rpm)
-      local rpm_path=""
-      if [[ "${use_local}" == true ]]; then
-        [[ -z "${local_rpm}" || ! -f "${local_rpm}" ]] && { log_err "No local .rpm build artifact found."; exit 1; }
-        log_step "Local Artifact" "${local_rpm}"
-        rpm_path="${local_rpm}"
-      else
-        require_tool curl
-        rpm_path="${tmp_dir}/${APP_NAME}-${clean_num}-1.x86_64.rpm"
-        local rpm_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}-${clean_num}-1.x86_64.rpm"
-        log_step "Downloading Payload" "${target_ver} (.rpm)"
-        COLUMNS=40 curl -# -fSL "${rpm_url}" -o "${rpm_path}"
-        verify_payload_checksum "${rpm_path}" "${target_ver}" "${tmp_dir}"
-      fi
-
-      log_phase "3" "3" "Integrating System Package (RPM)"
-      if command -v dnf &>/dev/null; then
-        ${SUDO_CMD} dnf install -y "${rpm_path}"
-      elif command -v zypper &>/dev/null; then
-        ${SUDO_CMD} zypper install -y "${rpm_path}"
-      elif command -v rpm &>/dev/null; then
-        ${SUDO_CMD} rpm -Uvh "${rpm_path}"
-      fi
-      log_ok "RPM package integrated successfully."
-      return 0
-      ;;
-
-    appimage)
-      local appimage_path="${tmp_dir}/${APP_NAME}.AppImage"
-      if [[ "${use_local}" == true ]]; then
-        [[ -z "${local_appimage}" || ! -f "${local_appimage}" ]] && { log_err "No local AppImage build artifact found."; exit 1; }
-        log_step "Local Artifact" "${local_appimage}"
-        cp "${local_appimage}" "${appimage_path}"
-      else
-        require_tool curl
-        local appimage_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.AppImage"
-        log_step "Downloading Payload" "${target_ver} (amd64 AppImage)"
-        COLUMNS=40 curl -# -fSL "${appimage_url}" -o "${appimage_path}"
-        verify_payload_checksum "${appimage_path}" "${target_ver}" "${tmp_dir}"
-      fi
-
-      chmod +x "${appimage_path}"
-      (cd "${tmp_dir}" && "${appimage_path}" --appimage-extract > /dev/null)
-      if [[ ! -d "${tmp_dir}/squashfs-root" ]]; then
-        log_err "Extraction failed: Corrupt AppImage artifact."
+  deb)
+    local deb_path=""
+    if [[ "${use_local}" == true ]]; then
+      [[ -z "${local_deb}" || ! -f "${local_deb}" ]] && {
+        log_err "No local .deb build artifact found."
         exit 1
-      fi
-      log_ok "Payload extracted and verified."
-      ;;
+      }
+      log_step "Local Artifact" "${local_deb}"
+      deb_path="${local_deb}"
+    else
+      require_tool curl
+      deb_path="${tmp_dir}/${APP_NAME}_${clean_num}_amd64.deb"
+      local deb_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.deb"
+      log_step "Downloading Payload" "${target_ver} (.deb)"
+      COLUMNS=40 curl -# -fSL "${deb_url}" -o "${deb_path}"
+      verify_payload_checksum "${deb_path}" "${target_ver}" "${tmp_dir}"
+    fi
+
+    log_phase "3" "3" "Integrating System Package (APT/DPKG)"
+    if command -v apt &>/dev/null; then
+      ${SUDO_CMD} apt install -y "${deb_path}"
+    elif command -v dpkg &>/dev/null; then
+      ${SUDO_CMD} dpkg -i "${deb_path}"
+    fi
+    log_ok "Debian package integrated successfully."
+    return 0
+    ;;
+
+  rpm)
+    local rpm_path=""
+    if [[ "${use_local}" == true ]]; then
+      [[ -z "${local_rpm}" || ! -f "${local_rpm}" ]] && {
+        log_err "No local .rpm build artifact found."
+        exit 1
+      }
+      log_step "Local Artifact" "${local_rpm}"
+      rpm_path="${local_rpm}"
+    else
+      require_tool curl
+      rpm_path="${tmp_dir}/${APP_NAME}-${clean_num}-1.x86_64.rpm"
+      local rpm_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}-${clean_num}-1.x86_64.rpm"
+      log_step "Downloading Payload" "${target_ver} (.rpm)"
+      COLUMNS=40 curl -# -fSL "${rpm_url}" -o "${rpm_path}"
+      verify_payload_checksum "${rpm_path}" "${target_ver}" "${tmp_dir}"
+    fi
+
+    log_phase "3" "3" "Integrating System Package (RPM)"
+    if command -v dnf &>/dev/null; then
+      ${SUDO_CMD} dnf install -y "${rpm_path}"
+    elif command -v zypper &>/dev/null; then
+      ${SUDO_CMD} zypper install -y "${rpm_path}"
+    elif command -v rpm &>/dev/null; then
+      ${SUDO_CMD} rpm -Uvh "${rpm_path}"
+    fi
+    log_ok "RPM package integrated successfully."
+    return 0
+    ;;
+
+  appimage)
+    local appimage_path="${tmp_dir}/${APP_NAME}.AppImage"
+    if [[ "${use_local}" == true ]]; then
+      [[ -z "${local_appimage}" || ! -f "${local_appimage}" ]] && {
+        log_err "No local AppImage build artifact found."
+        exit 1
+      }
+      log_step "Local Artifact" "${local_appimage}"
+      cp "${local_appimage}" "${appimage_path}"
+    else
+      require_tool curl
+      local appimage_url="${GITHUB_RELEASE_URL}/download/${target_ver}/${APP_NAME}_${clean_num}_amd64.AppImage"
+      log_step "Downloading Payload" "${target_ver} (amd64 AppImage)"
+      COLUMNS=40 curl -# -fSL "${appimage_url}" -o "${appimage_path}"
+      verify_payload_checksum "${appimage_path}" "${target_ver}" "${tmp_dir}"
+    fi
+
+    chmod +x "${appimage_path}"
+    (cd "${tmp_dir}" && "${appimage_path}" --appimage-extract >/dev/null)
+    if [[ ! -d "${tmp_dir}/squashfs-root" ]]; then
+      log_err "Extraction failed: Corrupt AppImage artifact."
+      exit 1
+    fi
+    log_ok "Payload extracted and verified."
+    ;;
   esac
 
   # --- Macro Phase 3: System Deployment & Desktop Integration ---
@@ -440,20 +488,20 @@ cmd_install() {
   ${SUDO_CMD} rm -rf "${INSTALL_DIR}"
   ${SUDO_CMD} mkdir -p "$(dirname "${INSTALL_DIR}")"
   ${SUDO_CMD} mv "${tmp_dir}/squashfs-root" "${INSTALL_DIR}"
-  echo "${target_ver:-local}" | ${SUDO_CMD} tee "${INSTALL_DIR}/version" > /dev/null
+  echo "${target_ver:-local}" | ${SUDO_CMD} tee "${INSTALL_DIR}/version" >/dev/null
 
   # Bundle maintenance engine into INSTALL_DIR
   local current_script="${BASH_SOURCE[0]:-$0}"
   if [[ -f "${current_script}" && "${current_script}" != "/dev/stdin" && "${current_script}" != "/dev/fd/"* ]]; then
     ${SUDO_CMD} cp "${current_script}" "${INSTALL_DIR}/finnca.sh"
   else
-    curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/scripts/finnca.sh" | ${SUDO_CMD} tee "${INSTALL_DIR}/finnca.sh" > /dev/null || true
+    curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/scripts/finnca.sh" | ${SUDO_CMD} tee "${INSTALL_DIR}/finnca.sh" >/dev/null || true
   fi
   ${SUDO_CMD} chmod 755 "${INSTALL_DIR}/finnca.sh" 2>/dev/null || true
 
   # Unified CLI Launcher & Dispatcher
   ${SUDO_CMD} mkdir -p "$(dirname "${BIN_LINK}")"
-  cat << 'EOF' | sed "s|__INSTALL_DIR__|${INSTALL_DIR}|g" | ${SUDO_CMD} tee "${BIN_LINK}" > /dev/null
+  cat <<'EOF' | sed "s|__INSTALL_DIR__|${INSTALL_DIR}|g" | ${SUDO_CMD} tee "${BIN_LINK}" >/dev/null
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
@@ -522,7 +570,7 @@ EOF
 
   # Desktop Entry (XDG compliant, named icon, StartupWMClass)
   ${SUDO_CMD} mkdir -p "$(dirname "${DESKTOP_FILE}")"
-  cat << EOF | ${SUDO_CMD} tee "${DESKTOP_FILE}" > /dev/null
+  cat <<EOF | ${SUDO_CMD} tee "${DESKTOP_FILE}" >/dev/null
 [Desktop Entry]
 Name=Finnca
 Comment=Personal double-entry finance notes
@@ -624,6 +672,25 @@ cmd_upgrade() {
 
   printf "\n"
   log_ok "Update candidate detected: ${current_ver} -> ${latest_ver}. Applying upgrade..."
+
+  if [[ "${current_ver}" != "none" && -t 0 ]]; then
+    local proceed_script=false
+    for arg in "$@"; do
+      [[ "${arg}" == "-y" || "${arg}" == "--yes" ]] && proceed_script=true
+    done
+    if [[ "${proceed_script}" != true ]]; then
+      printf "\n"
+      log_warn "Routine updates are safest via the in-app updater (signed, with rollback)."
+      log_warn "Use this script upgrade only if the app is broken or headless."
+      printf "Continue script reinstall ${current_ver} -> ${latest_ver}? [y/N]: "
+      read -r confirm_upgrade
+      if [[ ! "${confirm_upgrade}" =~ ^[Yy]$ ]]; then
+        log_warn "Upgrade cancelled. Open Finnca and use the in-app updater instead."
+        exit 0
+      fi
+    fi
+  fi
+
   cmd_install --version="${latest_ver}"
 }
 
@@ -634,9 +701,15 @@ cmd_uninstall() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --purge) purge_data=true; shift ;;
-      -y|--yes) auto_yes=true; shift ;;
-      *) shift ;;
+    --purge)
+      purge_data=true
+      shift
+      ;;
+    -y | --yes)
+      auto_yes=true
+      shift
+      ;;
+    *) shift ;;
     esac
   done
 
@@ -685,6 +758,18 @@ cmd_uninstall() {
   fi
 
   if [[ "${purge_data}" == true ]]; then
+    if [[ "${auto_yes}" != true && -t 0 ]]; then
+      printf "\n${C_BOLD}--purge will also delete the configuration directory:${C_RESET} ${HOME}/.config/${APP_NAME}\n"
+      printf "Vault databases (*.finnca) stay untouched. Delete config anyway? [y/N]: "
+      read -r confirm_purge
+      if [[ ! "${confirm_purge}" =~ ^[Yy]$ ]]; then
+        log_warn "Config preserved. Continuing without purge."
+        purge_data=false
+      fi
+    fi
+  fi
+
+  if [[ "${purge_data}" == true ]]; then
     log_warn "Purge mode requested: removing configuration directory (~/.config/finnca)..."
     rm -rf "${HOME}/.config/${APP_NAME}"
   fi
@@ -722,7 +807,7 @@ cmd_status() {
 # --- Usage & Help ---
 print_help() {
   print_banner "Command Line Interface Reference"
-  cat << EOF
+  cat <<EOF
 
 Usage:
   finnca.sh <command> [options]
@@ -759,22 +844,22 @@ main() {
   shift || true
 
   case "${cmd}" in
-    install)   cmd_install "$@" ;;
-    upgrade)   cmd_upgrade "$@" ;;
-    uninstall) cmd_uninstall "$@" ;;
-    status)    cmd_status "$@" ;;
-    help|-h|--help) print_help ;;
-    *)
-      if [[ "${cmd}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-        cmd_install --version="${cmd}" "$@"
-      elif [[ "${cmd}" == "--deb" || "${cmd}" == "--rpm" || "${cmd}" == "--appimage" || "${cmd}" == "--local" ]]; then
-        cmd_install "${cmd}" "$@"
-      else
-        log_err "Unknown command: ${cmd}"
-        print_help
-        exit 1
-      fi
-      ;;
+  install) cmd_install "$@" ;;
+  upgrade) cmd_upgrade "$@" ;;
+  uninstall) cmd_uninstall "$@" ;;
+  status) cmd_status "$@" ;;
+  help | -h | --help) print_help ;;
+  *)
+    if [[ "${cmd}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+      cmd_install --version="${cmd}" "$@"
+    elif [[ "${cmd}" == "--deb" || "${cmd}" == "--rpm" || "${cmd}" == "--appimage" || "${cmd}" == "--local" ]]; then
+      cmd_install "${cmd}" "$@"
+    else
+      log_err "Unknown command: ${cmd}"
+      print_help
+      exit 1
+    fi
+    ;;
   esac
 }
 

@@ -267,7 +267,13 @@ Write-Header
 
 switch ($Action.ToLower()) {
     "install"   { Install-Finnca -UseLocal:$Local }
-    "upgrade"   { Install-Finnca -UseLocal:$Local }
+    "upgrade"   {
+        Write-Host ""
+        Write-Host "  Routine updates are safest via the in-app updater (signed, with rollback)." -ForegroundColor Yellow
+        Write-Host "  Use this script upgrade only if the app is broken or headless." -ForegroundColor Yellow
+        Write-Host ""
+        Install-Finnca -UseLocal:$Local
+    }
     "uninstall" { Uninstall-Finnca }
     "status"    { Show-Status }
     default     { Write-Fail "Unknown action: $Action" }
