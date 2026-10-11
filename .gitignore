@@ -71,3 +71,4 @@ scratch/
 *.temp
 *.out
 .envrc
+__pycache__/
