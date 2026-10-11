@@ -9,69 +9,40 @@
 [![Status](https://img.shields.io/badge/status-active_development-0c6338?style=flat-square&labelColor=52525b)](https://github.com/endrico-fn/finnca)
 </div>
 
----
+Aplikasi catatan keuangan pribadi: tulis transaksi, lihat arus kas dan laporan, semua data terenkripsi di komputermu sendiri.
 
-# finnca
+## Install cepat
 
-aplikasi personal finance note, double-entry
-
-## Fitur yang ada
-
-- **Dashboard** — overview saldo, arus kas, dan transaksi terkini
-- **Chart of Accounts** — bagan akun bertingkat, navigasi-nya pakai path bukan tree: `Aset > Bank > BCA`
-- **Journal** — entri jurnal dengan filter, pencarian, status rekonsiliasi
-- **Reports** — laba rugi, neraca, neraca saldo, tren, cashflow, revaluasi FX, simulator pelunasan hutang
-- **Plan & Calendar** — hutang, piutang, cicilan — semua ada kalender jatuh temponya
-- **Budget** — sistem envelope: tiap rupiah ada tugasnya
-- **Reconcile** — cocokkan catatan dengan mutasi bank lewat impor CSV
-- **Multi-vault** — beberapa vault terpisah, seperti mekanisme vault di Obsidian
-- **Multi-currency** — IDR dan USD, lengkap dengan kurs dan laporan revaluasi
-
-## Privacy
-
-Semua data tersimpan lokal dan terenkripsi. Kamu bikin vault sendiri, tentukan sendiri di mana foldernya disimpan, pakai password sendiri. Vault-nya terisolasi dalam satu folder — gampang di-backup, gampang dipindah
-
-## Install
-
-### Linux (Ubuntu/Debian)
-
-```bash
-sudo apt install ./finnca_*.deb
-```
-
-### Linux (Fedora/openSUSE)
-
-```bash
-sudo dnf install ./finnca_*.rpm
-```
-
-### Linux (portable / distro apapun)
+Butuh curl + bash (Linux) atau PowerShell 5.1+ (Windows), tanpa sudo kecuali paket `.deb`/`.rpm`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/install.sh | bash
 ```
 
-Atau download `.AppImage` langsung dari [Releases](https://github.com/endrico-fn/finnca/releases), kasih permission execute, jalankan.
-
-### Windows
-
-Download `_x64-setup.exe` dari [Releases](https://github.com/endrico-fn/finnca/releases), klik install.
-
----
-
-### Uninstall (jika install via script)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/uninstall.sh | bash
+```powershell
+irm https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/install.ps1 | iex
 ```
 
-### Upgrade (jika install via script)
+Satu script untuk semua (`install`, `upgrade`, `uninstall`, `status`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/endrico-fn/finnca/main/scripts/upgrade.sh | bash
+finnca status
+finnca upgrade
 ```
 
-## Jalankan dari source
+Alternatif manual: `.AppImage` portable, `.deb` (`sudo apt install ./finnca_*.deb`), `.rpm` (`sudo dnf install ./finnca_*.rpm`), atau `_x64-setup.exe` di [Releases](https://github.com/endrico-fn/finnca/releases).
+
+## Isinya
+
+- **Catat** — jurnal double-entry, transfer cepat, multi-split, impor mutasi bank CSV.
+- **Pahami** — dashboard, laba rugi, neraca, tren, cashflow, budget envelope, rencana cicilan.
+- **Aman** — multi-vault ala Obsidian, SQLite + SQLCipher AES-256, kunci Argon2id, IDR & USD.
+
+## Privasi
+
+Semua data tersimpan lokal dan terenkripsi. Kamu bikin vault sendiri, tentukan sendiri foldernya, pakai password sendiri. Satu folder per vault — gampang di-backup, gampang dipindah.
+
+## Dari source
 
 Butuh [Node.js](https://nodejs.org), [pnpm](https://pnpm.io), dan [Rust](https://rustup.rs).
 
@@ -79,30 +50,20 @@ Butuh [Node.js](https://nodejs.org), [pnpm](https://pnpm.io), dan [Rust](https:/
 git clone https://github.com/endrico-fn/finnca.git
 cd finnca
 pnpm install
-pnpm tauri dev
+pnpm tauri dev   # coba-coba
+pnpm tauri build # installer ada di src-tauri/target/release/bundle/
 ```
 
-Build installer:
-
-```bash
-pnpm tauri build
-```
-
-Output ada di `src-tauri/target/release/bundle/`.
-
-## Stack
-
-| Layer      | Tech                                                                |
-| ---------- | ------------------------------------------------------------------- |
-| Frontend   | SvelteKit 5, Tailwind CSS v4, TypeScript                            |
-| Backend    | Rust, Tauri 2                                                       |
-| Database   | SQLite + SQLCipher (enkripsi AES-256)                               |
-| KDF        | Argon2id (envelope encryption)                                      |
-| Arithmetic | integer minor-units `i128` — bukan float, tidak ada selisih Rp 0,01 |
+| Layer    | Tech                                            |
+| -------- | ----------------------------------------------- |
+| Depan    | Svelte 5, Tailwind v4, TypeScript               |
+| Belakang | Rust, Tauri 2                                   |
+| Data     | SQLite + SQLCipher, Argon2id                    |
+| Hitungan | integer minor-units (`i64`) — bukan float       |
 
 ## Status
 
-Proyek pribadi yang aktif dikembangkan. Kalau kamu nemuin ini dan mau pakai — silakan. Kalau ada yang aneh, buka issue.
+Proyek pribadi yang aktif dikembangkan. Silakan pakai; kalau ada yang aneh, buka issue.
 
 ## License
 
