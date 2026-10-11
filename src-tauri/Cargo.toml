@@ -7,6 +7,7 @@ repository = "https://github.com/endrico-fn/finnca"
 license = "MIT"
 keywords = ["finance", "accounting", "double-entry", "personal", "tauri"]
 edition = "2021"
+rust-version = "1.96.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
