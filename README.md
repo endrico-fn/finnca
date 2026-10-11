@@ -3,10 +3,10 @@
   <h1>finnca</h1>
   <p>pencatatan keuangan double-entry yang serius, tapi tidak ribet</p>
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-34d399?style=flat-square&labelColor=0c0d0e)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/endrico-fn/finnca?style=flat-square&labelColor=0c0d0e&color=2dd4bf&label=release)](https://github.com/endrico-fn/finnca/releases)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows-2dd4bf?style=flat-square&labelColor=0c0d0e)](https://github.com/endrico-fn/finnca/releases)
-[![Status](https://img.shields.io/badge/status-active_development-0d9488?style=flat-square&labelColor=0c0d0e)](https://github.com/endrico-fn/finnca)
+[![License: MIT](https://img.shields.io/badge/license-MIT-34d399?style=flat-square&labelColor=52525b)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/endrico-fn/finnca?style=flat-square&labelColor=52525b&color=2dd4bf&label=release)](https://github.com/endrico-fn/finnca/releases)
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows-2dd4bf?style=flat-square&labelColor=52525b)](https://github.com/endrico-fn/finnca/releases)
+[![Status](https://img.shields.io/badge/status-active_development-0d9488?style=flat-square&labelColor=52525b)](https://github.com/endrico-fn/finnca)
 </div>
 
 ---
