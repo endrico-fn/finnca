@@ -54,12 +54,12 @@ pnpm tauri dev   # coba-coba
 pnpm tauri build # installer ada di src-tauri/target/release/bundle/
 ```
 
-| Layer    | Tech                                            |
-| -------- | ----------------------------------------------- |
-| Depan    | Svelte 5, Tailwind v4, TypeScript               |
-| Belakang | Rust, Tauri 2                                   |
-| Data     | SQLite + SQLCipher, Argon2id                    |
-| Hitungan | integer minor-units (`i64`) — bukan float       |
+| Layer    | Tech                                      |
+| -------- | ----------------------------------------- |
+| Depan    | Svelte 5, Tailwind v4, TypeScript         |
+| Belakang | Rust, Tauri 2                             |
+| Data     | SQLite + SQLCipher, Argon2id              |
+| Hitungan | integer minor-units (`i64`) — bukan float |
 
 ## Status
 
