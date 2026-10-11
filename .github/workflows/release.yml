@@ -97,6 +97,7 @@ jobs:
             fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tauri, null, 2) + '\n');
           "
           sed -i "0,/^version = .*/s//version = \"${VERSION}\"/" src-tauri/Cargo.toml
+          python3 assets/badges/badges.py --version "${VERSION}"
           cargo update --manifest-path src-tauri/Cargo.toml -p finnca --precise "${VERSION}" || echo "WARN: cargo update lock failed, build will refresh src-tauri/Cargo.lock"
 
       - name: Build Tauri App
